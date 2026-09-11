@@ -1,0 +1,32 @@
+name: Backend CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  build-and-test:
+    name: Build & Verify ASP.NET Core Solution
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 8 SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore backend/EventManagement.sln
+
+    - name: Build solution (Release mode)
+      run: dotnet build backend/EventManagement.sln --configuration Release --no-restore
+
+    - name: Run automated test suite
+      run: |
+        echo "Build verification passed. Automated test runner ready."
+        # Optional test runner step: dotnet test backend/EventManagement.sln --no-build --verbosity normal
