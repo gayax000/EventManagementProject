@@ -16,4 +16,5 @@ public class Venue : BaseEntity
     public string Status { get; set; } = "Available"; // Available, Maintenance
     public Guid? ManagerId { get; set; }
     public User? Manager { get; set; }
+    
 }
