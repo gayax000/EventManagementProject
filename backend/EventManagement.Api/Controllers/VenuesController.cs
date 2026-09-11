@@ -1,0 +1,68 @@
+using EventManagement.Core.DTOs;
+using EventManagement.Core.Entities;
+using EventManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace EventManagement.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class VenuesController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public VenuesController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Venue>>> GetVenues([FromQuery] string? search, [FromQuery] int? minCapacity, [FromQuery] bool? isOutdoor)
+    {
+        var query = _context.Venues.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+            query = query.Where(v => v.Name.Contains(search) || v.LocationAddress.Contains(search));
+
+        if (minCapacity.HasValue)
+            query = query.Where(v => v.MaxCapacity >= minCapacity.Value);
+
+        if (isOutdoor.HasValue)
+            query = query.Where(v => v.IsOutdoor == isOutdoor.Value);
+
+        return Ok(await query.ToListAsync());
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Venue>> CreateVenue([FromBody] CreateVenueDto dto)
+    {
+        var venue = new Venue
+        {
+            Name = dto.Name,
+            LocationAddress = dto.LocationAddress,
+            MaxCapacity = dto.MaxCapacity,
+            BaseRentalPrice = dto.BaseRentalPrice,
+            IsOutdoor = dto.IsOutdoor
+        };
+
+        _context.Venues.Add(venue);
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetVenues), new { id = venue.VenueId }, venue);
+    }
+
+    [HttpPut("vendors/{id}/verify")]
+    public async Task<ActionResult> VerifyVendor(Guid id, [FromBody] VerifyVendorDto dto)
+    {
+        var vendor = await _context.Vendors.FindAsync(id);
+        if (vendor == null)
+            return NotFound(new { message = "Vendor not found." });
+
+        vendor.VerificationStatus = dto.Status;
+        vendor.AdminRemarks = dto.AdminRemarks;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = $"Vendor status updated to {dto.Status} successfully." });
+    }
+}
