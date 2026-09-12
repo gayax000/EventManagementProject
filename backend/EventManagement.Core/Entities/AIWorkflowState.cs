@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace EventManagement.Core.Entities;
+
 public class AIWorkflowState : BaseEntity
 {
     [Key]
