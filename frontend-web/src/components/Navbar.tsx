@@ -1,14 +1,19 @@
 import React from 'react';
-import { Sparkles, Calendar, ShieldCheck, CreditCard, LayoutDashboard } from 'lucide-react';
+import { Sparkles, Calendar, ShieldCheck, CreditCard, LayoutDashboard, Package } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  currentTab: string;
+  onTabChange: (tab: string) => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
   return (
     <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
           {/* Logo & Title */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onTabChange('dashboard')}>
             <div className="p-2 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-lg shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
@@ -18,27 +23,50 @@ export const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Tabs */}
           <div className="hidden md:flex items-center space-x-1">
-            <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-slate-800 text-sky-400">
+            <button 
+              onClick={() => onTabChange('dashboard')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                currentTab === 'dashboard' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
               <LayoutDashboard className="w-4 h-4" />
               <span>Dashboard</span>
             </button>
-            <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">
-              <Calendar className="w-4 h-4" />
-              <span>Event Proposals</span>
-            </button>
-            <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">
+
+            <button 
+              onClick={() => onTabChange('venues')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                currentTab === 'venues' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
               <ShieldCheck className="w-4 h-4" />
-              <span>Vendor Approvals</span>
+              <span>Venues & Vendors</span>
             </button>
-            <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white">
+
+            <button 
+              onClick={() => onTabChange('resources')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                currentTab === 'resources' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span>Resources & AI Rules</span>
+            </button>
+
+            <button 
+              onClick={() => onTabChange('payments')}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                currentTab === 'payments' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
               <CreditCard className="w-4 h-4" />
-              <span>Payments & Audit</span>
+              <span>Payments & Analytics</span>
             </button>
           </div>
 
-          {/* Profile / Status */}
+          {/* User Profile */}
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2 text-sm text-slate-300">
               <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
