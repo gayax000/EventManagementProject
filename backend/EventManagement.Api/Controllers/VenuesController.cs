@@ -23,7 +23,10 @@ public class VenuesController : ControllerBase
         var query = _context.Venues.AsQueryable();
 
         if (!string.IsNullOrEmpty(search))
-            query = query.Where(v => v.Name.Contains(search) || v.LocationAddress.Contains(search));
+        {
+            var searchTerm = $"%{search}%";
+            query = query.Where(v => EF.Functions.ILike(v.Name, searchTerm) || EF.Functions.ILike(v.LocationAddress, searchTerm));
+        }
 
         if (minCapacity.HasValue)
             query = query.Where(v => v.MaxCapacity >= minCapacity.Value);
