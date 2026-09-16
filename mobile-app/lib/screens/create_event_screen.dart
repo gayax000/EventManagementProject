@@ -1,5 +1,8 @@
-
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../services/api_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -15,6 +18,88 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _budgetController = TextEditingController(text: "1200000");
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 45));
   bool _isLoading = false;
+
+  // New state for Device Features
+  List<XFile> _selectedImages = [];
+  String _locationName = "Location not selected";
+  bool _isGettingLocation = false;
+
+  // --- Device Feature 1: Image Picker ---
+  Future<void> _pickImages() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final List<XFile> images = await picker.pickMultiImage();
+      if (images.isNotEmpty) {
+        setState(() {
+          _selectedImages = images;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking images: $e");
+    }
+  }
+
+  // --- Device Feature 2: GPS Location Selection ---
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isGettingLocation = true;
+      _locationName = "Detecting GPS...";
+    });
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationName = "Location services disabled";
+          _isGettingLocation = false;
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationName = "Location permission denied";
+            _isGettingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationName = "Location permissions permanently denied";
+          _isGettingLocation = false;
+        });
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      
+      // Get address from coordinates
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        setState(() {
+          _locationName = "${place.locality ?? place.subAdministrativeArea}, ${place.administrativeArea}";
+        });
+      } else {
+        setState(() {
+          _locationName = "Lat: ${position.latitude.toStringAsFixed(2)}, Lng: ${position.longitude.toStringAsFixed(2)}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _locationName = "Failed to get location";
+      });
+    } finally {
+      setState(() {
+        _isGettingLocation = false;
+      });
+    }
+  }
 
   Future<void> _submitEvent() async {
     final title = _titleController.text.trim();
@@ -152,34 +237,59 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             _buildInputField("Budget Limit (LKR)", _budgetController, keyboardType: TextInputType.number),
             const SizedBox(height: 20),
 
-            // Device Feature: Camera / Photos (Wireframe Page 4)
-            const Text("📷 EVENT VENUE / INSPIRATION PHOTOS", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+            // Device Feature 1: Camera / Photos (Image Picker)
+            const Text("📸 EVENT VENUE / INSPIRATION PHOTOS", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
-              child: const Row(
-                children: [
-                  Icon(Icons.photo_library, color: Colors.cyan),
-                  SizedBox(width: 8),
-                  Text("moodboard_lighting.jpg | setup_plan.png", style: TextStyle(color: Colors.white70, fontSize: 13)),
-                ],
+            InkWell(
+              onTap: _pickImages,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.cyan.withOpacity(0.5))),
+                child: Row(
+                  children: [
+                    const Icon(Icons.add_photo_alternate, color: Colors.cyan),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _selectedImages.isEmpty 
+                          ? "Tap to select photos..." 
+                          : "${_selectedImages.length} photo(s) selected", 
+                        style: TextStyle(color: _selectedImages.isEmpty ? Colors.white54 : Colors.cyanAccent, fontSize: 13)
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            if (_selectedImages.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  _selectedImages.map((e) => e.name).take(2).join(" | ") + (_selectedImages.length > 2 ? " ..." : ""),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ),
             const SizedBox(height: 20),
 
-            // Device Feature: GPS Location Selection
+            // Device Feature 2: GPS Location Selection
             const Text("📍 LOCATION SELECTION (GPS)", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
-              child: const Row(
-                children: [
-                  Icon(Icons.location_on, color: Colors.redAccent),
-                  SizedBox(width: 8),
-                  Text("Detected GPS: Colombo / Western Province", style: TextStyle(color: Colors.white70, fontSize: 13)),
-                ],
+            InkWell(
+              onTap: _isGettingLocation ? null : _getCurrentLocation,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
+                child: Row(
+                  children: [
+                    _isGettingLocation 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.redAccent, strokeWidth: 2))
+                      : const Icon(Icons.location_on, color: Colors.redAccent),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(_locationName, style: TextStyle(color: _locationName.contains("not selected") ? Colors.white54 : Colors.white, fontSize: 13)),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 30),
