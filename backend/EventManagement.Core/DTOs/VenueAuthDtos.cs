@@ -58,3 +58,17 @@ public class VerifyVendorDto
 
     public string? AdminRemarks { get; set; }
 }
+
+public class RegisterVendorDto
+{
+    [Required, MaxLength(150)]
+    public string BusinessName { get; set; } = string.Empty;
+
+    [Required]
+    public string Category { get; set; } = "Catering";
+
+    [Required]
+    public string ContactNumber { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+}

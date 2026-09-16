@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Users, DollarSign, CheckCircle, XCircle, ShieldCheck, Plus, Search } from 'lucide-react';
-import { venueService } from '../services/api';
+import { venueService, vendorService } from '../services/api';
 
 export interface VendorItem {
   id: string;
@@ -52,8 +52,34 @@ export const VenuesPage: React.FC = () => {
     fetchVenues();
   }, [searchTerm]);
 
-  const handleVerifyVendor = (id: string, newStatus: 'Verified' | 'Rejected') => {
-    setVendors(prev => prev.map(v => v.id === id ? { ...v, status: newStatus } : v));
+  // Sync vendors when storage changes or on mount
+  useEffect(() => {
+    const syncVendors = () => {
+      try {
+        const saved = localStorage.getItem('eventcraft_vendors');
+        if (saved) {
+          setVendors(JSON.parse(saved));
+        }
+      } catch {}
+    };
+    syncVendors();
+    const interval = setInterval(syncVendors, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleVerifyVendor = async (id: string, newStatus: 'Verified' | 'Rejected') => {
+    setVendors(prev => {
+      const updated = prev.map(v => (v.id === id || (v as any).vendorId === id) ? { ...v, status: newStatus } : v);
+      try {
+        localStorage.setItem('eventcraft_vendors', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+    try {
+      await vendorService.verifyVendor(id, newStatus);
+    } catch (e) {
+      console.warn("Backend verifyVendor call warning", e);
+    }
   };
 
   return (

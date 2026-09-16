@@ -49,3 +49,31 @@ export const venueService = {
     return response.data;
   },
 };
+
+export interface VendorItem {
+  id?: string;
+  vendorId?: string;
+  name?: string;
+  businessName?: string;
+  category: string;
+  contact?: string;
+  contactNumber?: string;
+  status?: string;
+  verificationStatus?: string;
+  adminRemarks?: string;
+}
+
+export const vendorService = {
+  getVendors: async (): Promise<VendorItem[]> => {
+    const res = await apiClient.get('/venues/vendors');
+    return res.data;
+  },
+  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string }) => {
+    const res = await apiClient.post('/venues/vendors/register', data);
+    return res.data;
+  },
+  verifyVendor: async (id: string, status: 'Verified' | 'Rejected', adminRemarks?: string) => {
+    const res = await apiClient.put(`/venues/vendors/${id}/verify`, { status, adminRemarks });
+    return res.data;
+  },
+};

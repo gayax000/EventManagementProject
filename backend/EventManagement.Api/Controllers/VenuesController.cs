@@ -55,6 +55,33 @@ public class VenuesController : ControllerBase
         return CreatedAtAction(nameof(GetVenues), new { id = venue.VenueId }, venue);
     }
 
+    // 4. GET: api/venues/vendors
+    [HttpGet("vendors")]
+    public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors()
+    {
+        return await _context.Vendors.OrderByDescending(v => v.CreatedAt).ToListAsync();
+    }
+
+    // 5. POST: api/venues/vendors/register (Vendor Portal Registration)
+    [HttpPost("vendors/register")]
+    public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
+    {
+        var vendor = new Vendor
+        {
+            BusinessName = dto.BusinessName,
+            Category = dto.Category,
+            ContactNumber = dto.ContactNumber,
+            VerificationStatus = "Pending",
+            AdminRemarks = dto.Description
+        };
+
+        _context.Vendors.Add(vendor);
+        await _context.SaveChangesAsync();
+
+        return Ok(vendor);
+    }
+
+    // 6. PUT: api/venues/vendors/{id}/verify (Manager Admin Action)
     [HttpPut("vendors/{id}/verify")]
     public async Task<ActionResult> VerifyVendor(Guid id, [FromBody] VerifyVendorDto dto)
     {
