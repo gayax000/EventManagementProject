@@ -27,16 +27,24 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure listening port for Railway or default to 8080
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 var app = builder.Build();
 
 // 5. Configure HTTP pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+// Root health check endpoint for Railway and monitoring
+app.MapGet("/", () => Results.Ok(new 
+{ 
+    status = "healthy", 
+    service = "EventManagement API (.NET 8)", 
+    database = "Neon PostgreSQL (Connected)",
+    timestamp = DateTime.UtcNow 
+}));
 
 // Use CORS (Must be before Authorization & MapControllers)
 app.UseCors("AllowAll");

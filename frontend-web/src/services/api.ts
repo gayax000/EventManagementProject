@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// ASP.NET Core Backend Base URL
-const API_BASE_URL = 'http://localhost:5147/api'; 
+// ASP.NET Core Backend Base URL (Railway Production Cloud)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://eventmanagementproject-production.up.railway.app/api'; 
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

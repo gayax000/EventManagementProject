@@ -6,13 +6,13 @@ import '../models/event_model.dart';
 class ApiService {
   static String get baseUrl {
     if (kIsWeb) {
+      if (Uri.base.host.contains('vercel.app')) {
+        return 'https://eventmanagementproject-production.up.railway.app/api';
+      }
       final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
       return 'http://$host:5147/api';
     }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://172.19.83.175:5147/api';
-    }
-    return 'http://localhost:5147/api';
+    return 'https://eventmanagementproject-production.up.railway.app/api';
   }
 
   // 1. Fetch live events list from Backend
