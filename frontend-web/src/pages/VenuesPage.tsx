@@ -2,14 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Users, DollarSign, CheckCircle, XCircle, ShieldCheck, Plus, Search } from 'lucide-react';
 import { venueService } from '../services/api';
 
+export interface VendorItem {
+  id: string;
+  name: string;
+  category: string;
+  contact: string;
+  status: string;
+}
+
+const DEFAULT_VENDORS: VendorItem[] = [
+  { id: 'v1', name: 'Royal Colombo Catering Services', category: 'Catering', contact: '+94771234567', status: 'Pending' },
+  { id: 'v2', name: 'Mega Line-Array Sound & Stage Rigs', category: 'AudioVisual', contact: '+94719876543', status: 'Pending' },
+];
+
 export const VenuesPage: React.FC = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [vendors, setVendors] = useState([
-    { id: 'v1', name: 'Royal Colombo Catering Services', category: 'Catering', contact: '+94771234567', status: 'Pending' },
-    { id: 'v2', name: 'Mega Line-Array Sound & Stage Rigs', category: 'AudioVisual', contact: '+94719876543', status: 'Pending' },
-  ]);
+  const [vendors, setVendors] = useState<VendorItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('eventcraft_vendors');
+      return saved ? JSON.parse(saved) : DEFAULT_VENDORS;
+    } catch {
+      return DEFAULT_VENDORS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eventcraft_vendors', JSON.stringify(vendors));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [vendors]);
 
   // Load Real Venues from our Backend API
   useEffect(() => {

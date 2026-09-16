@@ -1,11 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, TrendingUp, CheckCircle, XCircle, Download, Eye } from 'lucide-react';
 
+export interface PaymentItem {
+  id: string;
+  bookingRef: string;
+  clientName: string;
+  amount: number;
+  slipUrl: string;
+  date: string;
+  status: string;
+}
+
+const DEFAULT_PAYMENTS: PaymentItem[] = [
+  { id: 'p1', bookingRef: '#EV-2026-99', clientName: 'Kasun Bandara', amount: 880000, slipUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400', date: '2026-11-10', status: 'Pending' },
+  { id: 'p2', bookingRef: '#EV-2026-42', clientName: 'Sahan Perera', amount: 450000, slipUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400', date: '2026-10-28', status: 'Approved' },
+];
+
 export const PaymentsPage: React.FC = () => {
-  const [payments, setPayments] = useState([
-    { id: 'p1', bookingRef: '#EV-2026-99', clientName: 'Kasun Bandara', amount: 880000, slipUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400', date: '2026-11-10', status: 'Pending' },
-    { id: 'p2', bookingRef: '#EV-2026-42', clientName: 'Sahan Perera', amount: 450000, slipUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400', date: '2026-10-28', status: 'Approved' },
-  ]);
+  const [payments, setPayments] = useState<PaymentItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('eventcraft_payments');
+      return saved ? JSON.parse(saved) : DEFAULT_PAYMENTS;
+    } catch {
+      return DEFAULT_PAYMENTS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eventcraft_payments', JSON.stringify(payments));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [payments]);
 
   const handleVerify = (id: string, newStatus: 'Approved' | 'Rejected') => {
     setPayments(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));

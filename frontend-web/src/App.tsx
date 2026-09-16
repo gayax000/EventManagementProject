@@ -13,10 +13,10 @@ function App() {
       <Navbar currentTab={activeTab} onTabChange={setActiveTab} />
       
       <main className="flex-1">
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'venues' && <VenuesPage />}
-        {activeTab === 'resources' && <ResourcesPage />}
-        {activeTab === 'payments' && <PaymentsPage />}
+        <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}><Dashboard /></div>
+        <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
+        <div className={activeTab === 'resources' ? 'block' : 'hidden'}><ResourcesPage /></div>
+        <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
       </main>
 
       <footer className="py-4 text-center text-xs text-slate-500 border-t border-slate-200 bg-white">

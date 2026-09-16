@@ -1,15 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, CloudRain, Cpu, Plus, Check } from 'lucide-react';
 
+export interface ResourceItem {
+  id: string;
+  name: string;
+  type: string;
+  unitPrice: number;
+  available: number;
+}
+
+const DEFAULT_RESOURCES: ResourceItem[] = [
+  { id: '1', name: 'Executive Dinner Buffet (3 Meats, Seafood)', type: 'CateringPackage', unitPrice: 6500, available: 2000 },
+  { id: '2', name: 'Premium Dinner Buffet B (2 Meats, Action Station)', type: 'CateringPackage', unitPrice: 5000, available: 3000 },
+  { id: '3', name: 'Concert Line-Array Sound & Digital Mixer', type: 'SoundLighting', unitPrice: 180000, available: 12 },
+  { id: '4', name: 'Ambient Intelligent LED Moving Heads Rig', type: 'SoundLighting', unitPrice: 95000, available: 15 },
+  { id: '5', name: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)', type: 'MarqueeTent', unitPrice: 150000, available: 15 },
+  { id: '6', name: 'Backup Diesel Silent Generator (60 kVA)', type: 'PowerBackup', unitPrice: 90000, available: 10 },
+];
+
 export const ResourcesPage: React.FC = () => {
-  const [resources, setResources] = useState([
-    { id: '1', name: 'Executive Dinner Buffet (3 Meats, Seafood)', type: 'CateringPackage', unitPrice: 6500, available: 2000 },
-    { id: '2', name: 'Premium Dinner Buffet B (2 Meats, Action Station)', type: 'CateringPackage', unitPrice: 5000, available: 3000 },
-    { id: '3', name: 'Concert Line-Array Sound & Digital Mixer', type: 'SoundLighting', unitPrice: 180000, available: 12 },
-    { id: '4', name: 'Ambient Intelligent LED Moving Heads Rig', type: 'SoundLighting', unitPrice: 95000, available: 15 },
-    { id: '5', name: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)', type: 'MarqueeTent', unitPrice: 150000, available: 15 },
-    { id: '6', name: 'Backup Diesel Silent Generator (60 kVA)', type: 'PowerBackup', unitPrice: 90000, available: 10 },
-  ]);
+  const [resources, setResources] = useState<ResourceItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('eventcraft_resources');
+      return saved ? JSON.parse(saved) : DEFAULT_RESOURCES;
+    } catch {
+      return DEFAULT_RESOURCES;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eventcraft_resources', JSON.stringify(resources));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [resources]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');

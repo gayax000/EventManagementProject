@@ -151,20 +151,23 @@ public class EventsController : ControllerBase
     [HttpPost("{id}/approve-proposal")]
     public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0)
     {
-        var aiState = await _context.AIWorkflowStates.Include(a => a.Event).FirstOrDefaultAsync(a => a.EventId == id);
-        if (aiState == null)
-            return NotFound(new { message = "AI Proposal not found for this event." });
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+            return NotFound(new { message = "Event not found in database." });
 
-        aiState.ApprovalStatus = "ApprovedByManager";
-        if (discount > 0)
-            aiState.EstimatedTotalCost -= discount;
+        ev.Status = "ApprovedByManager";
 
-        if (aiState.Event != null)
-            aiState.Event.Status = "ApprovedByManager";
+        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        if (aiState != null)
+        {
+            aiState.ApprovalStatus = "ApprovedByManager";
+            if (discount > 0)
+                aiState.EstimatedTotalCost -= discount;
+        }
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Proposal approved successfully by Manager.", finalCost = aiState.EstimatedTotalCost });
+        return Ok(new { message = "Proposal approved successfully by Manager.", status = ev.Status });
     }
 
     // 5. POST: api/events/{id}/sign-contract (Business-Specific: Contract Sign & QR Entry Pass Generation)
