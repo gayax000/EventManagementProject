@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const CreateEventScreen()),
             );
             if (created == true) {
-              _loadEvents();
+              _loadUserAndEvents();
             }
           },
           child: Padding(
@@ -456,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(builder: (_) => ProposalDetailsScreen(eventId: event.eventId)),
                   );
                   if (refresh == true) {
-                    _loadEvents();
+                    _loadUserAndEvents();
                   }
                 },
                 child: Text(
