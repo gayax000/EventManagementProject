@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 import 'create_event_screen.dart';
 import 'proposal_details_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,21 +16,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<EventSummary> _events = [];
+  String _userName = 'User';
 
   @override
   void initState() {
     super.initState();
-    _loadEvents();
+    _loadUserAndEvents();
   }
 
-  Future<void> _loadEvents() async {
+  Future<void> _loadUserAndEvents() async {
     setState(() => _isLoading = true);
+    final name = await AuthService.getUserName();
     final data = await ApiService.getMyEvents();
     if (mounted) {
       setState(() {
+        _userName = name ?? 'User';
         _events = data;
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await AuthService.logout();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
     }
   }
 
@@ -42,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildCustomAppBar(),
             Expanded(
               child: RefreshIndicator(
-                onRefresh: _loadEvents,
+                onRefresh: _loadUserAndEvents,
                 color: Colors.cyanAccent,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -93,23 +105,40 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text("👋 Welcome back, Kasun!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-              SizedBox(height: 4),
-              Text('EventCraft AI Experience', style: TextStyle(fontSize: 13, color: Colors.cyanAccent, fontWeight: FontWeight.w500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("👋 Welcome back, $_userName!", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+                const SizedBox(height: 4),
+                const Text('EventCraft AI Experience', style: TextStyle(fontSize: 13, color: Colors.cyanAccent, fontWeight: FontWeight.w500)),
+              ],
+            ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.cyan.withOpacity(0.1),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.refresh_rounded, color: _isLoading ? Colors.grey : Colors.cyanAccent),
-              onPressed: _isLoading ? null : _loadEvents,
-            ),
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.cyan.withOpacity(0.1),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.refresh_rounded, color: _isLoading ? Colors.grey : Colors.cyanAccent),
+                  onPressed: _isLoading ? null : _loadUserAndEvents,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.redAccent.withOpacity(0.1),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                  onPressed: _handleLogout,
+                ),
+              ),
+            ],
           ),
         ],
       ),

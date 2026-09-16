@@ -1,19 +1,24 @@
 import React from 'react';
-import { Sparkles, ShieldCheck, CreditCard, LayoutDashboard, Package, Building2, ArrowLeftRight } from 'lucide-react';
+import { Sparkles, ShieldCheck, CreditCard, LayoutDashboard, Package, Building2, LogOut } from 'lucide-react';
+import { authService } from '../services/authService';
 
 interface NavbarProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
   currentPortal: 'manager' | 'vendor';
   onPortalChange: (portal: 'manager' | 'vendor') => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
   currentTab, 
   onTabChange,
   currentPortal,
-  onPortalChange
+  onPortalChange,
+  onLogout
 }) => {
+  const userName = authService.getUserName() || (currentPortal === 'manager' ? 'Kasun (Manager)' : 'Supplier Session');
+
   return (
     <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,8 +125,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
                 currentPortal === 'manager' ? 'bg-emerald-500' : 'bg-indigo-400'
               }`}></span>
-              <span>{currentPortal === 'manager' ? 'Kasun (Manager)' : 'Supplier Session'}</span>
+              <span>{userName}</span>
             </div>
+
+            {onLogout && (
+              <button 
+                onClick={onLogout}
+                className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-full transition"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
 
           </div>
 

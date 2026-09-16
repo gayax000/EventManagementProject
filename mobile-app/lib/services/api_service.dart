@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/event_model.dart';
+import 'auth_service.dart';
 
 class ApiService {
   static String get baseUrl {
@@ -15,11 +16,22 @@ class ApiService {
     return 'https://eventmanagementproject-production.up.railway.app/api';
   }
 
+  // Helper method to build headers with Bearer Token
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await AuthService.getToken();
+    final headers = {'Content-Type': 'application/json'};
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
   // 1. Fetch live events list from Backend
   static Future<List<EventSummary>> getMyEvents() async {
     try {
       final url = Uri.parse('$baseUrl/events/my-events');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = jsonDecode(response.body);
@@ -37,7 +49,8 @@ class ApiService {
   static Future<EventProposalDetail?> getProposalDetails(String eventId) async {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/proposal');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = jsonDecode(response.body);
@@ -67,10 +80,11 @@ class ApiService {
         'budgetLimit': budgetLimit,
       });
 
+      final headers = await _getHeaders();
       final response = await http
           .post(
             url,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: payload,
           )
           .timeout(const Duration(seconds: 30)); // Give AI time to run
@@ -100,9 +114,10 @@ class ApiService {
         'digitalSignatureUrl': signatureData.isNotEmpty ? signatureData : 'signature_data_ok',
       });
 
+      final headers = await _getHeaders();
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: payload,
       ).timeout(const Duration(seconds: 10));
 

@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
 import { VenuesPage } from './pages/VenuesPage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { PaymentsPage } from './pages/PaymentsPage';
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { authService } from './services/authService';
 
 import { VendorPortal } from './pages/VendorPortal';
 
 function App() {
   const [currentPortal, setCurrentPortal] = useState<'manager' | 'vendor'>('manager');
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
+  useEffect(() => {
+    setIsAuthenticated(authService.isLoggedIn());
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    setShowRegister(false);
+    setActiveTab('dashboard');
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    if (showRegister) {
+      return <Register onNavigateLogin={() => setShowRegister(false)} />;
+    }
+    return <Login onLoginSuccess={handleLoginSuccess} onNavigateRegister={() => setShowRegister(true)} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
@@ -18,6 +45,7 @@ function App() {
         onTabChange={setActiveTab} 
         currentPortal={currentPortal}
         onPortalChange={setCurrentPortal}
+        onLogout={handleLogout}
       />
       
       <main className="flex-1">
