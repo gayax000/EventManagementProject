@@ -41,3 +41,11 @@ export const eventService = {
     return response.data;
   },
 };
+
+export const venueService = {
+  getVenues: async (search?: string) => {
+    const url = search ? `/venues?search=${encodeURIComponent(search)}` : '/venues';
+    const response = await apiClient.get(url);
+    return response.data;
+  },
+};

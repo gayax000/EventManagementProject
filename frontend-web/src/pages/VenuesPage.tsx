@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Users, DollarSign, CheckCircle, XCircle, ShieldCheck, Plus } from 'lucide-react';
-import axios from 'axios';
+import { MapPin, Users, DollarSign, CheckCircle, XCircle, ShieldCheck, Plus, Search } from 'lucide-react';
+import { venueService } from '../services/api';
 
 export const VenuesPage: React.FC = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
   const [vendors, setVendors] = useState([
     { id: 'v1', name: 'Royal Colombo Catering Services', category: 'Catering', contact: '+94771234567', status: 'Pending' },
     { id: 'v2', name: 'Mega Line-Array Sound & Stage Rigs', category: 'AudioVisual', contact: '+94719876543', status: 'Pending' },
@@ -14,13 +15,13 @@ export const VenuesPage: React.FC = () => {
   useEffect(() => {
     const fetchVenues = async () => {
       try {
-        const url = searchTerm 
-          ? `http://localhost:5147/api/venues?search=${searchTerm}` 
-          : 'http://localhost:5147/api/venues';
-        const res = await axios.get(url);
-        setVenues(res.data);
+        setLoading(true);
+        const data = await venueService.getVenues(searchTerm);
+        setVenues(data);
       } catch (err) {
         console.error("Failed to fetch venues from backend", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchVenues();

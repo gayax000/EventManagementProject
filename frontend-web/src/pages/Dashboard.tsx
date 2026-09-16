@@ -131,6 +131,30 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Events Queue Selector */}
+      <div className="mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Incoming Event Queue (Click an event to review)</h3>
+        <div className="flex flex-wrap gap-2">
+          {events.map((ev) => (
+            <button
+              key={ev.eventId}
+              onClick={() => setSelectedEvent(ev)}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center space-x-2 transition border ${
+                selectedEvent?.eventId === ev.eventId
+                  ? 'bg-sky-50 text-sky-700 border-sky-300 ring-2 ring-sky-400/20'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${
+                ev.status === 'ApprovedByManager' || ev.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+              }`} />
+              <span className="font-bold">{ev.title}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-slate-500 border border-slate-200">{ev.status}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Main Review Section: Live Proposal */}
       {selectedEvent ? (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
@@ -140,7 +164,7 @@ export const Dashboard: React.FC = () => {
               <h2 className="font-semibold text-base">Human-in-the-Loop AI Proposal Review (Live DB)</h2>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-              selectedEvent.status === 'ApprovedByManager' 
+              selectedEvent.status === 'ApprovedByManager' || selectedEvent.status === 'Confirmed'
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
                 : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
             }`}>
