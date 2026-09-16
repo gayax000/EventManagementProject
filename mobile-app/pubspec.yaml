@@ -43,6 +43,9 @@ dependencies:
   # Device Features (Spec Requirements)
   qr_flutter: ^4.1.0       # QR Code Entry Pass
   signature: ^5.4.1        # Digital Signature Pad
+  image_picker: ^1.1.2     # Image Picker
+  geolocator: ^13.0.1       # GPS Location
+  geocoding: ^3.0.0        # Geocoding
 
 
   # The following adds the Cupertino Icons font to your application.
