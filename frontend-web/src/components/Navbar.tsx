@@ -1,12 +1,16 @@
 import React from 'react';
-import { Sparkles, Calendar, ShieldCheck, CreditCard, LayoutDashboard, Package } from 'lucide-react';
+import { Sparkles, Calendar, ShieldCheck, CreditCard, LayoutDashboard, Package, LogOut } from 'lucide-react';
+import { authService } from '../services/authService';
 
 interface NavbarProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
+  onLogout: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange, onLogout }) => {
+  const userName = authService.getUserName();
+  
   return (
     <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,11 +71,18 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
           </div>
 
           {/* User Profile */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-sm text-slate-300">
               <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span>Online • Kasun (Manager)</span>
+              <span>Online • {userName}</span>
             </div>
+            <button 
+              onClick={onLogout}
+              className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-full transition"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
