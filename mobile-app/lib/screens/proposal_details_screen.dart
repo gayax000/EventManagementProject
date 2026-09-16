@@ -1,21 +1,104 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
+import '../models/event_model.dart';
+import '../services/api_service.dart';
 
 class ProposalDetailsScreen extends StatefulWidget {
-  const ProposalDetailsScreen({super.key});
+  final String eventId;
+
+  const ProposalDetailsScreen({super.key, required this.eventId});
 
   @override
   State<ProposalDetailsScreen> createState() => _ProposalDetailsScreenState();
 }
 
 class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
-  bool _isSigned = false;
+  bool _isLoading = true;
+  EventProposalDetail? _proposal;
+  bool _isSubmittingSignature = false;
+
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.black,
     exportBackgroundColor: Colors.white,
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProposal();
+  }
+
+  @override
+  void dispose() {
+    _signatureController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProposal() async {
+    setState(() => _isLoading = true);
+    final data = await ApiService.getProposalDetails(widget.eventId);
+    if (mounted) {
+      setState(() {
+        _proposal = data;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _confirmAndSign() async {
+    if (_signatureController.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please provide your digital signature first."),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmittingSignature = true);
+
+    try {
+      final Uint8List? signatureBytes = await _signatureController.toPngBytes();
+      final String signatureBase64 = signatureBytes != null
+          ? 'data:image/png;base64,${base64Encode(signatureBytes)}'
+          : 'signature_ok';
+
+      final result = await ApiService.signContract(
+        eventId: widget.eventId,
+        agreedAmount: _proposal?.estimatedTotalCost ?? 0,
+        signatureData: signatureBase64,
+      );
+
+      if (!mounted) return;
+
+      if (result != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🎉 Contract Signed & QR Pass Issued!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _loadProposal(); // Reload to display newly minted QR Pass
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error signing contract: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmittingSignature = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,121 +107,247 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E293B),
         title: const Text("Event Proposal & Status", style: TextStyle(color: Colors.white, fontSize: 16)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context, true),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.cyan),
+            onPressed: _loadProposal,
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.green.withOpacity(0.5)),
-              ),
-              child: const Text("🟢 STATUS: APPROVED BY MANAGER", style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 16),
-
-            // AI Breakdown Card
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(10)),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("🤖 AI GENERATED BREAKDOWN", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                  SizedBox(height: 8),
-                  Text("• Grand Palm Garden (Outdoor Lawn)", style: TextStyle(color: Colors.white70)),
-                  Text("• Premium Dinner Buffet B (120 x Rs. 5,000) = Rs. 600,000", style: TextStyle(color: Colors.white70)),
-                  Text("• Stage & Sound System Package = Rs. 150,000", style: TextStyle(color: Colors.white70)),
-                  SizedBox(height: 8),
-                  Text("⚠️ Weather Contingency:", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
-                  Text("• Added Solution: Waterproof Marquee Tent = Rs. 150,000", style: TextStyle(color: Colors.white70)),
-                  Divider(color: Colors.white12, height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
+          : _proposal == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text("TOTAL AGREED AMOUNT:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      Text("Rs. 880,000", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text("Failed to load proposal details.", style: TextStyle(color: Colors.white70)),
+                      const SizedBox(height: 12),
+                      ElevatedButton(onPressed: _loadProposal, child: const Text("Retry")),
                     ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
+                )
+              : _buildContent(),
+    );
+  }
 
-            if (!_isSigned) ...[
-              // Digital Signature Section (Wireframe Page 11 - Spec Device Feature)
-              const Text("✍️ DRAW YOUR DIGITAL SIGNATURE", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Container(
+  Widget _buildContent() {
+    final proposal = _proposal!;
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    final m = proposal.targetDate.month >= 1 && proposal.targetDate.month <= 12 ? months[proposal.targetDate.month - 1] : '';
+    final formattedDate = '$m ${proposal.targetDate.day.toString().padLeft(2, '0')}, ${proposal.targetDate.year}';
+    final formattedCost = proposal.estimatedTotalCost.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    final formattedBudget = proposal.budgetLimit.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+
+    final isApproved = proposal.status == 'ApprovedByManager';
+    final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
+    final isPending = proposal.status == 'PendingManagerApproval' || proposal.status == 'UnderReview';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Status Header
+          if (isConfirmed)
+            _buildBadge("✅ STATUS: BOOKING CONFIRMED & PASS ISSUED", Colors.green, Colors.greenAccent)
+          else if (isApproved)
+            _buildBadge("🟢 STATUS: APPROVED BY MANAGER", Colors.green, Colors.greenAccent)
+          else
+            _buildBadge("🟡 STATUS: UNDER MANAGER REVIEW", Colors.amber, Colors.amber),
+
+          const SizedBox(height: 16),
+
+          // 2. Event Title & Details Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(proposal.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                const SizedBox(height: 6),
+                Text("📅 Date: $formattedDate", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text("👥 Guests: ${proposal.guestCount}  |  📍 Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text("💰 Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 3. AI Generated Breakdown Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 18),
+                    SizedBox(width: 8),
+                    Text("AI AGENTIC BREAKDOWN & SAFEGUARD", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text("• Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text("• Catering & Resources: Optimized for ${proposal.guestCount} guests", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 8),
+                const Text("🌦️ Weather Risk Assessment:", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 2),
+                const Text("• Rain Risk Safeguard: Waterproof Marquee Tent & Backup Power Included", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Divider(color: Colors.white12, height: 22),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 4. Action / Signature / QR Pass based on State
+          if (isConfirmed && proposal.qrCodeData != null) ...[
+            // QR Entry Pass View
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
                 ),
-                child: Signature(
-                  controller: _signatureController,
-                  height: 140,
-                  backgroundColor: Colors.white,
+                child: Column(
+                  children: [
+                    const Text("🎟️ OFFICIAL EVENT ENTRY PASS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    const Text("Present this QR at the venue entrance gate", style: TextStyle(color: Colors.black54, fontSize: 11)),
+                    const SizedBox(height: 16),
+                    QrImageView(
+                      data: proposal.qrCodeData!,
+                      version: QrVersions.auto,
+                      size: 190.0,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      proposal.bookingRef ?? "REF: EV-2026-LIVE",
+                      style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text("Status: Verified & Active in Neon DB", style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24)),
-                      onPressed: () => _signatureController.clear(),
-                      child: const Text("Clear Signature", style: TextStyle(color: Colors.white70)),
+            ),
+          ] else if (isApproved) ...[
+            // Digital Signature Pad (Customer signs to confirm proposal)
+            const Text("✍️ DRAW YOUR DIGITAL SIGNATURE TO CONFIRM", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text("Manager approved this proposal. Sign below to confirm booking and receive your QR Pass.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.cyan, width: 2),
+              ),
+              child: Signature(
+                controller: _signatureController,
+                height: 140,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
+                    onPressed: () => _signatureController.clear(),
+                    child: const Text("Clear Signature", style: TextStyle(color: Colors.white70)),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600),
-                      onPressed: () {
-                        setState(() {
-                          _isSigned = true;
-                        });
-                      },
-                      child: const Text("CONFIRM & ISSUE PASS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
+                    onPressed: _isSubmittingSignature ? null : _confirmAndSign,
+                    child: _isSubmittingSignature
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text("CONFIRM & ISSUE PASS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Under Review Message
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.hourglass_top, color: Colors.amber, size: 36),
+                  SizedBox(height: 8),
+                  Text("Awaiting Manager Approval", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+                  SizedBox(height: 4),
+                  Text(
+                    "Our AI Multi-Agent system has crafted the preliminary plan. The Event Operations Manager is currently reviewing packages, vendor availability, and final pricing on the Web Portal. Please check back shortly!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               ),
-            ] else ...[
-              // QR Pass Section (Wireframe Page 6 - Spec Device Feature)
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text("🎟️ OFFICIAL ENTRY PASS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 4),
-                      const Text("Scan at venue gate entrance", style: TextStyle(color: Colors.black54, fontSize: 12)),
-                      const SizedBox(height: 16),
-                      QrImageView(
-                        data: "EVENTCRAFT|#EV-2026-99|Kasun|Confirmed",
-                        version: QrVersions.auto,
-                        size: 180.0,
-                      ),
-                      const SizedBox(height: 12),
-                      const Text("Ref Code: #EV-2026-99", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 15)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: textColor.withOpacity(0.6)),
+      ),
+      child: Text(text, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 }
