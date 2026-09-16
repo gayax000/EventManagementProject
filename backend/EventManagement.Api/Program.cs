@@ -1,4 +1,5 @@
 using EventManagement.Infrastructure.Data;
+using EventManagement.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,14 +19,17 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Add Controllers & Swagger
+// 3. Register HttpClient & Agentic AI Workflow Service (Spec Section 10 Integration)
+builder.Services.AddHttpClient<IAiWorkflowService, AiWorkflowService>();
+
+// 4. Add Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 4. Configure HTTP pipeline
+// 5. Configure HTTP pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -39,9 +43,10 @@ app.UseCors("AllowAll");
 
 app.UseAuthorization();
 
-// 5. Map Controllers
+// 6. Map Controllers
 app.MapControllers();
-// Seed Realistic Sri Lankan Venues, Hotels and Resources on Startup
+
+// 7. Seed Realistic Sri Lankan Venues, Hotels and Resources on Startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();

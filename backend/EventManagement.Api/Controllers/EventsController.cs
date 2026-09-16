@@ -1,6 +1,7 @@
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
+using EventManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,13 +12,15 @@ namespace EventManagement.Api.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IAiWorkflowService _aiWorkflowService;
 
-    public EventsController(AppDbContext context)
+    public EventsController(AppDbContext context, IAiWorkflowService aiWorkflowService)
     {
         _context = context;
+        _aiWorkflowService = aiWorkflowService;
     }
 
-    // 1. POST: api/events (Create Event Request)
+    // 1. POST: api/events (Create Event Request & Auto-Trigger Agentic AI)
     [HttpPost]
     public async Task<ActionResult<EventResponseDto>> CreateEvent([FromBody] CreateEventRequestDto dto)
     {
@@ -43,6 +46,9 @@ public class EventsController : ControllerBase
         _context.Events.Add(newEvent);
         await _context.SaveChangesAsync();
 
+        // Trigger Agentic AI Workflow in background (End-to-End Spec Section 10)
+        await _aiWorkflowService.TriggerAgenticPlanAsync(newEvent.EventId);
+
         var response = new EventResponseDto
         {
             EventId = newEvent.EventId,
@@ -50,7 +56,7 @@ public class EventsController : ControllerBase
             TargetDate = newEvent.TargetDate,
             GuestCount = newEvent.GuestCount,
             BudgetLimit = newEvent.BudgetLimit,
-            Status = newEvent.Status,
+            Status = newEvent.Status, // Will be 'PendingManagerApproval' after AI execution
             VenueId = newEvent.VenueId,
             CreatedAt = newEvent.CreatedAt
         };
@@ -107,7 +113,27 @@ public class EventsController : ControllerBase
         return Ok(events);
     }
 
-    // 4. POST: api/events/{id}/sign-contract (Business-Specific: Contract Sign & QR Entry Pass Generation)
+    // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
+    [HttpPost("{id}/approve-proposal")]
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0)
+    {
+        var aiState = await _context.AIWorkflowStates.Include(a => a.Event).FirstOrDefaultAsync(a => a.EventId == id);
+        if (aiState == null)
+            return NotFound(new { message = "AI Proposal not found for this event." });
+
+        aiState.ApprovalStatus = "ApprovedByManager";
+        if (discount > 0)
+            aiState.EstimatedTotalCost -= discount;
+
+        if (aiState.Event != null)
+            aiState.Event.Status = "ApprovedByManager";
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Proposal approved successfully by Manager.", finalCost = aiState.EstimatedTotalCost });
+    }
+
+    // 5. POST: api/events/{id}/sign-contract (Business-Specific: Contract Sign & QR Entry Pass Generation)
     [HttpPost("{id}/sign-contract")]
     public async Task<ActionResult<BookingResponseDto>> SignContractAndConfirm(Guid id, [FromBody] SignContractRequestDto dto)
     {
@@ -136,7 +162,7 @@ public class EventsController : ControllerBase
         };
 
         booking.EntryPass = entryPass;
-        ev.Status = "Approved";
+        ev.Status = "Confirmed";
 
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
@@ -153,7 +179,7 @@ public class EventsController : ControllerBase
         });
     }
 
-    // 5. GET: api/events/verify-pass/{qrCodeData} (Device Feature: QR Code Scanner Verification)
+    // 6. GET: api/events/verify-pass/{qrCodeData} (Device Feature: QR Code Scanner Verification)
     [HttpGet("verify-pass/{qrCodeData}")]
     public async Task<ActionResult> VerifyPass(string qrCodeData)
     {
