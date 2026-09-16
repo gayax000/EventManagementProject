@@ -36,7 +36,7 @@ public class EventsController : ControllerBase
             CustomerId = sampleCustomer.UserId,
             VenueId = dto.VenueId,
             Title = dto.Title,
-            TargetDate = dto.TargetDate,
+            TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
             GuestCount = dto.GuestCount,
             BudgetLimit = dto.BudgetLimit,
             InspirationImageUrl = dto.InspirationImageUrl,
@@ -86,6 +86,40 @@ public class EventsController : ControllerBase
             VenueId = ev.VenueId,
             VenueName = ev.Venue?.Name,
             CreatedAt = ev.CreatedAt
+        });
+    }
+
+    // 2.1 GET: api/events/{id}/proposal (Detailed Proposal & Booking Pass for Mobile)
+    [HttpGet("{id}/proposal")]
+    public async Task<ActionResult> GetEventProposal(Guid id)
+    {
+        var ev = await _context.Events
+            .Include(e => e.Venue)
+            .FirstOrDefaultAsync(e => e.EventId == id);
+
+        if (ev == null)
+            return NotFound(new { message = "Event not found." });
+
+        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        var booking = await _context.Bookings
+            .Include(b => b.EntryPass)
+            .FirstOrDefaultAsync(b => b.EventId == id);
+
+        return Ok(new
+        {
+            eventId = ev.EventId,
+            title = ev.Title,
+            targetDate = ev.TargetDate,
+            guestCount = ev.GuestCount,
+            budgetLimit = ev.BudgetLimit,
+            status = ev.Status,
+            venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
+            estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
+            weatherAssessment = aiState?.WeatherAssessmentJson,
+            generatedPlan = aiState?.GeneratedPlanJson,
+            bookingRef = booking?.BookingReferenceCode,
+            qrCodeData = booking?.EntryPass?.QrCodeData,
+            isConfirmed = booking != null
         });
     }
 
