@@ -144,5 +144,65 @@ public static class DbInitializer
             context.Resources.AddRange(resources);
             await context.SaveChangesAsync();
         }
+
+        // 5. Realistic Sri Lankan Banquet Halls Seeding
+        if (!await context.BanquetHalls.AnyAsync())
+        {
+            var venues = await context.Venues.ToListAsync();
+            var halls = new List<BanquetHall>();
+
+            foreach (var v in venues)
+            {
+                var lower = v.Name.ToLower();
+                if (lower.Contains("shangri-la"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Lotus Grand Ballroom", MaxCapacity = 1000, HallRentalPrice = 450000, PerPlatePrice = 6500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Sapphire Banquet Hall", MaxCapacity = 400, HallRentalPrice = 280000, PerPlatePrice = 6000, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Sunset Ocean Terrace", MaxCapacity = 250, HallRentalPrice = 220000, PerPlatePrice = 5500, IsOutdoor = true });
+                }
+                else if (lower.Contains("cinnamon grand"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Oak Room Ballroom", MaxCapacity = 600, HallRentalPrice = 350000, PerPlatePrice = 5500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Cedar Banquet Suite", MaxCapacity = 300, HallRentalPrice = 200000, PerPlatePrice = 5000, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Atrium Garden Terrace", MaxCapacity = 350, HallRentalPrice = 250000, PerPlatePrice = 5200, IsOutdoor = true });
+                }
+                else if (lower.Contains("galle face hotel"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Grand Ballroom & Jubilee Hall", MaxCapacity = 450, HallRentalPrice = 380000, PerPlatePrice = 5800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Chequerboard Lawn by the Sea", MaxCapacity = 500, HallRentalPrice = 420000, PerPlatePrice = 6000, IsOutdoor = true });
+                }
+                else if (lower.Contains("kingsbury"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "The Balmoral Ballroom", MaxCapacity = 400, HallRentalPrice = 320000, PerPlatePrice = 5600, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "The Winchester Suite", MaxCapacity = 200, HallRentalPrice = 180000, PerPlatePrice = 5200, IsOutdoor = false });
+                }
+                else if (lower.Contains("hilton"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Grand Ballroom", MaxCapacity = 700, HallRentalPrice = 380000, PerPlatePrice = 5800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Poolside Palm Terrace", MaxCapacity = 300, HallRentalPrice = 240000, PerPlatePrice = 5200, IsOutdoor = true });
+                }
+                else if (lower.Contains("earl's regency") || lower.Contains("regency"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Regent Grand Ballroom", MaxCapacity = 700, HallRentalPrice = 280000, PerPlatePrice = 4800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Mountbatten Pavilion", MaxCapacity = 300, HallRentalPrice = 200000, PerPlatePrice = 4500, IsOutdoor = true });
+                }
+                else
+                {
+                    var hallName = v.IsOutdoor ? "Grand Garden Lawn" : "Main Banquet Hall";
+                    halls.Add(new BanquetHall 
+                    { 
+                        VenueId = v.VenueId, 
+                        HallName = hallName, 
+                        MaxCapacity = v.MaxCapacity, 
+                        HallRentalPrice = Math.Min(v.BaseRentalPrice, 300000m), 
+                        PerPlatePrice = 5000m, 
+                        IsOutdoor = v.IsOutdoor 
+                    });
+                }
+            }
+
+            context.BanquetHalls.AddRange(halls);
+            await context.SaveChangesAsync();
+        }
     }
 }

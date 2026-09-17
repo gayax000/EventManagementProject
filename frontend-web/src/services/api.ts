@@ -27,15 +27,47 @@ apiClient.interceptors.request.use(
 export interface EventItem {
   eventId: string;
   title: string;
+  eventType?: string;
   targetDate: string;
   guestCount: number;
   budgetLimit: number;
   status: string;
   venueId?: string;
   venueName?: string;
+  banquetHallId?: string;
+  banquetHallName?: string;
+  hallRentalPrice?: number;
+  perPlatePrice?: number;
+  selectedServices?: string[];
+  inspirationImages?: string[];
+  inspirationImageUrl?: string;
   estimatedTotalCost?: number;
   createdAt: string;
 }
+
+export interface BanquetHallItem {
+  banquetHallId: string;
+  venueId: string;
+  venueName: string;
+  hallName: string;
+  maxCapacity: number;
+  hallRentalPrice: number;
+  perPlatePrice: number;
+  isOutdoor: boolean;
+  isAvailable: boolean;
+}
+
+export const banquetHallService = {
+  getHalls: async (venueId?: string, date?: string): Promise<BanquetHallItem[]> => {
+    let url = '/banquethalls';
+    const params = new URLSearchParams();
+    if (venueId) params.append('venueId', venueId);
+    if (date) params.append('date', date);
+    if (params.toString()) url += `?${params.toString()}`;
+    const response = await apiClient.get<BanquetHallItem[]>(url);
+    return response.data;
+  },
+};
 
 export const eventService = {
   // Fetch events list

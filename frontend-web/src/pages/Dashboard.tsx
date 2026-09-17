@@ -8,22 +8,14 @@ import {
   XCircle, 
   Clock, 
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Image as ImageIcon,
+  Eye,
+  X,
+  MapPin,
+  Check
 } from 'lucide-react';
-import { eventService } from '../services/api';
-
-export interface EventItem {
-  eventId: string;
-  title: string;
-  targetDate: string;
-  guestCount: number;
-  budgetLimit: number;
-  status: string;
-  venueId?: string;
-  venueName?: string;
-  estimatedTotalCost?: number;
-  createdAt: string;
-}
+import { eventService, type EventItem } from '../services/api';
 
 export const Dashboard: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -31,6 +23,7 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   // Fetch Live Events from Backend
   const loadEvents = async () => {
@@ -52,13 +45,23 @@ export const Dashboard: React.FC = () => {
     loadEvents();
   }, []);
 
-  // Fetch proposal details to synchronize real database pricing
+  // Fetch proposal details to synchronize real database pricing and inspiration photos
   useEffect(() => {
     if (selectedEvent?.eventId) {
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
-          if (p && p.estimatedTotalCost !== undefined) {
-            setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { ...prev, estimatedTotalCost: p.estimatedTotalCost } : prev);
+          if (p) {
+            setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { 
+              ...prev, 
+              estimatedTotalCost: p.estimatedTotalCost ?? prev.estimatedTotalCost,
+              eventType: p.eventType || prev.eventType,
+              venueName: p.venueName || prev.venueName,
+              banquetHallName: p.banquetHallName || prev.banquetHallName,
+              hallRentalPrice: p.hallRentalPrice ?? prev.hallRentalPrice,
+              perPlatePrice: p.perPlatePrice ?? prev.perPlatePrice,
+              selectedServices: p.selectedServices || prev.selectedServices,
+              inspirationImages: p.inspirationImages || (p.inspirationImageUrl ? p.inspirationImageUrl.split(',') : (prev.inspirationImages || [])),
+            } : prev);
           }
         })
         .catch(e => console.log("Proposal fetch info", e));
@@ -68,11 +71,22 @@ export const Dashboard: React.FC = () => {
   // Manager Approve Proposal Action
   const handleApprove = async () => {
     if (!selectedEvent) return;
-    const computedFinalTotal = selectedEvent.guestCount * 5000 + 300000 - specialDiscount;
+    const perPlate = selectedEvent.perPlatePrice || 5000;
+    const cateringCost = selectedEvent.guestCount * perPlate;
+    const hallRental = selectedEvent.hallRentalPrice || 350000;
+    const hasSounds = !selectedEvent.selectedServices || selectedEvent.selectedServices.includes('Sound and Lighting');
+    const hasDeco = !selectedEvent.selectedServices || selectedEvent.selectedServices.includes('Decorations');
+    const hasCake = selectedEvent.selectedServices && selectedEvent.selectedServices.some(s => s.toLowerCase().includes('cake'));
+    const soundsCost = hasSounds ? 150000 : 0;
+    const decoCost = hasDeco ? 80000 : 0;
+    const cakeCost = hasCake ? 35000 : 0;
+    const weatherTentCost = 150000;
+    const computedSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost;
+    const computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
+
     try {
       await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal);
       setActionSuccess("Proposal approved successfully! Updated in PostgreSQL Database.");
-      // Refresh local state with the exact computed final total
       setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager', estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
     } catch (err) {
@@ -84,6 +98,24 @@ export const Dashboard: React.FC = () => {
   const activeCount = events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length;
   const pendingCount = events.filter(e => e.status === 'PendingManagerApproval' || e.status === 'UnderReview').length;
   const confirmedCount = events.filter(e => e.status === 'ApprovedByManager' || e.status === 'Confirmed').length;
+
+  // Pricing calculations for current selected event
+  const isApproved = selectedEvent?.status === 'ApprovedByManager' || selectedEvent?.status === 'Confirmed';
+  const perPlate = selectedEvent?.perPlatePrice || 5000;
+  const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
+  const hallRental = selectedEvent?.hallRentalPrice || 350000;
+  const hasSounds = !selectedEvent?.selectedServices || selectedEvent.selectedServices.includes('Sound and Lighting');
+  const hasDeco = !selectedEvent?.selectedServices || selectedEvent.selectedServices.includes('Decorations');
+  const hasCake = selectedEvent?.selectedServices && selectedEvent.selectedServices.some(s => s.toLowerCase().includes('cake'));
+  const cakeLabel = selectedEvent?.selectedServices?.find(s => s.toLowerCase().includes('cake')) || 'Celebration Cake';
+  const soundsCost = hasSounds ? 150000 : 0;
+  const decoCost = hasDeco ? 80000 : 0;
+  const cakeCost = hasCake ? 35000 : 0;
+  const weatherTentCost = 150000;
+  const currentSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost;
+  const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
+    ? selectedEvent.estimatedTotalCost
+    : Math.max(0, currentSubtotal - specialDiscount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -134,34 +166,37 @@ export const Dashboard: React.FC = () => {
             <p className="text-xs font-semibold text-slate-400 uppercase">Total Revenue</p>
             <p className="text-2xl font-bold text-slate-800 mt-1">Rs. 4.2M</p>
           </div>
-          <div className="p-3 bg-indigo-50 rounded-lg"><DollarSign className="w-6 h-6 text-indigo-600" /></div>
+          <div className="p-3 bg-purple-50 rounded-lg"><DollarSign className="w-6 h-6 text-purple-600" /></div>
         </div>
       </div>
 
-      {/* Action Success Alert */}
+      {/* Success Notification */}
       {actionSuccess && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm font-medium flex items-center justify-between">
-          <span className="flex items-center"><CheckCircle className="w-4 h-4 mr-2 text-emerald-600" />{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-emerald-800 font-bold">&times;</button>
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <span>{actionSuccess}</span>
+          </div>
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-emerald-900 text-xs">Dismiss</button>
         </div>
       )}
 
-      {/* Events Queue Selector */}
-      <div className="mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Incoming Event Queue (Click an event to review)</h3>
-        <div className="flex flex-wrap gap-2">
+      {/* Live Event Selector Horizontal Carousel */}
+      <div className="mb-6">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Live Event Requests in Database</h3>
+        <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-none">
           {events.map((ev) => (
             <button
               key={ev.eventId}
               onClick={() => setSelectedEvent(ev)}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center space-x-2 transition border ${
+              className={`flex-shrink-0 px-4 py-2.5 rounded-xl border text-left text-xs transition flex items-center space-x-2 ${
                 selectedEvent?.eventId === ev.eventId
-                  ? 'bg-sky-50 text-sky-700 border-sky-300 ring-2 ring-sky-400/20'
-                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-sky-400'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${
-                ev.status === 'ApprovedByManager' || ev.status === 'Confirmed' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'
+              <div className={`w-2 h-2 rounded-full ${
+                ev.status === 'ApprovedByManager' || ev.status === 'Confirmed' ? 'bg-emerald-400' : 'bg-amber-400'
               }`} />
               <span className="font-bold">{ev.title}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-slate-500 border border-slate-200">{ev.status}</span>
@@ -179,7 +214,7 @@ export const Dashboard: React.FC = () => {
               <h2 className="font-semibold text-base">Human-in-the-Loop AI Proposal Review (Live DB)</h2>
             </div>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
-              selectedEvent.status === 'ApprovedByManager' || selectedEvent.status === 'Confirmed'
+              isApproved
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
                 : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
             }`}>
@@ -192,7 +227,18 @@ export const Dashboard: React.FC = () => {
             {/* Proposal Details */}
             <div className="lg:col-span-2 space-y-6">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded">Event Objective</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                    {selectedEvent.eventType || "Event"}
+                  </span>
+                  {selectedEvent.banquetHallName && (
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center">
+                      <MapPin className="w-3 h-3 mr-1" />
+                      {selectedEvent.banquetHallName}
+                    </span>
+                  )}
+                </div>
+
                 <h3 className="text-xl font-bold text-slate-900 mt-2">{selectedEvent.title}</h3>
                 <p className="text-sm text-slate-500 mt-1">
                   Event ID: <span className="font-mono text-xs text-slate-400">{selectedEvent.eventId}</span>
@@ -201,6 +247,54 @@ export const Dashboard: React.FC = () => {
                   Date: {new Date(selectedEvent.targetDate).toLocaleDateString()} • Guests: {selectedEvent.guestCount} • Budget Limit: Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}
                 </p>
               </div>
+
+              {/* Client Uploaded Inspiration Photos Gallery */}
+              {selectedEvent.inspirationImages && selectedEvent.inspirationImages.length > 0 && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center">
+                      <ImageIcon className="w-4 h-4 mr-1.5 text-sky-600" />
+                      Client Inspiration Photos ({selectedEvent.inspirationImages.length} Uploaded)
+                    </h4>
+                    <span className="text-[11px] text-slate-400">Click any photo to zoom</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {selectedEvent.inspirationImages.map((imgUrl, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => setPreviewImage(imgUrl)}
+                        className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-300 aspect-video bg-slate-900 shadow-sm"
+                      >
+                        <img 
+                          src={imgUrl} 
+                          alt={`Inspiration ${idx + 1}`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
+                          <Eye className="w-4 h-4 mr-1" /> Zoom
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Client Selected Service Options Badges */}
+              {selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0 && (
+                <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 mb-2">
+                    Client Selected Services & Requirements
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedEvent.selectedServices.map((service, idx) => (
+                      <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-xs">
+                        <Check className="w-3 h-3 text-emerald-600 mr-1" />
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Weather Contingency Alert */}
               <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start space-x-3">
@@ -220,15 +314,48 @@ export const Dashboard: React.FC = () => {
                 <h4 className="text-sm font-bold text-slate-800 mb-3">AI Compiled Package Breakdown</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-slate-700">Premium Dinner Buffet B ({selectedEvent.guestCount} Guests x Rs. 5,000)</span>
-                    <span className="font-semibold text-slate-900">Rs. {(selectedEvent.guestCount * 5000).toLocaleString()}</span>
+                    <div>
+                      <span className="text-slate-700 font-medium">
+                        🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
+                      </span>
+                      <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
+                    </div>
+                    <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
                   </div>
+
                   <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-slate-700">Stage, Line-Array Sound & Intelligent LED Lighting Rig</span>
-                    <span className="font-semibold text-slate-900">Rs. 150,000</span>
+                    <div>
+                      <span className="text-slate-700 font-medium">
+                        🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
+                      </span>
+                      <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
+                    </div>
+                    <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                   </div>
+
+                  {hasSounds && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-slate-700">🔊 Stage, Line-Array Sound & Intelligent LED Lighting Rig</span>
+                      <span className="font-semibold text-slate-900">Rs. 150,000</span>
+                    </div>
+                  )}
+
+                  {hasDeco && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-slate-700">🌸 Floral Stage & Tablescape Theme Decoration</span>
+                      <span className="font-semibold text-slate-900">Rs. 80,000</span>
+                    </div>
+                  )}
+
+                  {hasCake && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <span className="text-slate-700">🎂 Custom {cakeLabel} (Tiered Masterpiece)</span>
+                      <span className="font-semibold text-slate-900">Rs. 35,000</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-slate-700">Waterproof Marquee Tent (Autonomous Weather Safeguard)</span>
+                    <span className="text-slate-700">🎪 Waterproof Marquee Tent (Autonomous Weather Safeguard)</span>
                     <span className="font-semibold text-slate-900">Rs. 150,000</span>
                   </div>
                 </div>
@@ -243,7 +370,7 @@ export const Dashboard: React.FC = () => {
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal:</span>
-                    <span className="font-medium">Rs. {(selectedEvent.guestCount * 5000 + 300000).toLocaleString()}</span>
+                    <span className="font-medium">Rs. {currentSubtotal.toLocaleString()}</span>
                   </div>
 
                   <div className="flex justify-between items-center text-sm text-slate-600">
@@ -254,7 +381,7 @@ export const Dashboard: React.FC = () => {
                         type="number" 
                         value={specialDiscount}
                         onChange={(e) => setSpecialDiscount(Number(e.target.value))}
-                        disabled={selectedEvent.status === 'ApprovedByManager'}
+                        disabled={isApproved}
                         className="w-24 px-2 py-1 bg-white border border-slate-300 rounded text-right text-sm font-semibold text-slate-800 disabled:bg-slate-100"
                       />
                     </div>
@@ -263,10 +390,7 @@ export const Dashboard: React.FC = () => {
                   <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-bold text-slate-900">
                     <span>Final Total:</span>
                     <span className="text-emerald-600">
-                      Rs. {((selectedEvent.status === 'ApprovedByManager' || selectedEvent.status === 'Confirmed') && selectedEvent.estimatedTotalCost
-                        ? selectedEvent.estimatedTotalCost
-                        : (selectedEvent.guestCount * 5000 + 300000 - specialDiscount)
-                      ).toLocaleString()}
+                      Rs. {displayedFinalTotal.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -276,11 +400,11 @@ export const Dashboard: React.FC = () => {
               <div className="space-y-2">
                 <button 
                   onClick={handleApprove}
-                  disabled={selectedEvent.status === 'ApprovedByManager'}
+                  disabled={isApproved}
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  <span>{selectedEvent.status === 'ApprovedByManager' ? 'Approved & Ready for Signing' : 'Approve Proposal'}</span>
+                  <span>{isApproved ? 'Approved & Ready for Signing' : 'Approve Proposal'}</span>
                 </button>
               </div>
 
@@ -291,6 +415,21 @@ export const Dashboard: React.FC = () => {
       ) : (
         <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-500">
           No active event requests in database. Create one using Swagger or Flutter mobile app!
+        </div>
+      )}
+
+      {/* Lightbox / Zoom Modal for Inspiration Images */}
+      {previewImage && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black text-white rounded-full transition z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img src={previewImage} alt="Inspiration Preview" className="w-full h-auto max-h-[85vh] object-contain" />
+          </div>
         </div>
       )}
 

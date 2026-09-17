@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Venue> Venues => Set<Venue>();
+    public DbSet<BanquetHall> BanquetHalls => Set<BanquetHall>();
     public DbSet<Vendor> Vendors => Set<Vendor>();
 
     // Member 2 Tables
@@ -84,5 +85,17 @@ public class AppDbContext : DbContext
             .WithOne(ep => ep.Booking)
             .HasForeignKey<EntryPass>(ep => ep.BookingId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Venue>()
+            .HasMany(v => v.Halls)
+            .WithOne(h => h.Venue)
+            .HasForeignKey(h => h.VenueId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Event>()
+            .HasOne(e => e.BanquetHall)
+            .WithMany()
+            .HasForeignKey(e => e.BanquetHallId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

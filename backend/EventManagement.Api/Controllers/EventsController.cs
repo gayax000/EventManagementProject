@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
@@ -24,9 +25,7 @@ public class EventsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<EventResponseDto>> CreateEvent([FromBody] CreateEventRequestDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
+        // Extract customer ID securely from token, payload, or fallback
         Guid customerId = Guid.Empty;
         if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
         {
@@ -45,7 +44,32 @@ public class EventsController : ControllerBase
         }
 
         Guid? venueId = dto.VenueId;
-        if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
+        Guid? banquetHallId = dto.BanquetHallId;
+        BanquetHall? chosenHall = null;
+
+        // Check Banquet Hall & Date Availability (Double-Booking Prevention)
+        if (banquetHallId.HasValue && banquetHallId.Value != Guid.Empty)
+        {
+            chosenHall = await _context.BanquetHalls.Include(h => h.Venue).FirstOrDefaultAsync(h => h.BanquetHallId == banquetHallId.Value);
+            if (chosenHall != null)
+            {
+                venueId = chosenHall.VenueId;
+
+                var targetUtcDate = DateTime.SpecifyKind(dto.TargetDate.Date, DateTimeKind.Utc);
+                var nextUtcDate = targetUtcDate.AddDays(1);
+                var isAlreadyBooked = await _context.Events.AnyAsync(e => 
+                    e.BanquetHallId == banquetHallId.Value && 
+                    e.Status != "Cancelled" && 
+                    e.TargetDate >= targetUtcDate && 
+                    e.TargetDate < nextUtcDate);
+
+                if (isAlreadyBooked)
+                {
+                    return BadRequest(new { message = $"The banquet hall '{chosenHall.HallName}' is already reserved on {dto.TargetDate:yyyy-MM-dd}. Please choose another hall or date." });
+                }
+            }
+        }
+        else if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
         {
             var matchedVenue = await _context.Venues.FirstOrDefaultAsync(v => 
                 v.Name.ToLower().Contains(dto.PreferredLocation.ToLower()) ||
@@ -56,15 +80,26 @@ public class EventsController : ControllerBase
             }
         }
 
+        var eventType = !string.IsNullOrWhiteSpace(dto.CustomEventType) 
+            ? dto.CustomEventType.Trim() 
+            : (!string.IsNullOrWhiteSpace(dto.EventType) ? dto.EventType.Trim() : "Wedding");
+
+        var servicesJson = dto.SelectedServices != null && dto.SelectedServices.Count > 0
+            ? JsonSerializer.Serialize(dto.SelectedServices)
+            : null;
+
         var newEvent = new Event
         {
             CustomerId = customerId,
             VenueId = venueId,
-            Title = dto.Title,
+            BanquetHallId = banquetHallId,
+            EventType = eventType,
+            Title = string.IsNullOrWhiteSpace(dto.Title) ? $"{eventType} Celebration" : dto.Title,
             TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
             GuestCount = dto.GuestCount,
             BudgetLimit = dto.BudgetLimit,
             InspirationImageUrl = dto.InspirationImageUrl,
+            SelectedServicesJson = servicesJson,
             Status = "UnderReview"
         };
 
@@ -78,11 +113,18 @@ public class EventsController : ControllerBase
         {
             EventId = newEvent.EventId,
             Title = newEvent.Title,
+            EventType = newEvent.EventType,
             TargetDate = newEvent.TargetDate,
             GuestCount = newEvent.GuestCount,
             BudgetLimit = newEvent.BudgetLimit,
             Status = newEvent.Status, // Will be 'PendingManagerApproval' after AI execution
             VenueId = newEvent.VenueId,
+            BanquetHallId = newEvent.BanquetHallId,
+            BanquetHallName = chosenHall?.HallName,
+            HallRentalPrice = chosenHall?.HallRentalPrice,
+            PerPlatePrice = chosenHall?.PerPlatePrice,
+            InspirationImageUrl = newEvent.InspirationImageUrl,
+            SelectedServices = dto.SelectedServices,
             CreatedAt = newEvent.CreatedAt
         };
 
@@ -95,6 +137,7 @@ public class EventsController : ControllerBase
     {
         var ev = await _context.Events
             .Include(e => e.Venue)
+            .Include(e => e.BanquetHall)
             .Include(e => e.AIWorkflowState)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
@@ -105,12 +148,21 @@ public class EventsController : ControllerBase
         {
             EventId = ev.EventId,
             Title = ev.Title,
+            EventType = ev.EventType,
             TargetDate = ev.TargetDate,
             GuestCount = ev.GuestCount,
             BudgetLimit = ev.BudgetLimit,
             Status = ev.Status,
             VenueId = ev.VenueId,
             VenueName = ev.Venue?.Name,
+            BanquetHallId = ev.BanquetHallId,
+            BanquetHallName = ev.BanquetHall?.HallName,
+            HallRentalPrice = ev.BanquetHall?.HallRentalPrice,
+            PerPlatePrice = ev.BanquetHall?.PerPlatePrice,
+            InspirationImageUrl = ev.InspirationImageUrl,
+            SelectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
+                ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
+                : new List<string>(),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             CreatedAt = ev.CreatedAt
         });
@@ -122,6 +174,7 @@ public class EventsController : ControllerBase
     {
         var ev = await _context.Events
             .Include(e => e.Venue)
+            .Include(e => e.BanquetHall)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
@@ -132,15 +185,30 @@ public class EventsController : ControllerBase
             .Include(b => b.EntryPass)
             .FirstOrDefaultAsync(b => b.EventId == id);
 
+        var selectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
+            ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
+            : new List<string>();
+
+        var inspirationImages = !string.IsNullOrEmpty(ev.InspirationImageUrl)
+            ? ev.InspirationImageUrl.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+            : Array.Empty<string>();
+
         return Ok(new
         {
             eventId = ev.EventId,
             title = ev.Title,
+            eventType = ev.EventType,
             targetDate = ev.TargetDate,
             guestCount = ev.GuestCount,
             budgetLimit = ev.BudgetLimit,
             status = ev.Status,
             venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
+            banquetHallName = ev.BanquetHall?.HallName,
+            hallRentalPrice = ev.BanquetHall?.HallRentalPrice,
+            perPlatePrice = ev.BanquetHall?.PerPlatePrice,
+            selectedServices = selectedServices,
+            inspirationImages = inspirationImages,
+            inspirationImageUrl = ev.InspirationImageUrl,
             estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
             weatherAssessment = aiState?.WeatherAssessmentJson,
             generatedPlan = aiState?.GeneratedPlanJson,
@@ -169,18 +237,25 @@ public class EventsController : ControllerBase
 
         var events = await query
             .Include(e => e.Venue)
+            .Include(e => e.BanquetHall)
             .Include(e => e.AIWorkflowState)
             .OrderByDescending(e => e.CreatedAt)
             .Select(ev => new EventResponseDto
             {
                 EventId = ev.EventId,
                 Title = ev.Title,
+                EventType = ev.EventType,
                 TargetDate = ev.TargetDate,
                 GuestCount = ev.GuestCount,
                 BudgetLimit = ev.BudgetLimit,
                 Status = ev.Status,
                 VenueId = ev.VenueId,
                 VenueName = ev.Venue != null ? ev.Venue.Name : null,
+                BanquetHallId = ev.BanquetHallId,
+                BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
+                HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,
+                PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
+                InspirationImageUrl = ev.InspirationImageUrl,
                 EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                 CreatedAt = ev.CreatedAt
             })

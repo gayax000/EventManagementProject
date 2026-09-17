@@ -73,13 +73,43 @@ class ApiService {
     }
   }
 
-  // 3. Create Event Request (Triggers Multi-Agent Python AI with user isolation & location)
+  // 2.1 Fetch Banquet Halls for Hotels
+  static Future<List<BanquetHallItem>> getBanquetHalls({String? venueId, DateTime? date}) async {
+    try {
+      var urlStr = '$baseUrl/banquethalls';
+      final params = <String>[];
+      if (venueId != null && venueId.isNotEmpty) params.add('venueId=$venueId');
+      if (date != null) params.add('date=${date.toIso8601String()}');
+      if (params.isNotEmpty) urlStr += '?${params.join('&')}';
+
+      final url = Uri.parse(urlStr);
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> body = jsonDecode(response.body);
+        return body.map((item) => BanquetHallItem.fromJson(item)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("API Error getBanquetHalls: $e");
+      return [];
+    }
+  }
+
+  // 3. Create Event Request (Triggers Multi-Agent Python AI with user isolation, hall & services)
   static Future<EventSummary?> createEvent({
     required String title,
+    String? eventType,
+    String? customEventType,
     required DateTime targetDate,
     required int guestCount,
     required double budgetLimit,
+    String? venueId,
+    String? banquetHallId,
     String? preferredLocation,
+    List<String>? selectedServices,
+    String? customServiceNotes,
     List<String>? inspirationImages,
   }) async {
     try {
@@ -87,11 +117,17 @@ class ApiService {
       final url = Uri.parse('$baseUrl/events');
       final payload = jsonEncode({
         'title': title,
+        'eventType': eventType ?? 'Wedding',
+        'customEventType': customEventType,
         'targetDate': targetDate.toIso8601String(),
         'guestCount': guestCount,
         'budgetLimit': budgetLimit,
+        'venueId': venueId,
+        'banquetHallId': banquetHallId,
         'customerId': userId,
         'preferredLocation': preferredLocation,
+        'selectedServices': selectedServices,
+        'customServiceNotes': customServiceNotes,
         'inspirationImageUrl': inspirationImages != null && inspirationImages.isNotEmpty 
             ? inspirationImages.join(',') 
             : null,

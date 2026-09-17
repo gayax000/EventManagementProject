@@ -151,7 +151,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
-    final isPending = proposal.status == 'PendingManagerApproval' || proposal.status == 'UnderReview';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),

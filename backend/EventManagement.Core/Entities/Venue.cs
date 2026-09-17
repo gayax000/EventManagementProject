@@ -21,4 +21,6 @@ public class Venue : BaseEntity
 
     public Guid? ManagerId { get; set; }
     public User? Manager { get; set; }
+
+    public ICollection<BanquetHall> Halls { get; set; } = new List<BanquetHall>();
 }

@@ -13,6 +13,12 @@ public class Event : BaseEntity
     public Guid? VenueId { get; set; }
     public Venue? Venue { get; set; }
 
+    public Guid? BanquetHallId { get; set; }
+    public BanquetHall? BanquetHall { get; set; }
+
+    [Required, MaxLength(100)]
+    public string EventType { get; set; } = "Wedding";
+
     [Required, MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
@@ -21,7 +27,9 @@ public class Event : BaseEntity
     public decimal BudgetLimit { get; set; }
     public string? InspirationImageUrl { get; set; }
 
-    // Draft, UnderReview, Approved, Rejected, Cancelled
+    public string? SelectedServicesJson { get; set; }
+
+    // Draft, UnderReview, ApprovedByManager, Confirmed, Rejected, Cancelled
     public string Status { get; set; } = "UnderReview";
 
     public Booking? Booking { get; set; }

@@ -8,6 +8,9 @@ public class CreateEventRequestDto
     [Required, MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
+    public string EventType { get; set; } = "Wedding";
+    public string? CustomEventType { get; set; }
+
     [Required]
     public DateTime TargetDate { get; set; }
 
@@ -18,9 +21,13 @@ public class CreateEventRequestDto
     public decimal BudgetLimit { get; set; }
 
     public Guid? VenueId { get; set; }
+    public Guid? BanquetHallId { get; set; }
     public string? InspirationImageUrl { get; set; }
     public Guid? CustomerId { get; set; }
     public string? PreferredLocation { get; set; }
+
+    public List<string>? SelectedServices { get; set; }
+    public string? CustomServiceNotes { get; set; }
 }
 
 // 2. Event Response DTO
@@ -28,14 +35,35 @@ public class EventResponseDto
 {
     public Guid EventId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string EventType { get; set; } = "Wedding";
     public DateTime TargetDate { get; set; }
     public int GuestCount { get; set; }
     public decimal BudgetLimit { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? VenueId { get; set; }
     public string? VenueName { get; set; }
+    public Guid? BanquetHallId { get; set; }
+    public string? BanquetHallName { get; set; }
+    public decimal? HallRentalPrice { get; set; }
+    public decimal? PerPlatePrice { get; set; }
+    public string? InspirationImageUrl { get; set; }
+    public List<string>? SelectedServices { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+// 2.1 Banquet Hall DTO
+public class BanquetHallDto
+{
+    public Guid BanquetHallId { get; set; }
+    public Guid VenueId { get; set; }
+    public string VenueName { get; set; } = string.Empty;
+    public string HallName { get; set; } = string.Empty;
+    public int MaxCapacity { get; set; }
+    public decimal HallRentalPrice { get; set; }
+    public decimal PerPlatePrice { get; set; }
+    public bool IsOutdoor { get; set; }
+    public bool IsAvailable { get; set; } = true;
 }
 
 // 3. Digital Contract Sign DTO (Business-specific operation)
