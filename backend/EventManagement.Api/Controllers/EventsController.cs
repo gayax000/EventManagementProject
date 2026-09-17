@@ -489,15 +489,71 @@ public class EventsController : ControllerBase
     {
         var pass = await _context.EntryPasses
             .Include(p => p.Booking)
-            .ThenInclude(b => b!.Event)
+                .ThenInclude(b => b!.Event)
+                    .ThenInclude(e => e!.Customer)
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.Event)
+                    .ThenInclude(e => e!.Venue)
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.Event)
+                    .ThenInclude(e => e!.BanquetHall)
             .FirstOrDefaultAsync(p => p.QrCodeData == qrCodeData);
 
         if (pass == null)
-            return NotFound(new { isValid = false, message = "Invalid QR Entry Pass." });
+            return NotFound(new { isValid = false, message = "Invalid QR Entry Pass. This code was not found in our system." });
+
+        var ev = pass.Booking?.Event;
+        var booking = pass.Booking;
+        var customer = ev?.Customer;
+
+        // Get payment info for total amount
+        var payment = booking != null
+            ? await _context.Payments
+                .Where(p => p.BookingId == booking.BookingId && (p.Status == "Approved" || p.Status == "Completed"))
+                .OrderByDescending(p => p.PaidAt)
+                .FirstOrDefaultAsync()
+            : null;
+
+        // Get invoice
+        var invoice = booking != null
+            ? await _context.Invoices.FirstOrDefaultAsync(i => i.BookingId == booking.BookingId)
+            : null;
+
+        // Build selected services list
+        var selectedServices = new List<string>();
+        if (!string.IsNullOrEmpty(ev?.SelectedServicesJson))
+        {
+            try { selectedServices = System.Text.Json.JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson) ?? new(); }
+            catch { }
+        }
 
         if (pass.IsScanned)
-            return BadRequest(new { isValid = false, message = "This pass has already been used!", scannedAt = pass.ScannedAt });
+        {
+            // Return details even for already-used passes so staff can see the booking info
+            return BadRequest(new
+            {
+                isValid = false,
+                alreadyUsed = true,
+                message = "This pass has already been scanned and used for entry.",
+                scannedAt = pass.ScannedAt,
+                // Still return event details so staff can see the booking
+                eventTitle = ev?.Title,
+                eventType = ev?.EventType,
+                eventDate = ev?.TargetDate,
+                guestCount = ev?.GuestCount,
+                venueName = ev?.Venue?.Name ?? "EventCraft Venue",
+                hallName = ev?.BanquetHall?.HallName,
+                bookingRef = booking?.BookingReferenceCode,
+                clientName = customer?.FullName ?? "EventCraft Client",
+                clientPhone = customer?.PhoneNumber,
+                totalAmount = booking?.TotalAgreedAmount,
+                invoiceNumber = invoice?.InvoiceNumber,
+                confirmedAt = booking?.ConfirmedAt,
+                selectedServices = selectedServices
+            });
+        }
 
+        // Mark as scanned
         pass.IsScanned = true;
         pass.ScannedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
@@ -505,9 +561,23 @@ public class EventsController : ControllerBase
         return Ok(new
         {
             isValid = true,
-            eventTitle = pass.Booking?.Event?.Title,
-            bookingRef = pass.Booking?.BookingReferenceCode,
-            scannedAt = pass.ScannedAt
+            alreadyUsed = false,
+            message = "Entry pass verified successfully. Guest cleared for entry.",
+            scannedAt = pass.ScannedAt,
+            // Full event & client details for hotel staff display
+            eventTitle = ev?.Title,
+            eventType = ev?.EventType,
+            eventDate = ev?.TargetDate,
+            guestCount = ev?.GuestCount,
+            venueName = ev?.Venue?.Name ?? "EventCraft Venue",
+            hallName = ev?.BanquetHall?.HallName,
+            bookingRef = booking?.BookingReferenceCode,
+            clientName = customer?.FullName ?? "EventCraft Client",
+            clientPhone = customer?.PhoneNumber,
+            totalAmount = booking?.TotalAgreedAmount,
+            invoiceNumber = invoice?.InvoiceNumber,
+            confirmedAt = booking?.ConfirmedAt,
+            selectedServices = selectedServices
         });
     }
 
