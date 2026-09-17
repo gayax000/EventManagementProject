@@ -58,8 +58,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   currentTab === 'venues' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >
+                <Building2 className="w-4 h-4" />
+                <span>Venues</span>
+              </button>
+
+              <button 
+                onClick={() => onTabChange('vendors')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'vendors' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Venues & Vendors</span>
+                <span>Vendors</span>
               </button>
 
               <button 
