@@ -32,53 +32,36 @@ export const VendorPortal: React.FC = () => {
   const userEmail = authService.getUserEmail();
   const userKey = (userEmail || userName || 'vendor').toLowerCase().trim();
 
-  // Active vendor strictly tied to the logged-in user (NO cross-user fallback)
+  // Active vendor strictly tied to the logged-in user
   const [currentVendor, setCurrentVendor] = useState<VendorItem | null>(() => {
     try {
-      // 1. Check user-specific storage
       if (userKey) {
-        const saved = localStorage.getItem(`eventcraft_vendor_${userKey}`);
-        if (saved) return JSON.parse(saved);
-      }
-      // 2. Check global vendors list for this user's email or registeredBy
-      const savedVendors = localStorage.getItem('eventcraft_vendors');
-      if (savedVendors) {
-        const vendors: any[] = JSON.parse(savedVendors);
-        const matched = vendors.find(v => 
-          (userEmail && v.ownerEmail && v.ownerEmail.toLowerCase() === userEmail.toLowerCase()) ||
-          (userKey && v.registeredBy && v.registeredBy.toLowerCase() === userKey) ||
-          (userName && v.ownerName && v.ownerName.toLowerCase() === userName.toLowerCase())
-        );
-        if (matched) return matched;
+        const savedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+        if (savedId) {
+          // Placeholder until fetched from API
+          return { id: savedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' } as any;
+        }
       }
     } catch {}
-    // If user has not registered a business yet, return null
     return null;
   });
 
-  // Sync with global vendors list from localStorage or DB
+  // Sync with Backend API
   useEffect(() => {
-    const syncStatus = () => {
+    const syncStatus = async () => {
+      if (!currentVendor || !currentVendor.id) return;
       try {
-        const savedVendors = localStorage.getItem('eventcraft_vendors');
-        if (savedVendors && currentVendor) {
-          const vendors: any[] = JSON.parse(savedVendors);
-          const matched = vendors.find(v => 
-            (v.id && (v.id === currentVendor.id || v.id === currentVendor.vendorId)) ||
-            (userEmail && v.ownerEmail && v.ownerEmail.toLowerCase() === userEmail.toLowerCase()) ||
-            (userKey && v.registeredBy && v.registeredBy.toLowerCase() === userKey) ||
-            (v.name && v.name.toLowerCase() === (currentVendor.businessName || currentVendor.name || '').toLowerCase()) ||
-            (v.businessName && v.businessName.toLowerCase() === (currentVendor.businessName || currentVendor.name || '').toLowerCase())
-          );
-          if (matched) {
-            const updatedStatus = matched.status || matched.verificationStatus || currentVendor.verificationStatus;
-            if (updatedStatus !== currentVendor.verificationStatus) {
-              const updated = { ...currentVendor, verificationStatus: updatedStatus, status: updatedStatus };
-              setCurrentVendor(updated);
-              if (userKey) {
-                localStorage.setItem(`eventcraft_vendor_${userKey}`, JSON.stringify(updated));
-              }
-            }
+        const allVendors = await vendorService.getVendors();
+        const matched = allVendors.find(v => (v as any).vendorId === currentVendor.id || v.id === currentVendor.id);
+        if (matched) {
+          const updatedStatus = (matched as any).verificationStatus || matched.status;
+          if (updatedStatus !== currentVendor.status && updatedStatus !== (currentVendor as any).verificationStatus) {
+            setCurrentVendor({ 
+              ...matched, 
+              id: (matched as any).vendorId || matched.id, 
+              verificationStatus: updatedStatus,
+              status: updatedStatus 
+            } as any);
           }
         }
       } catch (e) {
@@ -86,10 +69,13 @@ export const VendorPortal: React.FC = () => {
       }
     };
 
-    syncStatus();
-    const interval = setInterval(syncStatus, 1500);
+    if (currentVendor?.id && currentVendor.businessName === 'Loading...') {
+      syncStatus();
+    }
+
+    const interval = setInterval(syncStatus, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
-  }, [currentVendor, userKey, userEmail]);
+  }, [currentVendor?.id, currentVendor?.status]);
 
   // Handle New Vendor Registration
   const handleRegister = async (e: React.FormEvent) => {
@@ -98,49 +84,29 @@ export const VendorPortal: React.FC = () => {
 
     try {
       setSubmitting(true);
-      const newVendorData: any = {
-        id: 'v-' + Date.now(),
+
+      // Save to backend API
+      const registeredVendor = await vendorService.registerVendor({
         businessName,
-        name: businessName,
         category,
-        contact: contactNumber,
         contactNumber,
-        status: 'Pending',
+        description: description || packageName
+      });
+
+      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
+      
+      const newVendorData: any = {
+        ...registeredVendor,
+        id: newVendorId,
         verificationStatus: 'Pending',
-        ownerEmail: userEmail,
-        ownerName: userName,
-        registeredBy: userKey,
+        status: 'Pending',
         packageName: packageName || 'Standard Service Package',
-        packagePrice: packagePrice || 5000,
-        adminRemarks: description || (packageName ? `${packageName} (Rs. ${Number(packagePrice).toLocaleString()})` : 'Registered Business Partner')
+        packagePrice: packagePrice || 5000
       };
 
-      // 1. Try to save to backend API
-      try {
-        await vendorService.registerVendor({
-          businessName,
-          category,
-          contactNumber,
-          description: description || packageName
-        });
-      } catch (apiErr) {
-        console.warn('Backend vendor endpoint offline, saving locally', apiErr);
-      }
-
-      // 2. Append to shared vendors list for Manager Dashboard
-      try {
-        const savedVendors = localStorage.getItem('eventcraft_vendors');
-        const list: any[] = savedVendors ? JSON.parse(savedVendors) : [];
-        list.unshift(newVendorData);
-        localStorage.setItem('eventcraft_vendors', JSON.stringify(list));
-      } catch (storageErr) {
-        console.error(storageErr);
-      }
-
-      // 3. Set as current active vendor in this user's isolated session
       setCurrentVendor(newVendorData);
       if (userKey) {
-        localStorage.setItem(`eventcraft_vendor_${userKey}`, JSON.stringify(newVendorData));
+        localStorage.setItem(`eventcraft_vendor_id_${userKey}`, newVendorId);
       }
 
       setRegisteredSuccess(true);
@@ -151,7 +117,8 @@ export const VendorPortal: React.FC = () => {
       setDescription('');
       setPackageName('');
     } catch (err) {
-      console.error(err);
+      console.error("Backend vendor registration failed:", err);
+      alert("Failed to register vendor. Please ensure backend API is running.");
     } finally {
       setSubmitting(false);
     }
