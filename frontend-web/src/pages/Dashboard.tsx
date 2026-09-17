@@ -15,9 +15,22 @@ import {
   MapPin,
   Check,
   ShieldCheck,
-  Sun
+  Sun,
+  Search,
+  Filter,
+  ChevronRight
 } from 'lucide-react';
 import { eventService, type EventItem } from '../services/api';
+
+const getEventTypeIcon = (type?: string) => {
+  if (!type) return '🎉';
+  const lower = type.toLowerCase();
+  if (lower.includes('wedding')) return '💍';
+  if (lower.includes('birthday')) return '🎂';
+  if (lower.includes('engagement') || lower.includes('anniversary')) return '🥂';
+  if (lower.includes('corporate') || lower.includes('launch') || lower.includes('award') || lower.includes('gala')) return '🏢';
+  return '🎉';
+};
 
 export const Dashboard: React.FC = () => {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -26,6 +39,8 @@ export const Dashboard: React.FC = () => {
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
+  const [eventSearchQuery, setEventSearchQuery] = useState('');
 
   // Fetch Live Events from Backend
   const loadEvents = async () => {
@@ -33,7 +48,7 @@ export const Dashboard: React.FC = () => {
       setLoading(true);
       const data = await eventService.getMyEvents();
       setEvents(data);
-      if (data.length > 0) {
+      if (data.length > 0 && !selectedEvent) {
         setSelectedEvent(data[0]); // Select the most recent event
       }
     } catch (err) {
@@ -173,7 +188,7 @@ export const Dashboard: React.FC = () => {
       }
     }
 
-    // 4. Celebration Cakes (Event-Type Strict Context + Budget Tiering)
+    // 4. Celebration Cakes
     const hasCake = services.some(s => s.toLowerCase().includes('cake'));
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
@@ -209,7 +224,6 @@ export const Dashboard: React.FC = () => {
           cakeLabel = '2-Tier Signature Handcrafted Engagement Cake';
         }
       } else {
-        // Corporate, Gala, Launch, Other
         if (budget >= 1000000) {
           cakeCost = 35000;
           cakeLabel = 'Custom 3D Corporate Logo Reveal Branding Cake';
@@ -283,7 +297,7 @@ export const Dashboard: React.FC = () => {
 
     try {
       await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal);
-      setActionSuccess("Proposal approved successfully! Updated in PostgreSQL Database.");
+      setActionSuccess("Proposal approved successfully! Synchronized in PostgreSQL Database.");
       setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager', estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
     } catch (err) {
@@ -295,6 +309,23 @@ export const Dashboard: React.FC = () => {
   const activeCount = events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length;
   const pendingCount = events.filter(e => e.status === 'PendingManagerApproval' || e.status === 'UnderReview').length;
   const confirmedCount = events.filter(e => e.status === 'ApprovedByManager' || e.status === 'Confirmed').length;
+
+  // Filter events based on active tab and search query
+  const filteredEvents = events.filter(ev => {
+    const matchesTab = 
+      eventFilterTab === 'all' ? true :
+      eventFilterTab === 'pending' ? (ev.status === 'PendingManagerApproval' || ev.status === 'UnderReview') :
+      (ev.status === 'ApprovedByManager' || ev.status === 'Confirmed');
+
+    const searchLower = eventSearchQuery.toLowerCase();
+    const matchesSearch = 
+      !eventSearchQuery ||
+      ev.title.toLowerCase().includes(searchLower) ||
+      (ev.eventType || '').toLowerCase().includes(searchLower) ||
+      (ev.venueName || '').toLowerCase().includes(searchLower);
+
+    return matchesTab && matchesSearch;
+  });
 
   // Pricing calculations for current selected event
   const isApproved = selectedEvent?.status === 'ApprovedByManager' || selectedEvent?.status === 'Confirmed';
@@ -323,88 +354,206 @@ export const Dashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
       {/* Top Welcome & Refresh */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Event Operations & AI Control Center</h1>
-          <p className="text-slate-500 text-sm mt-1">Live synchronized with ASP.NET Core & PostgreSQL Neon Cloud Database.</p>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Operations Manager Control Center
+            </span>
+            <span className="text-xs text-slate-400">• Multi-Agent AI Workflow</span>
+          </div>
+          <h1 className="text-2xl font-black mt-2">Event Operations & AI Proposal Management</h1>
+          <p className="text-slate-400 text-sm mt-1">Live synchronized with ASP.NET Core & PostgreSQL Neon Cloud Database.</p>
         </div>
         <button 
           onClick={loadEvents}
-          className="flex items-center space-x-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-sm transition"
+          className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold shadow-sm transition"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-600' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
           <span>Sync Live DB</span>
         </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Active Requests</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{activeCount}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Requests</p>
+            <p className="text-2xl font-black text-slate-800 mt-1">{activeCount}</p>
           </div>
-          <div className="p-3 bg-sky-50 rounded-lg"><Calendar className="w-6 h-6 text-sky-600" /></div>
+          <div className="p-3 bg-sky-50 rounded-xl text-sky-600 border border-sky-100"><Calendar className="w-5 h-5" /></div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Pending Approvals</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{pendingCount}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Approvals</p>
+            <p className="text-2xl font-black text-amber-600 mt-1">{pendingCount}</p>
           </div>
-          <div className="p-3 bg-amber-50 rounded-lg"><Clock className="w-6 h-6 text-amber-600" /></div>
+          <div className="p-3 bg-amber-50 rounded-xl text-amber-600 border border-amber-100"><Clock className="w-5 h-5" /></div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Confirmed / Approved</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">{confirmedCount}</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Confirmed / Approved</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1">{confirmedCount}</p>
           </div>
-          <div className="p-3 bg-emerald-50 rounded-lg"><CheckCircle className="w-6 h-6 text-emerald-600" /></div>
+          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100"><CheckCircle className="w-5 h-5" /></div>
         </div>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Total Revenue</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">Rs. 4.2M</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+            <p className="text-2xl font-black text-indigo-600 mt-1">Rs. 4.2M</p>
           </div>
-          <div className="p-3 bg-purple-50 rounded-lg"><DollarSign className="w-6 h-6 text-purple-600" /></div>
+          <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100"><DollarSign className="w-5 h-5" /></div>
         </div>
       </div>
 
       {/* Success Notification */}
       {actionSuccess && (
-        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium flex items-center justify-between">
+        <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-4 h-4 text-emerald-600" />
+            <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-emerald-900 text-xs">Dismiss</button>
+          <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-emerald-900 font-bold">&times;</button>
         </div>
       )}
 
-      {/* Live Event Selector Horizontal Carousel */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Live Event Requests in Database</h3>
-        <div className="flex space-x-3 overflow-x-auto pb-2 scrollbar-none">
-          {events.map((ev) => (
-            <button
-              key={ev.eventId}
-              onClick={() => setSelectedEvent(ev)}
-              className={`flex-shrink-0 px-4 py-2.5 rounded-xl border text-left text-xs transition flex items-center space-x-2 ${
-                selectedEvent?.eventId === ev.eventId
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-sky-400'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <div className={`w-2 h-2 rounded-full ${
-                ev.status === 'ApprovedByManager' || ev.status === 'Confirmed' ? 'bg-emerald-400' : 'bg-amber-400'
-              }`} />
-              <span className="font-bold">{ev.title}</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/70 text-slate-500 border border-slate-200">{ev.status}</span>
-            </button>
-          ))}
+      {/* Premium Event Requests Gallery */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 pb-4 border-b border-slate-100">
+          <div>
+            <div className="flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-indigo-600" />
+              <h2 className="font-bold text-slate-900 text-base">Client Event Requests ({events.length} Total)</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Select an event request below to view AI agent proposal curation, weather risk & pricing.</p>
+          </div>
+
+          {/* Search & Tabs Controls */}
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Filter Tabs */}
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+              <button
+                onClick={() => setEventFilterTab('all')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                  eventFilterTab === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All ({events.length})
+              </button>
+              <button
+                onClick={() => setEventFilterTab('pending')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 ${
+                  eventFilterTab === 'pending' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-amber-700'
+                }`}
+              >
+                <span>Pending ({pendingCount})</span>
+              </button>
+              <button
+                onClick={() => setEventFilterTab('approved')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 ${
+                  eventFilterTab === 'approved' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-emerald-700'
+                }`}
+              >
+                <span>Approved ({confirmedCount})</span>
+              </button>
+            </div>
+
+            {/* Quick Search */}
+            <div className="relative flex-1 md:w-56">
+              <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                <Search className="h-3.5 w-3.5 text-slate-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={eventSearchQuery}
+                onChange={e => setEventSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
         </div>
+
+        {/* Event Cards Grid */}
+        {filteredEvents.length === 0 ? (
+          <div className="text-center py-10 text-slate-500 text-xs">
+            No event requests found matching your filter.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredEvents.map((ev) => {
+              const isSelected = selectedEvent?.eventId === ev.eventId;
+              const isEvApproved = ev.status === 'ApprovedByManager' || ev.status === 'Confirmed';
+              const icon = getEventTypeIcon(ev.eventType);
+
+              return (
+                <div
+                  key={ev.eventId}
+                  onClick={() => setSelectedEvent(ev)}
+                  className={`p-4 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between relative ${
+                    isSelected
+                      ? 'bg-gradient-to-br from-slate-900 to-indigo-950 text-white border-indigo-500 shadow-md ring-2 ring-indigo-500/30'
+                      : 'bg-slate-50 hover:bg-white text-slate-800 border-slate-200 hover:border-indigo-300 hover:shadow-xs'
+                  }`}
+                >
+                  <div>
+                    {/* Top Row: Type & Status */}
+                    <div className="flex justify-between items-center mb-2">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 ${
+                        isSelected 
+                          ? 'bg-white/10 text-white border border-white/20' 
+                          : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                      }`}>
+                        <span>{icon}</span>
+                        <span>{ev.eventType || 'Event'}</span>
+                      </span>
+
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 ${
+                        isEvApproved
+                          ? (isSelected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-800')
+                          : (isSelected ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800')
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isEvApproved ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                        <span>{isEvApproved ? 'Approved' : 'Pending'}</span>
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className={`font-bold text-sm leading-snug line-clamp-1 ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                      {ev.title}
+                    </h3>
+
+                    {/* Venue & Hall */}
+                    <p className={`text-xs mt-1.5 flex items-center truncate ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                      <MapPin className={`w-3 h-3 mr-1 flex-shrink-0 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
+                      <span className="truncate">{ev.banquetHallName || ev.venueName || 'Luxury Venue'}</span>
+                    </p>
+                  </div>
+
+                  {/* Bottom Row: Metadata */}
+                  <div className={`mt-3 pt-2.5 border-t flex items-center justify-between text-[11px] ${
+                    isSelected ? 'border-white/10 text-slate-300' : 'border-slate-200/80 text-slate-500'
+                  }`}>
+                    <span className="flex items-center">
+                      <Calendar className="w-3 h-3 mr-1 opacity-70" />
+                      {new Date(ev.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <span className="flex items-center">
+                      <Users className="w-3 h-3 mr-1 opacity-70" />
+                      {ev.guestCount} Guests
+                    </span>
+                    <span className={`font-bold ${isSelected ? 'text-sky-300' : 'text-indigo-600'}`}>
+                      Rs. {(Number(ev.budgetLimit) / 1000000).toFixed(1)}M
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Main Review Section: Live Proposal */}
@@ -413,14 +562,14 @@ export const Dashboard: React.FC = () => {
           <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Sparkles className="w-5 h-5 text-sky-400 animate-spin" />
-              <h2 className="font-semibold text-base">Human-in-the-Loop AI Proposal Review (Live DB)</h2>
+              <h2 className="font-bold text-base">Human-in-the-Loop AI Proposal Review (Live DB)</h2>
             </div>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center space-x-1.5 ${
               isApproved
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
             }`}>
-              Status: {selectedEvent.status}
+              <span>{isApproved ? '✓ Proposal Approved' : '⏳ Awaiting Manager Approval'}</span>
             </span>
           </div>
 
@@ -429,31 +578,32 @@ export const Dashboard: React.FC = () => {
             {/* Proposal Details */}
             <div className="lg:col-span-2 space-y-6">
               <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
-                    {selectedEvent.eventType || "Event"}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 flex items-center space-x-1">
+                    <span>{getEventTypeIcon(selectedEvent.eventType)}</span>
+                    <span>{selectedEvent.eventType || "Event"}</span>
                   </span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border flex items-center ${
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-md border flex items-center ${
                     selectedEvent.isOutdoor 
-                      ? 'text-amber-700 bg-amber-50 border-amber-200' 
-                      : 'text-indigo-700 bg-indigo-50 border-indigo-200'
+                      ? 'text-amber-800 bg-amber-50 border-amber-200' 
+                      : 'text-indigo-800 bg-indigo-50 border-indigo-200'
                   }`}>
                     {selectedEvent.isOutdoor ? '🌳 Outdoor Setting' : '🏛️ Indoor Setting'}
                   </span>
                   {selectedEvent.banquetHallName && (
-                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" />
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center">
+                      <MapPin className="w-3.5 h-3.5 mr-1 text-emerald-600" />
                       {selectedEvent.banquetHallName}
                     </span>
                   )}
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 mt-2">{selectedEvent.title}</h3>
-                <p className="text-sm text-slate-500 mt-1">
+                <h3 className="text-xl font-black text-slate-900 mt-3">{selectedEvent.title}</h3>
+                <p className="text-xs text-slate-500 mt-1">
                   Event ID: <span className="font-mono text-xs text-slate-400">{selectedEvent.eventId}</span>
                 </p>
-                <p className="text-sm text-slate-600 mt-1">
-                  Date: {new Date(selectedEvent.targetDate).toLocaleDateString()} • Guests: {selectedEvent.guestCount} • Budget Limit: Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}
+                <p className="text-xs text-slate-600 mt-1 font-medium">
+                  Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString()}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
                 </p>
               </div>
 
@@ -505,7 +655,7 @@ export const Dashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* Special Client Requests & Add-ons (e.g. Flower Bouquet) */}
+              {/* Special Client Requests & Add-ons */}
               {selectedEvent.additionalDetails && (
                 <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
