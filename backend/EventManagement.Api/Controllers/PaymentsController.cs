@@ -72,6 +72,38 @@ public class PaymentsController : ControllerBase
         return CreatedAtAction(nameof(UploadPaymentSlip), new { id = payment.PaymentId }, payment);
     }
 
+    // 1.1 GET: api/payments (List all customer payment slips for Manager Verification Queue)
+    [HttpGet]
+    public async Task<ActionResult> GetAllPayments()
+    {
+        var payments = await _context.Payments
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.Event)
+                    .ThenInclude(e => e!.Customer)
+            .OrderByDescending(p => p.PaidAt)
+            .Select(p => new
+            {
+                id = p.PaymentId.ToString(),
+                bookingRef = p.Booking != null ? p.Booking.BookingReferenceCode : "EV-2026-REF",
+                clientName = p.Booking != null && p.Booking.Event != null && p.Booking.Event.Customer != null
+                    ? p.Booking.Event.Customer.FullName
+                    : "Client Customer",
+                eventTitle = p.Booking != null && p.Booking.Event != null ? p.Booking.Event.Title : "Event Reservation",
+                amount = p.AmountPaid,
+                slipUrl = p.SlipImageUrl,
+                date = (p.PaidAt ?? DateTime.UtcNow).ToString("yyyy-MM-dd HH:mm"),
+                status = p.Status,
+                rejectReason = p.RejectReason,
+                invoiceNumber = _context.Invoices
+                    .Where(i => i.BookingId == p.BookingId)
+                    .Select(i => i.InvoiceNumber)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return Ok(payments);
+    }
+
     // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice)
     [HttpPut("{id}/verify")]
     public async Task<ActionResult> VerifyPayment(Guid id, [FromBody] VerifyPaymentDto dto)

@@ -137,3 +137,31 @@ export const vendorService = {
     return res.data;
   },
 };
+
+export interface LivePaymentItem {
+  id: string;
+  bookingRef: string;
+  clientName: string;
+  eventTitle: string;
+  amount: number;
+  slipUrl: string;
+  date: string;
+  status: string;
+  rejectReason?: string;
+  invoiceNumber?: string;
+}
+
+export const paymentService = {
+  getPayments: async (): Promise<LivePaymentItem[]> => {
+    const res = await apiClient.get('/payments');
+    return res.data;
+  },
+  verifyPayment: async (id: string, status: 'Approved' | 'Rejected', rejectReason?: string) => {
+    const res = await apiClient.put(`/payments/${id}/verify`, { status, rejectReason });
+    return res.data;
+  },
+  getRevenueForecast: async () => {
+    const res = await apiClient.get('/payments/analytics/revenue-forecast');
+    return res.data;
+  },
+};
