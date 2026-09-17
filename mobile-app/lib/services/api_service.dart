@@ -177,7 +177,7 @@ class ApiService {
         url,
         headers: headers,
         body: payload,
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
@@ -216,7 +216,7 @@ class ApiService {
       final headers = await _getHeaders();
       final response = await http
           .post(url, headers: headers, body: payload)
-          .timeout(const Duration(seconds: 20));
+          .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);

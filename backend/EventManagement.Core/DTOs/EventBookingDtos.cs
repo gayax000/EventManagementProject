@@ -78,7 +78,6 @@ public class SignContractRequestDto
     [Required]
     public string DigitalSignatureUrl { get; set; } = string.Empty;
 
-    [Range(1, 100000000)]
     public decimal AgreedTotalAmount { get; set; }
 }
 
