@@ -34,6 +34,7 @@ public class EventResponseDto
     public string Status { get; set; } = string.Empty;
     public Guid? VenueId { get; set; }
     public string? VenueName { get; set; }
+    public decimal? EstimatedTotalCost { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

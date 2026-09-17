@@ -21,6 +21,7 @@ export interface EventItem {
   status: string;
   venueId?: string;
   venueName?: string;
+  estimatedTotalCost?: number;
   createdAt: string;
 }
 
@@ -51,14 +52,28 @@ export const Dashboard: React.FC = () => {
     loadEvents();
   }, []);
 
+  // Fetch proposal details to synchronize real database pricing
+  useEffect(() => {
+    if (selectedEvent?.eventId) {
+      eventService.getProposal(selectedEvent.eventId)
+        .then(p => {
+          if (p && p.estimatedTotalCost !== undefined) {
+            setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { ...prev, estimatedTotalCost: p.estimatedTotalCost } : prev);
+          }
+        })
+        .catch(e => console.log("Proposal fetch info", e));
+    }
+  }, [selectedEvent?.eventId]);
+
   // Manager Approve Proposal Action
   const handleApprove = async () => {
     if (!selectedEvent) return;
+    const computedFinalTotal = selectedEvent.guestCount * 5000 + 300000 - specialDiscount;
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal);
       setActionSuccess("Proposal approved successfully! Updated in PostgreSQL Database.");
-      // Refresh local state
-      setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager' } : null);
+      // Refresh local state with the exact computed final total
+      setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager', estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
     } catch (err) {
       console.error("Approval failed", err);
@@ -248,7 +263,10 @@ export const Dashboard: React.FC = () => {
                   <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-bold text-slate-900">
                     <span>Final Total:</span>
                     <span className="text-emerald-600">
-                      Rs. {(selectedEvent.guestCount * 5000 + 300000 - specialDiscount).toLocaleString()}
+                      Rs. {((selectedEvent.status === 'ApprovedByManager' || selectedEvent.status === 'Confirmed') && selectedEvent.estimatedTotalCost
+                        ? selectedEvent.estimatedTotalCost
+                        : (selectedEvent.guestCount * 5000 + 300000 - specialDiscount)
+                      ).toLocaleString()}
                     </span>
                   </div>
                 </div>

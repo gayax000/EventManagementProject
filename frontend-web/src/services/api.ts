@@ -33,6 +33,7 @@ export interface EventItem {
   status: string;
   venueId?: string;
   venueName?: string;
+  estimatedTotalCost?: number;
   createdAt: string;
 }
 
@@ -43,9 +44,19 @@ export const eventService = {
     return response.data;
   },
 
-  // Manager Approve Proposal
-  approveProposal: async (eventId: string, discount: number = 0) => {
-    const response = await apiClient.post(`/events/${eventId}/approve-proposal?discount=${discount}`);
+  // Manager Approve Proposal with exact finalTotal
+  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number) => {
+    let url = `/events/${eventId}/approve-proposal?discount=${discount}`;
+    if (finalTotal !== undefined) {
+      url += `&finalTotal=${finalTotal}`;
+    }
+    const response = await apiClient.post(url);
+    return response.data;
+  },
+
+  // Get specific event proposal
+  getProposal: async (eventId: string) => {
+    const response = await apiClient.get(`/events/${eventId}/proposal`);
     return response.data;
   },
 

@@ -95,6 +95,7 @@ public class EventsController : ControllerBase
     {
         var ev = await _context.Events
             .Include(e => e.Venue)
+            .Include(e => e.AIWorkflowState)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
@@ -110,6 +111,7 @@ public class EventsController : ControllerBase
             Status = ev.Status,
             VenueId = ev.VenueId,
             VenueName = ev.Venue?.Name,
+            EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             CreatedAt = ev.CreatedAt
         });
     }
@@ -167,6 +169,7 @@ public class EventsController : ControllerBase
 
         var events = await query
             .Include(e => e.Venue)
+            .Include(e => e.AIWorkflowState)
             .OrderByDescending(e => e.CreatedAt)
             .Select(ev => new EventResponseDto
             {
@@ -178,6 +181,7 @@ public class EventsController : ControllerBase
                 Status = ev.Status,
                 VenueId = ev.VenueId,
                 VenueName = ev.Venue != null ? ev.Venue.Name : null,
+                EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                 CreatedAt = ev.CreatedAt
             })
             .ToListAsync();
@@ -187,7 +191,7 @@ public class EventsController : ControllerBase
 
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
@@ -199,13 +203,26 @@ public class EventsController : ControllerBase
         if (aiState != null)
         {
             aiState.ApprovalStatus = "ApprovedByManager";
-            if (discount > 0)
-                aiState.EstimatedTotalCost -= discount;
+            if (finalTotal.HasValue && finalTotal.Value > 0)
+            {
+                aiState.EstimatedTotalCost = finalTotal.Value;
+            }
+            else
+            {
+                // Dynamic baseline: (guests * 5000) + 300000 - discount
+                decimal baseSubtotal = (ev.GuestCount * 5000m) + 300000m;
+                aiState.EstimatedTotalCost = Math.Max(0, baseSubtotal - discount);
+            }
         }
 
         await _context.SaveChangesAsync();
 
-        return Ok(new { message = "Proposal approved successfully by Manager.", status = ev.Status });
+        return Ok(new 
+        { 
+            message = "Proposal approved successfully by Manager.", 
+            status = ev.Status, 
+            finalTotal = aiState?.EstimatedTotalCost 
+        });
     }
 
     // 5. POST: api/events/{id}/sign-contract (Business-Specific: Contract Sign & QR Entry Pass Generation)
