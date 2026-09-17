@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone } from 'lucide-react';
+import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search } from 'lucide-react';
 import { vendorService } from '../services/api';
+
+const VENDOR_CATEGORIES = [
+  { id: 'All', label: 'All Vendors', icon: '🏪' },
+  { id: 'Catering', label: 'Catering Buffets', icon: '🍽️' },
+  { id: 'AudioVisual', label: 'Sound & Lighting', icon: '🔊' },
+  { id: 'Decor', label: 'Decor & Stage', icon: '🌸' },
+  { id: 'MarqueeTent', label: 'Tents & Safeguards', icon: '⛺' },
+  { id: 'PowerBackup', label: 'Power Backup', icon: '⚡' },
+];
 
 export const VendorsPage: React.FC = () => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   const fetchVendors = async () => {
     try {
@@ -30,26 +41,70 @@ export const VendorsPage: React.FC = () => {
   }, []);
 
   const handleVerifyVendor = async (id: string, newStatus: 'Verified' | 'Rejected') => {
-    // Optimistic UI update
     setVendors(prev => prev.map(v => v.id === id ? { ...v, status: newStatus } : v));
     try {
       await vendorService.verifyVendor(id, newStatus);
     } catch (e) {
       console.warn("Backend verifyVendor call warning", e);
-      // Revert on failure (simple refetch)
       fetchVendors();
     }
   };
 
-  const pendingVendors = vendors.filter(v => v.status === 'Pending');
-  const confirmedVendors = vendors.filter(v => v.status === 'Verified');
+  const filteredVendors = vendors.filter(v => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = v.name.toLowerCase().includes(searchLower) || 
+                          (v.contactNumber || v.contact || '').includes(searchTerm);
+    const matchesCategory = selectedCategory === 'All' || v.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const pendingVendors = filteredVendors.filter(v => v.status === 'Pending');
+  const confirmedVendors = filteredVendors.filter(v => v.status === 'Verified');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Partner & Vendor Management</h1>
         <p className="text-slate-500 text-sm mt-1">Review new vendor applications and manage confirmed business partners in the EventCraft network.</p>
+      </div>
+
+      {/* Filtering & Search Bar */}
+      <div className="mb-8 space-y-4">
+        {/* Search Input */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-slate-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search vendors by name, contact or keyword..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
+          />
+          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+            <span className="text-xs text-slate-400 font-medium">Showing {filteredVendors.length} vendors</span>
+          </div>
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex overflow-x-auto space-x-2 pb-2 scrollbar-hide">
+          {VENDOR_CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors ${
+                selectedCategory === cat.id 
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* SECTION 1: Pending Verifications */}
@@ -67,7 +122,9 @@ export const VendorsPage: React.FC = () => {
         <div className="divide-y divide-slate-200">
           {pendingVendors.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">
-              No pending verification requests at the moment.
+              {searchTerm || selectedCategory !== 'All' 
+                ? 'No pending verification requests match your current filters.' 
+                : 'No pending verification requests at the moment.'}
             </div>
           ) : (
             pendingVendors.map(vendor => (
@@ -121,7 +178,9 @@ export const VendorsPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-6 gap-4 bg-slate-50/50">
           {confirmedVendors.length === 0 ? (
             <div className="col-span-full py-8 text-center text-slate-500 text-sm">
-              No confirmed vendors yet. Approve pending requests to add them to the network.
+              {searchTerm || selectedCategory !== 'All' 
+                ? 'No confirmed vendors match your current filters.' 
+                : 'No confirmed vendors yet. Approve pending requests to add them to the network.'}
             </div>
           ) : (
             confirmedVendors.map(vendor => (
