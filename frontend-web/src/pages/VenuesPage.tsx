@@ -90,18 +90,7 @@ export const VenuesPage: React.FC = () => {
                     {venue.isOutdoor ? 'Outdoor' : 'Indoor'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 flex items-center mb-4"><MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />{venue.locationAddress}</p>
-                
-                <div className="space-y-2 border-t border-slate-100 pt-3 text-sm text-slate-600">
-                  <div className="flex justify-between">
-                    <span className="flex items-center text-xs"><Users className="w-3.5 h-3.5 mr-1 text-slate-400" />Max Capacity:</span>
-                    <span className="font-semibold text-slate-800">{venue.maxCapacity} Guests</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="flex items-center text-xs"><DollarSign className="w-3.5 h-3.5 mr-1 text-slate-400" />Base Rental Price:</span>
-                    <span className="font-semibold text-sky-600">Rs. {Number(venue.baseRentalPrice).toLocaleString()}</span>
-                  </div>
-                </div>
+                <p className="text-xs text-slate-500 flex items-center"><MapPin className="w-3.5 h-3.5 mr-1 text-slate-400" />{venue.locationAddress}</p>
               </div>
             ))}
           </div>
@@ -119,7 +108,14 @@ export const VenuesPage: React.FC = () => {
                   <Building2 className="w-5 h-5 mr-2 text-indigo-600" />
                   {selectedVenue?.name || 'Banquet Halls'}
                 </h3>
-                <p className="text-xs text-slate-500 mt-1 ml-7">Select a hall or space available at this venue.</p>
+                {selectedVenue?.locationAddress ? (
+                  <p className="text-sm text-slate-600 mt-1.5 ml-7 flex items-center">
+                    <MapPin className="w-4 h-4 mr-1 text-sky-500" />
+                    {selectedVenue.locationAddress}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1 ml-7">Select a hall or space available at this venue.</p>
+                )}
               </div>
               <button 
                 onClick={closeModal} 
