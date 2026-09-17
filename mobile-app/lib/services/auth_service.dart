@@ -39,8 +39,9 @@ class AuthService {
         final token = data['token'];
         final role = data['role'] ?? 'Customer';
         final name = data['fullName'] ?? email.split('@').first;
+        final userId = data['userId']?.toString() ?? '';
 
-        await saveToken(token, role, name);
+        await saveToken(token, role, name, userId: userId, email: email);
         return AuthResult(success: true);
       } else {
         try {
@@ -94,16 +95,35 @@ class AuthService {
     }
   }
 
-  static Future<void> saveToken(String token, String role, String name) async {
+  static const String _userIdKey = 'user_id';
+  static const String _userEmailKey = 'user_email';
+
+  static Future<void> saveToken(String token, String role, String name, {String? userId, String? email}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     await prefs.setString(_userRoleKey, role);
     await prefs.setString(_userNameKey, name);
+    if (userId != null && userId.isNotEmpty) {
+      await prefs.setString(_userIdKey, userId);
+    }
+    if (email != null && email.isNotEmpty) {
+      await prefs.setString(_userEmailKey, email);
+    }
   }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
+  }
+
+  static Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userIdKey);
+  }
+
+  static Future<String?> getUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userEmailKey);
   }
 
   static Future<String?> getUserName() async {
@@ -116,6 +136,8 @@ class AuthService {
     await prefs.remove(_tokenKey);
     await prefs.remove(_userRoleKey);
     await prefs.remove(_userNameKey);
+    await prefs.remove(_userIdKey);
+    await prefs.remove(_userEmailKey);
   }
 
   static Future<bool> isLoggedIn() async {

@@ -19,6 +19,8 @@ public class CreateEventRequestDto
 
     public Guid? VenueId { get; set; }
     public string? InspirationImageUrl { get; set; }
+    public Guid? CustomerId { get; set; }
+    public string? PreferredLocation { get; set; }
 }
 
 // 2. Event Response DTO

@@ -27,14 +27,39 @@ public class EventsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Simulated Customer ID (පසුව JWT auth එකෙන් ලබා ගනී)
-        var sampleCustomer = await _context.Users.FirstOrDefaultAsync(u => u.Role!.RoleName == "Customer") 
-                             ?? await CreateFallbackCustomer();
+        Guid customerId = Guid.Empty;
+        if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
+        {
+            customerId = dto.CustomerId.Value;
+        }
+        else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+        {
+            customerId = parsedId;
+        }
+
+        if (customerId == Guid.Empty)
+        {
+            var sampleCustomer = await _context.Users.FirstOrDefaultAsync(u => u.Role!.RoleName == "Customer") 
+                                 ?? await CreateFallbackCustomer();
+            customerId = sampleCustomer.UserId;
+        }
+
+        Guid? venueId = dto.VenueId;
+        if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
+        {
+            var matchedVenue = await _context.Venues.FirstOrDefaultAsync(v => 
+                v.Name.ToLower().Contains(dto.PreferredLocation.ToLower()) ||
+                v.LocationAddress.ToLower().Contains(dto.PreferredLocation.ToLower()));
+            if (matchedVenue != null)
+            {
+                venueId = matchedVenue.VenueId;
+            }
+        }
 
         var newEvent = new Event
         {
-            CustomerId = sampleCustomer.UserId,
-            VenueId = dto.VenueId,
+            CustomerId = customerId,
+            VenueId = venueId,
             Title = dto.Title,
             TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
             GuestCount = dto.GuestCount,
@@ -123,11 +148,24 @@ public class EventsController : ControllerBase
         });
     }
 
-    // 3. GET: api/events/my-events (List Customer Events)
+    // 3. GET: api/events/my-events (List Customer Events with strict per-user filtering)
     [HttpGet("my-events")]
-    public async Task<ActionResult<IEnumerable<EventResponseDto>>> GetMyEvents()
+    public async Task<ActionResult<IEnumerable<EventResponseDto>>> GetMyEvents([FromQuery] Guid? customerId)
     {
-        var events = await _context.Events
+        if (!customerId.HasValue && Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+        {
+            customerId = parsedId;
+        }
+
+        var query = _context.Events.AsQueryable();
+
+        // If customerId is provided, filter strictly by this customer
+        if (customerId.HasValue && customerId.Value != Guid.Empty)
+        {
+            query = query.Where(e => e.CustomerId == customerId.Value);
+        }
+
+        var events = await query
             .Include(e => e.Venue)
             .OrderByDescending(e => e.CreatedAt)
             .Select(ev => new EventResponseDto

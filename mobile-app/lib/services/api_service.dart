@@ -16,20 +16,29 @@ class ApiService {
     return 'https://eventmanagementproject-production.up.railway.app/api';
   }
 
-  // Helper method to build headers with Bearer Token
+  // Helper method to build headers with Bearer Token and Customer Id
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken();
+    final userId = await AuthService.getUserId();
     final headers = {'Content-Type': 'application/json'};
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
+    if (userId != null && userId.isNotEmpty) {
+      headers['X-Customer-Id'] = userId;
+    }
     return headers;
   }
 
-  // 1. Fetch live events list from Backend
+  // 1. Fetch live events list from Backend (strictly isolated per customer)
   static Future<List<EventSummary>> getMyEvents() async {
     try {
-      final url = Uri.parse('$baseUrl/events/my-events');
+      final userId = await AuthService.getUserId();
+      var urlStr = '$baseUrl/events/my-events';
+      if (userId != null && userId.isNotEmpty) {
+        urlStr += '?customerId=$userId';
+      }
+      final url = Uri.parse(urlStr);
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
@@ -64,20 +73,28 @@ class ApiService {
     }
   }
 
-  // 3. Create Event Request (Triggers Multi-Agent Python AI)
+  // 3. Create Event Request (Triggers Multi-Agent Python AI with user isolation & location)
   static Future<EventSummary?> createEvent({
     required String title,
     required DateTime targetDate,
     required int guestCount,
     required double budgetLimit,
+    String? preferredLocation,
+    List<String>? inspirationImages,
   }) async {
     try {
+      final userId = await AuthService.getUserId();
       final url = Uri.parse('$baseUrl/events');
       final payload = jsonEncode({
         'title': title,
         'targetDate': targetDate.toIso8601String(),
         'guestCount': guestCount,
         'budgetLimit': budgetLimit,
+        'customerId': userId,
+        'preferredLocation': preferredLocation,
+        'inspirationImageUrl': inspirationImages != null && inspirationImages.isNotEmpty 
+            ? inspirationImages.join(',') 
+            : null,
       });
 
       final headers = await _getHeaders();

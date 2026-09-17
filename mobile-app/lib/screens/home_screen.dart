@@ -123,30 +123,16 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.cyan.withOpacity(0.1),
-                ),
-                child: IconButton(
-                  icon: Icon(Icons.refresh_rounded, color: _isLoading ? Colors.grey : Colors.cyanAccent),
-                  onPressed: _isLoading ? null : _loadUserAndEvents,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.redAccent.withOpacity(0.1),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                  onPressed: _handleLogout,
-                ),
-              ),
-            ],
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.redAccent.withOpacity(0.1),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+              onPressed: _handleLogout,
+              tooltip: 'Sign Out',
+            ),
           ),
         ],
       ),
