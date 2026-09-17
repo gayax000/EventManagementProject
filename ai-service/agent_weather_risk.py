@@ -19,22 +19,35 @@ class WeatherRiskAgent:
     def query_weather_tool(self, location: str, target_date: str) -> dict:
 
         loc = location.lower()
+        try:
+            dt = datetime.datetime.fromisoformat(target_date.replace("Z", "+00:00"))
+            month = dt.month
+            day = dt.day
+        except Exception:
+            month = 10
+            day = 15
 
-        if any(place in loc for place in ["nuwara", "kandy", "galle"]):
-
-            rain_pct = 75
-
-            condition = "Heavy Monsoon Rain Showers"
-
+        if month in [5, 6, 7, 8, 9]:  # Southwest Monsoon
+            if any(p in loc for p in ["colombo", "galle", "kandy", "kalutara", "matara", "ratnapura", "nuwara"]):
+                rain_pct = min(90, 65 + (day % 20))
+                condition = "South-West Monsoon Rain Showers"
+                risk = "High"
+            else:
+                rain_pct = 25 + (day % 15)
+                condition = "Scattered Clouds"
+                risk = "Low"
+        elif month in [10, 11, 12]:  # Northeast Monsoon & 2nd Inter-Monsoon
+            rain_pct = min(92, 70 + (day % 18))
+            condition = "North-East Monsoon Showers"
             risk = "High"
-
-        else:
-
-            rain_pct = 20
-
-            condition = "Clear Sky"
-
+        elif month in [1, 2, 3]:  # Dry Season
+            rain_pct = 15 + (day % 10)
+            condition = "Clear Sky & Sunny"
             risk = "Low"
+        else:  # April 1st Inter-Monsoon
+            rain_pct = 50 + (day % 20)
+            condition = "Inter-Monsoon Thunderstorms"
+            risk = "Moderate"
  
         return {
 

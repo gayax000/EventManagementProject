@@ -335,9 +335,107 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text("• Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 Text("• Catering & Resources: Optimized for ${proposal.guestCount} guests", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 const SizedBox(height: 8),
-                const Text("🌦️ Weather Risk Assessment:", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 2),
-                const Text("• Rain Risk Safeguard: Waterproof Marquee Tent & Backup Power Included", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Builder(
+                  builder: (context) {
+                    Map<String, dynamic>? wMap;
+                    if (proposal.weatherAssessment != null && proposal.weatherAssessment!.startsWith('{')) {
+                      try {
+                        wMap = jsonDecode(proposal.weatherAssessment!) as Map<String, dynamic>;
+                      } catch (_) {}
+                    }
+                    final bool isOut = proposal.isOutdoor;
+                    final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : (isOut ? 65 : 0);
+                    final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Monsoon Showers' : 'Climate Controlled');
+                    final num safeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
+                    final bool hasTent = isOut && (safeguardCost > 0 || rainPct >= 60);
+
+                    if (!isOut) {
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF064E3B).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.shield_rounded, color: Colors.greenAccent, size: 16),
+                                SizedBox(width: 6),
+                                Text("Weather Assessment: 0% Risk (Indoor Venue)", 
+                                  style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                            SizedBox(height: 3),
+                            Text("• Indoor Climate-Controlled Banquet Hall. Zero weather risk.", 
+                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            Text("• Safeguard: None required. Saved Rs. 150,000 marquee tent cost.", 
+                              style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      );
+                    } else if (hasTent) {
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF78350F).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orangeAccent.withOpacity(0.4)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.cloud_sync_rounded, color: Colors.orangeAccent, size: 16),
+                                const SizedBox(width: 6),
+                                Text("Weather Assessment: $rainPct% Rain Risk ($cond)", 
+                                  style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text("• Outdoor Monsoon contingency safeguard applied.", 
+                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            const Text("• Safeguard: Waterproof Marquee Tent Included (Rs. 150,000).", 
+                              style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      );
+                    } else {
+                      return Container(
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(top: 4, bottom: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0C4A6E).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.lightBlueAccent.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.wb_sunny_rounded, color: Colors.amberAccent, size: 16),
+                                const SizedBox(width: 6),
+                                Text("Weather Forecast: $rainPct% Rain Risk ($cond)", 
+                                  style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text("• Dry favorable outdoor forecast. No heavy precipitation expected.", 
+                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            const Text("• Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.", 
+                              style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                ),
                 const Divider(color: Colors.white12, height: 22),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

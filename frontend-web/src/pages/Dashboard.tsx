@@ -13,7 +13,9 @@ import {
   Eye,
   X,
   MapPin,
-  Check
+  Check,
+  ShieldCheck,
+  Sun
 } from 'lucide-react';
 import { eventService, type EventItem } from '../services/api';
 
@@ -65,6 +67,15 @@ export const Dashboard: React.FC = () => {
               }
             }
 
+            let weatherObj: any = null;
+            if (p.weatherAssessment) {
+              if (typeof p.weatherAssessment === 'string') {
+                try { weatherObj = JSON.parse(p.weatherAssessment); } catch (e) { }
+              } else {
+                weatherObj = p.weatherAssessment;
+              }
+            }
+
             setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { 
               ...prev, 
               estimatedTotalCost: p.estimatedTotalCost ?? prev.estimatedTotalCost,
@@ -75,6 +86,7 @@ export const Dashboard: React.FC = () => {
               perPlatePrice: p.perPlatePrice ?? prev.perPlatePrice,
               isOutdoor: p.isOutdoor ?? prev.isOutdoor,
               additionalDetails: p.additionalDetails || prev.additionalDetails,
+              weatherAssessment: weatherObj || prev.weatherAssessment,
               selectedServices: p.selectedServices || prev.selectedServices,
               inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
             } : prev);
@@ -96,7 +108,15 @@ export const Dashboard: React.FC = () => {
     const soundsCost = hasSounds ? 150000 : 0;
     const decoCost = hasDeco ? 80000 : 0;
     const cakeCost = hasCake ? 35000 : 0;
-    const weatherTentCost = 150000;
+
+    const isEventOutdoor = selectedEvent.isOutdoor === true;
+    const weatherData = selectedEvent.weatherAssessment;
+    const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
+    const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
+    const weatherTentCost = isEventOutdoor 
+      ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
+      : 0;
+
     const hasSpecialRequests = Boolean(selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
     const otherCost = hasSpecialRequests ? 35000 : 0;
     const computedSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
@@ -129,7 +149,18 @@ export const Dashboard: React.FC = () => {
   const soundsCost = hasSounds ? 150000 : 0;
   const decoCost = hasDeco ? 80000 : 0;
   const cakeCost = hasCake ? 35000 : 0;
-  const weatherTentCost = 150000;
+
+  const isEventOutdoor = selectedEvent?.isOutdoor === true;
+  const weatherData = selectedEvent?.weatherAssessment;
+  const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
+  const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
+  const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? "Monsoon Showers" : "Indoor Climate Controlled");
+  const weatherAction = weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
+
+  const weatherTentCost = isEventOutdoor 
+    ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
+    : 0;
+
   const hasSpecialRequests = Boolean(selectedEvent?.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
   const otherCost = hasSpecialRequests ? 35000 : 0;
   const currentSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
@@ -343,18 +374,69 @@ export const Dashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* Weather Contingency Alert */}
-              <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start space-x-3">
-                <CloudRain className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-amber-900">Weather Agent Assessment: 70% Monsoon Rain Alert</h4>
-                  <p className="text-xs text-amber-800 mt-1">Autonomous environmental contingency triggered on outdoor venue.</p>
-                  <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
-                    <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                    Auto Safeguard: Heavy-Duty Waterproof Marquee Tent (Rs. 150,000) added.
-                  </p>
+              {/* Weather Contingency Assessment Card */}
+              {!isEventOutdoor ? (
+                <div className="p-4 bg-emerald-50/90 border border-emerald-200 rounded-xl flex items-start space-x-3">
+                  <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-bold text-emerald-950">Weather Assessment: 0% Risk (Indoor Venue)</h4>
+                      <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                        Safe & Sheltered
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-800 mt-1">
+                      Indoor climate-controlled banquet hall. Outdoor rain & monsoon risks do not apply.
+                    </p>
+                    <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                      Safeguard: None required. Saved Rs. 150,000 marquee tent budget!
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : weatherTentCost > 0 ? (
+                <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start space-x-3">
+                  <CloudRain className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-bold text-amber-900">
+                        Weather Agent Assessment: {rainPct}% Rain Risk ({weatherCondition})
+                      </h4>
+                      <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                        Outdoor Monsoon Alert
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-800 mt-1">
+                      {weatherAction || "Autonomous environmental contingency triggered on outdoor venue."}
+                    </p>
+                    <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                      Auto Safeguard: Heavy-Duty Waterproof Marquee Tent (Rs. {weatherTentCost.toLocaleString()}) added.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start space-x-3">
+                  <Sun className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h4 className="text-sm font-bold text-sky-950">
+                        Weather Forecast: {rainPct}% Rain Probability ({weatherCondition})
+                      </h4>
+                      <span className="text-[11px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200">
+                        Clear & Favorable
+                      </span>
+                    </div>
+                    <p className="text-xs text-sky-800 mt-1">
+                      {weatherAction || "Dry weather conditions predicted for outdoor setting. No heavy precipitation expected."}
+                    </p>
+                    <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                      Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Breakdown */}
               <div>
@@ -413,10 +495,15 @@ export const Dashboard: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-slate-700">🎪 Waterproof Marquee Tent (Autonomous Weather Safeguard)</span>
-                    <span className="font-semibold text-slate-900">Rs. 150,000</span>
-                  </div>
+                  {weatherTentCost > 0 && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                      <div>
+                        <span className="text-slate-700 font-medium">🎪 Waterproof Marquee Tent (Autonomous Weather Safeguard)</span>
+                        <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

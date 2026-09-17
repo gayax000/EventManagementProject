@@ -43,6 +43,7 @@ export interface EventItem {
   selectedServices?: string[];
   inspirationImages?: string[];
   inspirationImageUrl?: string;
+  weatherAssessment?: any;
   estimatedTotalCost?: number;
   createdAt: string;
 }

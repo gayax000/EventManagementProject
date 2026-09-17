@@ -419,7 +419,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 12),
                         _buildAiDetailRow(Icons.location_on_rounded, "Venue: ${event.venueName ?? 'Luxury Sri Lankan Hotel Package'}"),
                         const SizedBox(height: 6),
-                        _buildAiDetailRow(Icons.cloud_sync_rounded, "Weather Safeguard: Rain risk assessed & Marquee tent included"),
+                        _buildAiDetailRow(
+                          event.isOutdoor ? Icons.cloud_sync_rounded : Icons.shield_rounded,
+                          event.isOutdoor 
+                              ? "Weather Safeguard: Outdoor rain risk assessed"
+                              : "Weather Safeguard: Indoor Venue (0% Risk • Rs. 0 Tent)",
+                          color: event.isOutdoor ? Colors.white70 : Colors.greenAccent,
+                        ),
                         if (isApproved) ...[
                           const SizedBox(height: 6),
                           _buildAiDetailRow(Icons.draw_rounded, "Ready for Customer Digital Signature & QR Pass", color: Colors.greenAccent),

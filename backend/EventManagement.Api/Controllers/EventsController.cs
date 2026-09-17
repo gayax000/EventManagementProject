@@ -329,11 +329,15 @@ public class EventsController : ControllerBase
             }
             else
             {
-                // Dynamic baseline: (guests * 5000) + 300000 + (special requests: 35000) - discount
+                // Dynamic baseline: (guests * 5000) + 300000 + (special requests: 35000) + (outdoor tent: 150000 if outdoor) - discount
                 decimal baseSubtotal = (ev.GuestCount * 5000m) + 300000m;
                 if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails))
                 {
                     baseSubtotal += 35000m;
+                }
+                if (ev.IsOutdoor)
+                {
+                    baseSubtotal += 150000m; // Only add marquee tent safeguard if outdoor
                 }
                 aiState.EstimatedTotalCost = Math.Max(0, baseSubtotal - discount);
             }
