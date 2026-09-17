@@ -1,10 +1,19 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  // Use 10.0.2.2 for Android emulator, localhost for Web/iOS, or your PC's IP
-  static const String baseUrl = 'http://localhost:5000/api';
+  static String get baseUrl {
+    if (kIsWeb) {
+      if (Uri.base.host.contains('vercel.app')) {
+        return 'https://eventmanagementproject-production.up.railway.app/api';
+      }
+      final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
+      return 'http://$host:5147/api';
+    }
+    return 'https://eventmanagementproject-production.up.railway.app/api';
+  }
 
   static const String _tokenKey = 'jwt_token';
   static const String _userRoleKey = 'user_role';
@@ -23,7 +32,7 @@ class AuthService {
         final token = data['token'];
         final role = data['role'] ?? 'Customer';
         
-        // Mock name if backend doesn't send it, or extract from token
+        // Dynamic name from backend or email prefix
         final name = data['fullName'] ?? email.split('@').first;
 
         await saveToken(token, role, name);
@@ -31,7 +40,7 @@ class AuthService {
       }
       return false;
     } catch (e) {
-      print('Login Error: $e');
+      debugPrint('Login Error: $e');
       return false;
     }
   }
@@ -51,7 +60,7 @@ class AuthService {
       
       return response.statusCode == 201 || response.statusCode == 200;
     } catch (e) {
-      print('Register Error: $e');
+      debugPrint('Register Error: $e');
       return false;
     }
   }
@@ -70,7 +79,7 @@ class AuthService {
 
   static Future<String?> getUserName() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_userNameKey) ?? 'Kasun'; // Fallback
+    return prefs.getString(_userNameKey) ?? 'Customer';
   }
 
   static Future<void> logout() async {

@@ -25,12 +25,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserAndEvents() async {
+    final loggedIn = await AuthService.isLoggedIn();
+    if (!loggedIn) {
+      if (mounted) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     final name = await AuthService.getUserName();
     final data = await ApiService.getMyEvents();
     if (mounted) {
       setState(() {
-        _userName = name ?? 'User';
+        _userName = (name != null && name.isNotEmpty) ? name : 'Customer';
         _events = data;
         _isLoading = false;
       });
