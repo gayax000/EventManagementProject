@@ -223,6 +223,14 @@ public class EventsController : ControllerBase
             .Include(b => b.EntryPass)
             .FirstOrDefaultAsync(b => b.EventId == id);
 
+        var payment = booking != null
+            ? await _context.Payments.OrderByDescending(p => p.PaidAt).FirstOrDefaultAsync(p => p.BookingId == booking.BookingId)
+            : null;
+
+        var invoice = booking != null
+            ? await _context.Invoices.FirstOrDefaultAsync(i => i.BookingId == booking.BookingId)
+            : null;
+
         var selectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
             ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
             : new List<string>();
@@ -250,9 +258,13 @@ public class EventsController : ControllerBase
             estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
             weatherAssessment = aiState?.WeatherAssessmentJson,
             generatedPlan = aiState?.GeneratedPlanJson,
+            bookingId = booking?.BookingId,
             bookingRef = booking?.BookingReferenceCode,
             qrCodeData = booking?.EntryPass?.QrCodeData,
-            isConfirmed = booking != null
+            isConfirmed = booking != null,
+            paymentStatus = payment?.Status,
+            slipImageUrl = payment?.SlipImageUrl,
+            invoiceNumber = invoice?.InvoiceNumber
         });
     }
 

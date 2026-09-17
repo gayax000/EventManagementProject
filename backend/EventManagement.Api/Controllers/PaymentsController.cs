@@ -24,13 +24,49 @@ public class PaymentsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var booking = await _context.Bookings.FindAsync(dto.BookingId);
+        Booking? booking = null;
+        if (dto.BookingId.HasValue && dto.BookingId.Value != Guid.Empty)
+        {
+            booking = await _context.Bookings.FindAsync(dto.BookingId.Value);
+        }
+
+        if (booking == null && dto.EventId.HasValue && dto.EventId.Value != Guid.Empty)
+        {
+            booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+            if (booking == null)
+            {
+                var ev = await _context.Events.FindAsync(dto.EventId.Value);
+                if (ev != null)
+                {
+                    var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
+                    booking = new Booking
+                    {
+                        EventId = ev.EventId,
+                        BookingReferenceCode = refCode,
+                        TotalAgreedAmount = dto.AmountPaid,
+                        Status = "Confirmed",
+                        ConfirmedAt = DateTime.UtcNow
+                    };
+                    var entryPass = new EntryPass
+                    {
+                        BookingId = booking.BookingId,
+                        QrCodeData = $"EVENTCRAFT|{refCode}|{ev.EventId}|{DateTime.UtcNow:yyyyMMdd}",
+                        IsScanned = false
+                    };
+                    booking.EntryPass = entryPass;
+                    ev.Status = "Confirmed";
+                    _context.Bookings.Add(booking);
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+
         if (booking == null)
-            return NotFound(new { message = "Booking not found." });
+            return NotFound(new { message = "Booking or Event not found." });
 
         var payment = new Payment
         {
-            BookingId = dto.BookingId,
+            BookingId = booking.BookingId,
             AmountPaid = dto.AmountPaid,
             PaymentMethod = dto.PaymentMethod,
             SlipImageUrl = dto.SlipImageUrl,

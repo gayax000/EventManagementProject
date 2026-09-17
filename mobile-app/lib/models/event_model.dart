@@ -72,6 +72,10 @@ class EventProposalDetail {
   final String? bookingRef;
   final String? qrCodeData;
   final bool isConfirmed;
+  final String? bookingId;
+  final String? paymentStatus;
+  final String? slipImageUrl;
+  final String? invoiceNumber;
 
   EventProposalDetail({
     required this.eventId,
@@ -95,6 +99,10 @@ class EventProposalDetail {
     this.bookingRef,
     this.qrCodeData,
     required this.isConfirmed,
+    this.bookingId,
+    this.paymentStatus,
+    this.slipImageUrl,
+    this.invoiceNumber,
   });
 
   factory EventProposalDetail.fromJson(Map<String, dynamic> json) {
@@ -143,6 +151,10 @@ class EventProposalDetail {
       bookingRef: json['bookingRef']?.toString(),
       qrCodeData: json['qrCodeData']?.toString(),
       isConfirmed: json['isConfirmed'] == true,
+      bookingId: json['bookingId']?.toString(),
+      paymentStatus: json['paymentStatus']?.toString(),
+      slipImageUrl: json['slipImageUrl']?.toString(),
+      invoiceNumber: json['invoiceNumber']?.toString(),
     );
   }
 }

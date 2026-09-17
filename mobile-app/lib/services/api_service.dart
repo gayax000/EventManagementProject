@@ -189,4 +189,41 @@ class ApiService {
       rethrow;
     }
   }
+
+  // 5. Upload Bank Transfer Payment Slip (Member 4 Mobile Feature)
+  static Future<Map<String, dynamic>?> uploadPaymentSlip({
+    String? bookingId,
+    required String eventId,
+    required double amount,
+    required String slipImageBase64,
+    String? bankReferenceNumber,
+    String? notes,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/payments/upload-slip');
+      final payload = jsonEncode({
+        if (bookingId != null && bookingId.isNotEmpty) 'bookingId': bookingId,
+        'eventId': eventId,
+        'amount': amount,
+        'paymentSlipUrl': slipImageBase64,
+        'bankReferenceNumber': bankReferenceNumber,
+        'notes': notes ?? 'Customer Bank Transfer via Mobile App',
+      });
+
+      final headers = await _getHeaders();
+      final response = await http
+          .post(url, headers: headers, body: payload)
+          .timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to upload payment slip: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint("API Error uploadPaymentSlip: $e");
+      rethrow;
+    }
+  }
 }
+

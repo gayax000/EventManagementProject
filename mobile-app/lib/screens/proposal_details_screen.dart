@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
 import '../models/event_model.dart';
@@ -19,6 +20,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   bool _isLoading = true;
   EventProposalDetail? _proposal;
   bool _isSubmittingSignature = false;
+  bool _isUploadingSlip = false;
+  final ImagePicker _slipPicker = ImagePicker();
+  Uint8List? _selectedSlipBytes;
 
   final SignatureController _signatureController = SignatureController(
     penStrokeWidth: 3,
@@ -36,6 +40,68 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   void dispose() {
     _signatureController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickSlipImage() async {
+    try {
+      final XFile? image = await _slipPicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 1000,
+        maxHeight: 1000,
+      );
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _selectedSlipBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick slip: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitPaymentSlip() async {
+    if (_selectedSlipBytes == null || _proposal == null) return;
+    setState(() => _isUploadingSlip = true);
+
+    try {
+      final base64Image = 'data:image/jpeg;base64,${base64Encode(_selectedSlipBytes!)}';
+      await ApiService.uploadPaymentSlip(
+        bookingId: _proposal!.bookingId,
+        eventId: widget.eventId,
+        amount: _proposal!.estimatedTotalCost,
+        slipImageBase64: base64Image,
+        bankReferenceNumber: 'MOB-TXN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+        notes: 'Bank Deposit Slip uploaded via Mobile App for ${_proposal!.title}',
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("🎉 Bank slip submitted! Manager has been notified for verification."),
+          backgroundColor: Colors.green,
+        ),
+      );
+      setState(() {
+        _selectedSlipBytes = null;
+      });
+      _loadProposal();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error uploading slip: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingSlip = false);
+    }
   }
 
   Future<void> _loadProposal() async {
@@ -486,7 +552,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ),
           const SizedBox(height: 20),
 
-          // 4. Action / Signature / QR Pass based on State
+          // 4. Bank Transfer & Payment Slip Section (Member 4 Mobile Integration)
+          if (isApproved || isConfirmed) ...[
+            _buildPaymentSlipSection(proposal, formattedCost),
+            const SizedBox(height: 16),
+          ],
+
+          // 5. Action / Signature / QR Pass based on State
           if (isConfirmed && proposal.qrCodeData != null) ...[
             // QR Entry Pass View
             Center(
@@ -606,6 +678,304 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         border: Border.all(color: textColor.withOpacity(0.6)),
       ),
       child: Text(text, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
+    );
+  }
+
+  Widget _buildPaymentSlipSection(EventProposalDetail proposal, String formattedCost) {
+    final isPaid = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';
+    final isPendingReview = proposal.paymentStatus == 'PendingVerification';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isPaid
+              ? const Color(0xFF10B981)
+              : (isPendingReview ? const Color(0xFFF59E0B) : const Color(0xFFD4AF37)),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.account_balance,
+                    color: isPaid ? const Color(0xFF10B981) : const Color(0xFFD4AF37),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "BANK TRANSFER & PAYMENT",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isPaid
+                      ? Colors.green.withOpacity(0.2)
+                      : (isPendingReview ? Colors.amber.withOpacity(0.2) : const Color(0xFFD4AF37).withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isPaid
+                      ? "🟢 VERIFIED & SETTLED"
+                      : (isPendingReview ? "🟡 SLIP UNDER REVIEW" : "PENDING PAYMENT"),
+                  style: TextStyle(
+                    color: isPaid
+                        ? Colors.greenAccent
+                        : (isPendingReview ? Colors.amberAccent : const Color(0xFFD4AF37)),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Bank Details Card
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Official Deposit Account:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(height: 6),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Bank:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("Commercial Bank of Ceylon", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Account Name:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("EventCraft Pvt Ltd", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Account Number:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("8001234567", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Branch / SWIFT:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("Colombo City Branch (CCEYLKLX)", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  ],
+                ),
+                const Divider(color: Colors.white12, height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Required Amount:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+                if (proposal.invoiceNumber != null && proposal.invoiceNumber!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Tax Invoice Number:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      Text(proposal.invoiceNumber!, style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 11)),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 14),
+
+          // Slip Status & Upload Controls
+          if (isPaid) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 24),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Payment Slip Verified & Approved",
+                          style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                        Text(
+                          "Official Invoice ${proposal.invoiceNumber ?? 'INV-PAID'} issued. All vendor contracts activated.",
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isPendingReview || (proposal.slipImageUrl != null && proposal.slipImageUrl!.isNotEmpty && _selectedSlipBytes == null)) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.hourglass_bottom_rounded, color: Colors.amberAccent, size: 18),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Deposit Slip Under Verification",
+                          style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Your bank transfer slip was received and is in the Operations Manager's verification queue. You will receive invoice confirmation once cleared.",
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                  const SizedBox(height: 8),
+                  if (proposal.slipImageUrl != null && proposal.slipImageUrl!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        height: 100,
+                        width: double.infinity,
+                        color: Colors.black26,
+                        child: proposal.slipImageUrl!.startsWith('data:image')
+                            ? Image.memory(
+                                base64Decode(proposal.slipImageUrl!.split(',').last),
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white30),
+                              )
+                            : Image.network(
+                                proposal.slipImageUrl!,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white30),
+                              ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ] else ...[
+            if (_selectedSlipBytes != null) ...[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white10,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD4AF37)),
+                ),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.memory(
+                        _selectedSlipBytes!,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _pickSlipImage,
+                            icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
+                            label: const Text("Change Slip", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _isUploadingSlip ? null : _submitPaymentSlip,
+                            icon: _isUploadingSlip
+                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                                : const Icon(Icons.cloud_upload_rounded, size: 14, color: Colors.black),
+                            label: Text(
+                              _isUploadingSlip ? "Uploading..." : "Submit Slip",
+                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                            ),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD4AF37)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _pickSlipImage,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFD4AF37), width: 1.2),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.upload_file_rounded, color: Color(0xFFD4AF37), size: 18),
+                  label: const Text(
+                    "Upload Bank Deposit / Transfer Slip",
+                    style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                "Attach JPG/PNG payment confirmation. Manager will verify within 1 hour.",
+                style: TextStyle(color: Colors.white54, fontSize: 10),
+              ),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

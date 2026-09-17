@@ -5,8 +5,8 @@ namespace EventManagement.Core.DTOs;
 // 1. Submit Bank Slip DTO
 public class SubmitPaymentSlipDto
 {
-    [Required]
-    public Guid BookingId { get; set; }
+    public Guid? BookingId { get; set; }
+    public Guid? EventId { get; set; }
 
     [Range(100, 100000000, ErrorMessage = "Amount must be greater than 100.")]
     public decimal AmountPaid { get; set; }

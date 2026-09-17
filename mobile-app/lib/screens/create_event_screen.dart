@@ -17,6 +17,9 @@ class CreateEventScreen extends StatefulWidget {
 class _CreateEventScreenState extends State<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // Wizard Step State: 0: Basics, 1: Venue, 2: Services, 3: Photos & Review
+  int _currentStep = 0;
+
   // Event Type
   final List<String> _eventTypes = [
     'Wedding',
@@ -251,6 +254,66 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
   }
 
+  void _nextStep() {
+    if (_currentStep == 0) {
+      if (_titleController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter an event title.')),
+        );
+        return;
+      }
+      final g = int.tryParse(_guestController.text);
+      if (g == null || g <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid guest count.')),
+        );
+        return;
+      }
+      final b = double.tryParse(_budgetController.text);
+      if (b == null || b <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid budget limit.')),
+        );
+        return;
+      }
+    } else if (_currentStep == 1) {
+      if (_locationMode == 'hotel') {
+        if (_selectedHall == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a banquet hall.')),
+          );
+          return;
+        }
+        if (!_selectedHall!.isAvailable) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${_selectedHall!.hallName} is already booked. Please choose an available hall or date.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          return;
+        }
+      } else if (_locationMode == 'custom') {
+        if (_customAddressController.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter your venue address.')),
+          );
+          return;
+        }
+      }
+    }
+
+    if (_currentStep < 3) {
+      setState(() => _currentStep++);
+    }
+  }
+
+  void _prevStep() {
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+    }
+  }
+
   Future<void> _submitEvent() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -381,19 +444,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final curFormat = NumberFormat('#,##0', 'en_US');
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: const Text(
-          'Plan New Event',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
+        title: Text(
+          'Plan New Event • Step ${_currentStep + 1} of 4',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
         ),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
+      bottomNavigationBar: _isSubmitting ? null : _buildBottomBar(),
       body: _isSubmitting
           ? const Center(
               child: Column(
@@ -405,777 +467,1052 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     'Generating AI Proposal & Securing Hall...',
                     style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                   ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Coordinating multi-agent workflows and vendor allocations',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
                 ],
               ),
             )
           : Form(
               key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
                 children: [
-                  // SECTION 1: Event Type & Basics
-                  _buildSectionHeader('1. Event Type & Basics', Icons.celebration),
-                  const SizedBox(height: 12),
-                  _buildCard(
+                  // Step Indicator Header
+                  _buildStepperHeader(),
+
+                  // Wizard Step Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      child: _buildCurrentStepView(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  // 1. Top Stepper Header Bar
+  Widget _buildStepperHeader() {
+    final steps = [
+      {'title': 'Basics', 'icon': Icons.celebration},
+      {'title': 'Venue', 'icon': Icons.location_city},
+      {'title': 'Services', 'icon': Icons.room_service},
+      {'title': 'Review', 'icon': Icons.verified_user},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        border: Border(bottom: BorderSide(color: Colors.white10)),
+      ),
+      child: Row(
+        children: List.generate(4, (index) {
+          final isDone = _currentStep > index;
+          final isActive = _currentStep == index;
+          final item = steps[index];
+
+          return Expanded(
+            child: InkWell(
+              onTap: isDone ? () => setState(() => _currentStep = index) : null,
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                children: [
+                  Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          'Event Type',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: 32,
+                          height: 32,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
+                            color: isActive
+                                ? const Color(0xFFD4AF37)
+                                : (isDone ? const Color(0xFF10B981) : const Color(0xFF0F172A)),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isActive
+                                  ? const Color(0xFFD4AF37)
+                                  : (isDone ? const Color(0xFF10B981) : Colors.white24),
+                              width: isActive ? 2 : 1,
+                            ),
+                            boxShadow: isActive
+                                ? [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 8, spreadRadius: 1)]
+                                : null,
+                          ),
+                          child: Center(
+                            child: isDone
+                                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                                : Icon(
+                                    item['icon'] as IconData,
+                                    size: 15,
+                                    color: isActive ? Colors.black : Colors.white54,
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          item['title'] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                            color: isActive
+                                ? const Color(0xFFD4AF37)
+                                : (isDone ? Colors.white70 : Colors.white38),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (index < 3)
+                    Container(
+                      width: 14,
+                      height: 2,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      color: isDone ? const Color(0xFF10B981) : Colors.white12,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  // 2. Dynamic Step View Switcher
+  Widget _buildCurrentStepView() {
+    switch (_currentStep) {
+      case 0:
+        return _buildStep0Basics();
+      case 1:
+        return _buildStep1Venue();
+      case 2:
+        return _buildStep2Services();
+      case 3:
+        return _buildStep3ReviewAndPhotos();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  // STEP 0: BASICS (Event Type, Title, Date, Guests & Budget)
+  Widget _buildStep0Basics() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Step 1: Event Fundamentals', Icons.celebration),
+        const SizedBox(height: 4),
+        const Text(
+          'Tell us about your celebration theme and scale.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Event Type & Occasion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedEventType,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF1E293B),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    items: _eventTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                    onChanged: _onEventTypeChanged,
+                  ),
+                ),
+              ),
+
+              if (_selectedEventType == 'Other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customEventTypeController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration('Specify Your Event Type', hint: 'e.g. Graduation Party, Fashion Show'),
+                  validator: (v) => _selectedEventType == 'Other' && (v == null || v.trim().isEmpty)
+                      ? 'Please specify your event type'
+                      : null,
+                ),
+              ],
+
+              const SizedBox(height: 16),
+              const Text('Event Title', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration('Event Title', icon: Icons.title, hint: 'e.g. Royal Wedding Celebration'),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
+              ),
+
+              const SizedBox(height: 16),
+              const Text('Event Setting (Indoor vs Outdoor)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+
+              if (_isInherentlyIndoor) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF38BDF8).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue.',
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isOutdoor = false),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !_isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
+                            border: Border.all(color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24),
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedEventType,
-                              isExpanded: true,
-                              dropdownColor: const Color(0xFF1E293B),
-                              style: const TextStyle(color: Colors.white, fontSize: 15),
-                              items: _eventTypes.map((type) {
-                                return DropdownMenuItem<String>(
-                                  value: type,
-                                  child: Text(type),
-                                );
-                              }).toList(),
-                              onChanged: _onEventTypeChanged,
+                          child: Center(
+                            child: Text(
+                              '🏛️ Indoor (AC Hall)',
+                              style: TextStyle(
+                                color: !_isOutdoor ? Colors.black : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
-                        if (_selectedEventType == 'Other') ...[
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _customEventTypeController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration(
-                              'Specify Your Event Type',
-                              hint: 'e.g. Graduation Party, Fashion Show',
-                            ),
-                            validator: (v) {
-                              if (_selectedEventType == 'Other' && (v == null || v.trim().isEmpty)) {
-                                return 'Please specify your event type';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-
-                        // SMART INDOOR / OUTDOOR SELECTION
-                        if (_isInherentlyIndoor) ...[
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF38BDF8).withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 18),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue.',
-                                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                        ] else ...[
-                          const Text(
-                            'Event Setting (Indoor vs Outdoor)',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _isOutdoor = false),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: !_isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '🏛️ Indoor (AC Hall)',
-                                        style: TextStyle(
-                                          color: !_isOutdoor ? Colors.black : Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => _isOutdoor = true),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: _isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        '🌳 Outdoor (Lawn/Garden)',
-                                        style: TextStyle(
-                                          color: _isOutdoor ? Colors.black : Colors.white70,
-                                          fontSize: 12,
-                                          fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                        ],
-
-                        TextFormField(
-                          controller: _titleController,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _inputDecoration('Event Title', icon: Icons.title),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SECTION 2: Date, Guests & Budget
-                  _buildSectionHeader('2. Date, Guests & Budget', Icons.calendar_month),
-                  const SizedBox(height: 12),
-                  _buildCard(
-                    child: Column(
-                      children: [
-                        // Date Picker
-                        InkWell(
-                          onTap: _selectDate,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0F172A),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.event, color: Color(0xFFD4AF37)),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Target Event Date', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                                    Text(
-                                      DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                                    ),
-                                  ],
-                                ),
-                                const Spacer(),
-                                const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _guestController,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: _inputDecoration('Guest Count', icon: Icons.people),
-                                onChanged: (_) => setState(() {}),
-                                validator: (v) {
-                                  final n = int.tryParse(v ?? '');
-                                  if (n == null || n <= 0) return 'Valid count';
-                                  return null;
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextFormField(
-                                controller: _budgetController,
-                                keyboardType: TextInputType.number,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: _inputDecoration('Budget Limit (LKR)', icon: Icons.attach_money),
-                                onChanged: (_) => setState(() {}),
-                                validator: (v) {
-                                  final b = double.tryParse(v ?? '');
-                                  if (b == null || b <= 0) return 'Valid budget';
-                                  return null;
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SECTION 3: Venue & Location Selection
-                  _buildSectionHeader('3. Venue & Location Selection', Icons.location_on),
-                  const SizedBox(height: 12),
-                  _buildCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Mode Selector Chips
-                        Row(
-                          children: [
-                            _buildModeChip('hotel', '🏨 Luxury Hotels & Halls'),
-                            const SizedBox(width: 8),
-                            _buildModeChip('district', '🗺️ Districts'),
-                            const SizedBox(width: 8),
-                            _buildModeChip('custom', '✏️ Private Venue'),
-                          ],
-                        ),
-                        const Divider(color: Colors.white12, height: 28),
-
-                        // MODE 1: HOTEL & BANQUET HALL
-                        if (_locationMode == 'hotel') ...[
-                          if (_isLoadingHalls && _allHalls.isEmpty)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(20),
-                                child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
-                              ),
-                            )
-                          else if (_hotelNames.isEmpty)
-                            const Text('No hotels found.', style: TextStyle(color: Colors.white54))
-                          else ...[
-                            const Text(
-                              'Select Luxury Hotel / Resort',
-                              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0F172A),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.white24),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedHotelName,
-                                  isExpanded: true,
-                                  dropdownColor: const Color(0xFF1E293B),
-                                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                                  items: _hotelNames.map((name) {
-                                    return DropdownMenuItem<String>(
-                                      value: name,
-                                      child: Text(name),
-                                    );
-                                  }).toList(),
-                                  onChanged: (name) {
-                                    if (name != null) {
-                                      setState(() {
-                                        _selectedHotelName = name;
-                                        final halls = _hallsForSelectedHotel;
-                                        if (halls.isNotEmpty) {
-                                          _selectedHall = halls.firstWhere(
-                                            (h) => h.isAvailable,
-                                            orElse: () => halls.first,
-                                          );
-                                        } else {
-                                          _selectedHall = null;
-                                        }
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Select Banquet Hall & In-House Catering',
-                              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            if (_hallsForSelectedHotel.isEmpty)
-                              const Text('No halls found for this hotel.', style: TextStyle(color: Colors.white54))
-                            else ...[
-                              Column(
-                                children: _hallsForSelectedHotel.map((hall) {
-                                  final isSelected = _selectedHall?.banquetHallId == hall.banquetHallId;
-                                  final isAvail = hall.isAvailable;
-                                  final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? const Color(0xFFD4AF37).withOpacity(0.12)
-                                          : const Color(0xFF0F172A),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? const Color(0xFFD4AF37)
-                                            : (isAvail ? Colors.white12 : Colors.redAccent.withOpacity(0.4)),
-                                        width: isSelected ? 1.8 : 1,
-                                      ),
-                                    ),
-                                    child: InkWell(
-                                      onTap: isAvail
-                                          ? () => setState(() => _selectedHall = hall)
-                                          : () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Text('${hall.hallName} is already booked on this date!'),
-                                                  backgroundColor: Colors.redAccent,
-                                                ),
-                                              );
-                                            },
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  isSelected
-                                                      ? Icons.radio_button_checked
-                                                      : Icons.radio_button_off,
-                                                  color: isSelected ? const Color(0xFFD4AF37) : Colors.white38,
-                                                  size: 20,
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Expanded(
-                                                  child: Text(
-                                                    hall.hallName,
-                                                    style: TextStyle(
-                                                      color: isAvail ? Colors.white : Colors.white38,
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 15,
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (hall.isOutdoor)
-                                                  Container(
-                                                    margin: const EdgeInsets.only(right: 6),
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.teal.withOpacity(0.2),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                      border: Border.all(color: Colors.teal.withOpacity(0.4)),
-                                                    ),
-                                                    child: Text(
-                                                      matchesSetting ? '🌳 OUTDOOR MATCH' : 'OUTDOOR',
-                                                      style: const TextStyle(color: Colors.tealAccent, fontSize: 9, fontWeight: FontWeight.bold),
-                                                    ),
-                                                  ),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                  decoration: BoxDecoration(
-                                                    color: isAvail
-                                                        ? const Color(0xFF10B981).withOpacity(0.2)
-                                                        : Colors.redAccent.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    isAvail ? 'AVAILABLE' : 'BOOKED',
-                                                    style: TextStyle(
-                                                      color: isAvail ? const Color(0xFF10B981) : Colors.redAccent,
-                                                      fontSize: 10,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text('Capacity: up to ${hall.maxCapacity} guests',
-                                                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                                                Text('Hall Rental: LKR ${curFormat.format(hall.hallRentalPrice)}',
-                                                    style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 12, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                const Text('In-House Catering (per plate):',
-                                                    style: TextStyle(color: Colors.white60, fontSize: 12)),
-                                                Text('LKR ${curFormat.format(hall.perPlatePrice)} / guest',
-                                                    style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                              const SizedBox(height: 10),
-                              // In-House catering policy note
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.blueGrey.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.blueGrey.withOpacity(0.4)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(Icons.restaurant_menu, color: Color(0xFFD4AF37), size: 18),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'In-House Hotel Catering Policy',
-                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Hotels do not allow external food catering. When booking ${_selectedHotelName ?? "this hotel"}, buffet catering is provided directly at LKR ${curFormat.format(_selectedHall?.perPlatePrice ?? 0)}/plate.',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                    ),
-                                    if (_selectedHall != null) ...[
-                                      const Divider(color: Colors.white12, height: 16),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Venue + Food Subtotal (${_guestController.text} guests):',
-                                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                                          ),
-                                          Text(
-                                            'LKR ${curFormat.format(_calculatedVenueTotal)}',
-                                            style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 14),
-                                          ),
-                                        ],
-                                      ),
-                                    ]
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ],
-
-                        // MODE 2: DISTRICT SELECTION
-                        if (_locationMode == 'district') ...[
-                          const Text(
-                            'Select Sri Lankan District',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0F172A),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedDistrict,
-                                isExpanded: true,
-                                dropdownColor: const Color(0xFF1E293B),
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                                items: _sriLankaDistricts.map((d) {
-                                  return DropdownMenuItem<String>(value: d, child: Text(d));
-                                }).toList(),
-                                onChanged: (d) => setState(() => _selectedDistrict = d ?? _selectedDistrict),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _districtVenueNameController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration(
-                              'Specific Venue / Area (Optional)',
-                              hint: 'e.g. Waters Edge, Mount Lavinia, Local Community Hall',
-                            ),
-                          ),
-                        ],
-
-                        // MODE 3: CUSTOM / PRIVATE VENUE
-                        if (_locationMode == 'custom') ...[
-                          const Text(
-                            'Private Venue / Home Address',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _customAddressController,
-                            maxLines: 2,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration(
-                              'Enter Address / Location Details',
-                              hint: 'e.g. No. 45, Flower Road, Colombo 07 (Private Residence Lawn)',
-                            ),
-                            validator: (v) {
-                              if (_locationMode == 'custom' && (v == null || v.trim().isEmpty)) {
-                                return 'Please enter venue location';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SECTION 4: Dynamic Services Checklist
-                  _buildSectionHeader('4. Select Services & Requirements', Icons.checklist),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Tap to include or exclude services tailored for your event:',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildServiceFilterChip('Photography', Icons.camera_alt),
-                            _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
-                            _buildServiceFilterChip('Decorations', Icons.park),
-                            _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
-                            _buildServiceFilterChip('Luxury Transport', Icons.directions_car),
-                          ],
-                        ),
-                        const Divider(color: Colors.white12, height: 24),
-                        // Other requirements switch
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: _includeOtherServices,
-                              activeColor: const Color(0xFFD4AF37),
-                              checkColor: Colors.black,
-                              onChanged: (val) => setState(() => _includeOtherServices = val ?? false),
-                            ),
-                            const Expanded(
-                              child: Text(
-                                'Other Custom Requirements / Add-ons',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_includeOtherServices) ...[
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _customServiceNotesController,
-                            maxLines: 3,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration(
-                              'Describe Other Services Needed',
-                              hint: 'e.g. Traditional Dancers, Live Band, Poruwa Ceremony Setup, Drone videography',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // SECTION 5: Special Client Requests & Additional Details
-                  _buildSectionHeader('5. Special Requests & Additional Details', Icons.card_giftcard),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Special arrangements for the day (e.g. surprise flower bouquet, custom welcome gifts, etc.):',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _additionalDetailsController,
-                          maxLines: 3,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _inputDecoration(
-                            'Special Requests & Arrangements',
-                            hint: 'e.g. Arrange surprise red rose flower bouquet on arrival, VIP welcome mocktails, custom backdrop monogram...',
-                            icon: Icons.local_florist,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.all(10),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _isOutdoor = true),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD4AF37).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                            color: _isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24),
                           ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.monetization_on_outlined, color: Color(0xFFD4AF37), size: 16),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'A budget allocation of LKR 35,000 will be included in your AI proposal for coordinating these custom arrangements.',
-                                  style: TextStyle(color: Colors.white70, fontSize: 11),
-                                ),
+                          child: Center(
+                            child: Text(
+                              '🌳 Outdoor (Lawn/Garden)',
+                              style: TextStyle(
+                                color: _isOutdoor ? Colors.black : Colors.white70,
+                                fontSize: 12,
+                                fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Date, Guests & Budget Target', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 10),
+
+              // Date Picker Card
+              InkWell(
+                onTap: _selectDate,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_month, color: Color(0xFFD4AF37), size: 20),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Target Event Date', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          Text(
+                            DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _guestController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Guest Count', icon: Icons.people),
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final n = int.tryParse(v ?? '');
+                        if (n == null || n <= 0) return 'Valid count';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _budgetController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Budget Limit (LKR)', icon: Icons.attach_money),
+                      onChanged: (_) => setState(() {}),
+                      validator: (v) {
+                        final b = double.tryParse(v ?? '');
+                        if (b == null || b <= 0) return 'Valid budget';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // STEP 1: VENUE & LOCATION SELECTION
+  Widget _buildStep1Venue() {
+    final curFormat = NumberFormat('#,##0', 'en_US');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Step 2: Venue & Location', Icons.location_on),
+        const SizedBox(height: 4),
+        const Text(
+          'Select your preferred luxury hotel, banquet hall, or private location.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mode Selector Tabs
+              Row(
+                children: [
+                  _buildModeChip('hotel', '🏨 Luxury Hotels'),
+                  const SizedBox(width: 8),
+                  _buildModeChip('district', '🗺️ Districts'),
+                  const SizedBox(width: 8),
+                  _buildModeChip('custom', '✏️ Private Venue'),
+                ],
+              ),
+              const Divider(color: Colors.white12, height: 26),
+
+              // MODE 1: HOTEL & BANQUET HALL
+              if (_locationMode == 'hotel') ...[
+                if (_isLoadingHalls && _allHalls.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                    ),
+                  )
+                else if (_hotelNames.isEmpty)
+                  const Text('No hotel halls found.', style: TextStyle(color: Colors.white54))
+                else ...[
+                  const Text('Select Luxury Hotel / Resort', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedHotelName,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF1E293B),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        items: _hotelNames.map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                        onChanged: (name) {
+                          if (name != null) {
+                            setState(() {
+                              _selectedHotelName = name;
+                              final halls = _hallsForSelectedHotel;
+                              if (halls.isNotEmpty) {
+                                _selectedHall = halls.firstWhere(
+                                  (h) => h.isAvailable,
+                                  orElse: () => halls.first,
+                                );
+                              } else {
+                                _selectedHall = null;
+                              }
+                            });
+                          }
+                        },
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  const Text('Available Banquet Halls & In-House Catering', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
 
-                  // SECTION 6: Client Inspiration & Venue Photos
-                  _buildSectionHeader('6. Inspiration & Venue Photos', Icons.photo_library),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Upload theme photos, cake designs, or decor ideas for our planners & vendors:',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: _pickImages,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFD4AF37),
-                            side: const BorderSide(color: Color(0xFFD4AF37)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  if (_hallsForSelectedHotel.isEmpty)
+                    const Text('No halls found for this hotel.', style: TextStyle(color: Colors.white54))
+                  else ...[
+                    Column(
+                      children: _hallsForSelectedHotel.map((hall) {
+                        final isSelected = _selectedHall?.banquetHallId == hall.banquetHallId;
+                        final isAvail = hall.isAvailable;
+                        final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFD4AF37).withOpacity(0.12)
+                                : const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFFD4AF37)
+                                  : (isAvail ? Colors.white12 : Colors.redAccent.withOpacity(0.4)),
+                              width: isSelected ? 1.8 : 1,
+                            ),
                           ),
-                          icon: const Icon(Icons.add_photo_alternate),
-                          label: const Text('Pick Photos from Gallery', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        if (_selectedImages.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            '${_selectedImages.length} photo(s) selected:',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            height: 100,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _selectedImages.length,
-                              itemBuilder: (context, index) {
-                                final xfile = _selectedImages[index];
-                                return Container(
-                                  width: 100,
-                                  margin: const EdgeInsets.only(right: 10),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.white24),
-                                  ),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: kIsWeb
-                                            ? Image.network(xfile.path, fit: BoxFit.cover)
-                                            : Image.file(File(xfile.path), fit: BoxFit.cover),
+                          child: InkWell(
+                            onTap: isAvail
+                                ? () => setState(() => _selectedHall = hall)
+                                : () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${hall.hallName} is already booked on this date!'),
+                                        backgroundColor: Colors.redAccent,
                                       ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () => _removeImage(index),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.black87,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            padding: const EdgeInsets.all(3),
-                                            child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                    );
+                                  },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                        color: isSelected ? const Color(0xFFD4AF37) : Colors.white38,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          hall.hallName,
+                                          style: TextStyle(
+                                            color: isAvail ? Colors.white : Colors.white38,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      if (hall.isOutdoor)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 6),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.teal.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: Colors.teal.withOpacity(0.4)),
+                                          ),
+                                          child: Text(
+                                            matchesSetting ? '🌳 OUTDOOR' : 'OUTDOOR',
+                                            style: const TextStyle(color: Colors.tealAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: isAvail ? const Color(0xFF10B981).withOpacity(0.2) : Colors.redAccent.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          isAvail ? 'AVAILABLE' : 'BOOKED',
+                                          style: TextStyle(
+                                            color: isAvail ? const Color(0xFF10B981) : Colors.redAccent,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                );
-                              },
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Capacity: up to ${hall.maxCapacity} guests',
+                                          style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                      Text('Hall Rental: LKR ${curFormat.format(hall.hallRentalPrice)}',
+                                          style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text('In-House Catering (per plate):',
+                                          style: TextStyle(color: Colors.white60, fontSize: 12)),
+                                      Text('LKR ${curFormat.format(hall.perPlatePrice)} / guest',
+                                          style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ],
+                        );
+                      }).toList(),
                     ),
-                  ),
 
-                  const SizedBox(height: 32),
-
-                  // SUBMIT BUTTON
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submitEvent,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD4AF37),
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 4,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blueGrey.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.auto_awesome, color: Colors.black),
-                          SizedBox(width: 10),
-                          Text(
-                            'Create Event Request',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                          const Row(
+                            children: [
+                              Icon(Icons.restaurant_menu, color: Color(0xFFD4AF37), size: 16),
+                              SizedBox(width: 8),
+                              Text('In-House Hotel Catering Policy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Hotels provide full in-house gourmet banquet buffet at LKR ${curFormat.format(_selectedHall?.perPlatePrice ?? 0)}/plate.',
+                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                          if (_selectedHall != null) ...[
+                            const Divider(color: Colors.white12, height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Venue + Food Subtotal (${_guestController.text} guests):', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                Text('LKR ${curFormat.format(_calculatedVenueTotal)}', style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13)),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
+                  ],
+                ],
+              ],
+
+              // MODE 2: DISTRICT SELECTION
+              if (_locationMode == 'district') ...[
+                const Text('Select Sri Lankan District', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white24),
                   ),
-                  const SizedBox(height: 40),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedDistrict,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E293B),
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      items: _sriLankaDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      onChanged: (d) => setState(() => _selectedDistrict = d ?? _selectedDistrict),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _districtVenueNameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration('Specific Venue / Area (Optional)', hint: 'e.g. Waters Edge, Mount Lavinia'),
+                ),
+              ],
+
+              // MODE 3: CUSTOM / PRIVATE VENUE
+              if (_locationMode == 'custom') ...[
+                const Text('Private Venue / Residence Address', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _customAddressController,
+                  maxLines: 2,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration(
+                    'Enter Address / Location Details',
+                    hint: 'e.g. No. 45, Flower Road, Colombo 07 (Private Residence Lawn)',
+                  ),
+                  validator: (v) => _locationMode == 'custom' && (v == null || v.trim().isEmpty)
+                      ? 'Please enter venue location'
+                      : null,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // STEP 2: SERVICES & SPECIAL REQUESTS
+  Widget _buildStep2Services() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Step 3: Services & Custom Add-ons', Icons.checklist),
+        const SizedBox(height: 4),
+        const Text(
+          'Select production packages, cakes, transport, and special client requests.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tailored Event Services', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildServiceFilterChip('Photography', Icons.camera_alt),
+                  _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
+                  _buildServiceFilterChip('Decorations', Icons.park),
+                  _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
+                  _buildServiceFilterChip('Luxury Transport', Icons.directions_car),
                 ],
               ),
+              const Divider(color: Colors.white12, height: 26),
+
+              // Other requirements toggle
+              Row(
+                children: [
+                  Checkbox(
+                    value: _includeOtherServices,
+                    activeColor: const Color(0xFFD4AF37),
+                    checkColor: Colors.black,
+                    onChanged: (val) => setState(() => _includeOtherServices = val ?? false),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Other Custom Requirements / Add-ons',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+              if (_includeOtherServices) ...[
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _customServiceNotesController,
+                  maxLines: 2,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: _inputDecoration(
+                    'Describe Other Services Needed',
+                    hint: 'e.g. Traditional Dancers, Live Band, Poruwa Setup, Drone videography',
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.card_giftcard, color: Color(0xFFD4AF37), size: 18),
+                  SizedBox(width: 8),
+                  Text('Special Client Requests & Arrangements', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Personalized touches for your special day (e.g. surprise red rose bouquet, custom welcome gifts, etc.):',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _additionalDetailsController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration(
+                  'Special Requests & Arrangements',
+                  hint: 'e.g. Arrange surprise red rose flower bouquet on arrival, VIP welcome mocktails...',
+                  icon: Icons.local_florist,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD4AF37).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.monetization_on_outlined, color: Color(0xFFD4AF37), size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'A coordination budget allocation of LKR 35,000 will be included in your proposal for these arrangements.',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // STEP 3: PHOTOS & FINAL REVIEW
+  Widget _buildStep3ReviewAndPhotos() {
+    final curFormat = NumberFormat('#,##0', 'en_US');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Step 4: Inspiration Photos & Final Review', Icons.verified_user),
+        const SizedBox(height: 4),
+        const Text(
+          'Upload inspiration photos and review your complete event parameters before AI compilation.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+
+        // Inspiration Photos Card
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.photo_library, color: Color(0xFFD4AF37), size: 18),
+                  SizedBox(width: 8),
+                  Text('Inspiration & Moodboard Photos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Upload cake tiers, stage decor ideas, or bridal car styles for our planners & vendors:',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _pickImages,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFD4AF37),
+                  side: const BorderSide(color: Color(0xFFD4AF37)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.add_photo_alternate, size: 18),
+                label: const Text('Pick Photos from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              ),
+              if (_selectedImages.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '${_selectedImages.length} photo(s) attached:',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 90,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _selectedImages.length,
+                    itemBuilder: (context, index) {
+                      final xfile = _selectedImages[index];
+                      return Container(
+                        width: 90,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: kIsWeb
+                                  ? Image.network(xfile.path, fit: BoxFit.cover)
+                                  : Image.file(File(xfile.path), fit: BoxFit.cover),
+                            ),
+                            Positioned(
+                              top: 3,
+                              right: 3,
+                              child: GestureDetector(
+                                onTap: () => _removeImage(index),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black87,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(2),
+                                  child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // AI Proposal Summary Card
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 18),
+                  const SizedBox(width: 8),
+                  const Text('AI Proposal Summary Preview', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFD4AF37)),
+                    ),
+                    child: Text(
+                      _selectedEventType,
+                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white12, height: 20),
+
+              _buildSummaryRow('Event Title:', _titleController.text.trim()),
+              _buildSummaryRow('Target Date:', DateFormat('EEEE, MMM d, yyyy').format(_selectedDate)),
+              _buildSummaryRow('Setting:', _isInherentlyIndoor ? '🏛️ Indoor (AC Hall)' : (_isOutdoor ? '🌳 Outdoor Lawn' : '🏛️ Indoor AC Hall')),
+              _buildSummaryRow('Guests / Budget:', '${_guestController.text} guests  •  LKR ${curFormat.format(double.tryParse(_budgetController.text) ?? 0)}'),
+
+              if (_locationMode == 'hotel')
+                _buildSummaryRow('Venue:', '${_selectedHotelName ?? "Hotel"} • ${_selectedHall?.hallName ?? "Banquet Hall"}')
+              else if (_locationMode == 'district')
+                _buildSummaryRow('District:', '$_selectedDistrict District ${_districtVenueNameController.text.isNotEmpty ? "(${_districtVenueNameController.text})" : ""}')
+              else
+                _buildSummaryRow('Private Venue:', _customAddressController.text.trim()),
+
+              if (_selectedServices.isNotEmpty)
+                _buildSummaryRow('Services (${_selectedServices.length}):', _selectedServices.join(' • ')),
+
+              if (_additionalDetailsController.text.trim().isNotEmpty)
+                _buildSummaryRow('Special Requests:', '${_additionalDetailsController.text.trim()} (+ LKR 35,000)'),
+
+              if (_locationMode == 'hotel' && _selectedHall != null) ...[
+                const Divider(color: Colors.white12, height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Estimated Venue & Catering:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(
+                      'LKR ${curFormat.format(_calculatedVenueTotal)}',
+                      style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // Multi-Agent Notice Card
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF38BDF8).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.psychology, color: Color(0xFF38BDF8), size: 22),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'When submitted, the Multi-Agent AI system will calculate monsoonal weather risks, allocate vendor packages, and submit for Operations Manager review.',
+                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 3. Bottom Navigation Bar
+  Widget _buildBottomBar() {
+    final nextLabels = ['Next: Venue Selection', 'Next: Choose Services', 'Next: Photos & Review', 'Create Event Request'];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        border: Border(top: BorderSide(color: Colors.white10)),
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            if (_currentStep > 0)
+              OutlinedButton.icon(
+                onPressed: _prevStep,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.arrow_back, size: 16, color: Colors.white70),
+                label: const Text('Back', style: TextStyle(color: Colors.white70)),
+              ),
+            if (_currentStep > 0) const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _currentStep == 3 ? (_isSubmitting ? null : _submitEvent) : _nextStep,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD4AF37),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 3,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_currentStep == 3) ...[
+                      const Icon(Icons.auto_awesome, color: Colors.black, size: 18),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      nextLabels[_currentStep],
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
+                    ),
+                    if (_currentStep < 3) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, color: Colors.black, size: 16),
+                    ],
+                  ],
+                ),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1198,6 +1535,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildCard({required Widget child}) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B),
@@ -1214,7 +1552,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       child: GestureDetector(
         onTap: () => setState(() => _locationMode = mode),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
             borderRadius: BorderRadius.circular(10),
@@ -1247,7 +1585,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       labelStyle: TextStyle(
         color: isSelected ? Colors.black : Colors.white,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+        fontSize: 12,
       ),
       backgroundColor: const Color(0xFF0F172A),
       selectedColor: const Color(0xFFD4AF37),
@@ -1272,11 +1610,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      labelStyle: const TextStyle(color: Colors.white70),
-      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-      prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFD4AF37), size: 20) : null,
+      labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+      prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFD4AF37), size: 18) : null,
       filled: true,
       fillColor: const Color(0xFF0F172A),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.white24),
