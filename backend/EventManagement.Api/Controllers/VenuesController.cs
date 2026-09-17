@@ -66,13 +66,16 @@ public class VenuesController : ControllerBase
     [HttpPost("vendors/register")]
     public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
     {
+        var defaultUser = await _context.Users.FirstOrDefaultAsync();
+
         var vendor = new Vendor
         {
             BusinessName = dto.BusinessName,
             Category = dto.Category,
             ContactNumber = dto.ContactNumber,
             VerificationStatus = "Pending",
-            AdminRemarks = dto.Description
+            AdminRemarks = dto.Description,
+            UserId = defaultUser != null ? defaultUser.UserId : Guid.Empty
         };
 
         _context.Vendors.Add(vendor);
