@@ -228,5 +228,29 @@ class ApiService {
       rethrow;
     }
   }
-}
 
+  // 6. Verify QR Entry Pass (Staff Scanner Feature - Spec LO3 Device)
+  static Future<Map<String, dynamic>> verifyQrPass(String qrCodeData) async {
+    try {
+      final encoded = Uri.encodeComponent(qrCodeData);
+      final url = Uri.parse('$baseUrl/events/verify-pass/$encoded');
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 15));
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        return {...body, 'statusCode': 200};
+      } else if (response.statusCode == 400) {
+        // Already scanned
+        return {...body, 'statusCode': 400};
+      } else if (response.statusCode == 404) {
+        return {'isValid': false, 'message': 'Invalid QR Entry Pass.', 'statusCode': 404};
+      } else {
+        return {'isValid': false, 'message': 'Server error: ${response.statusCode}', 'statusCode': response.statusCode};
+      }
+    } catch (e) {
+      debugPrint("API Error verifyQrPass: $e");
+      return {'isValid': false, 'message': 'Network error: $e', 'statusCode': 0};
+    }
+  }
+}
