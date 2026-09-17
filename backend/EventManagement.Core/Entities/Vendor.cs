@@ -10,7 +10,7 @@ public class Vendor : BaseEntity
     public User? User { get; set; }
     [Required, MaxLength(150)]
     public string BusinessName { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty; // Catering, AudioVisual, Marquee
+    public string Category { get; set; } = string.Empty; // Catering, SoundLighting/AudioVisual, Decor, Photography, Cake, Transport, MarqueeTent, PowerBackup
     public string ContactNumber { get; set; } = string.Empty;
     public string VerificationStatus { get; set; } = "Pending"; // Pending, Verified, Rejected
     public string? AdminRemarks { get; set; }
