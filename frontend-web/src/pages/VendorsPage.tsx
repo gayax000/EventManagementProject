@@ -3,19 +3,25 @@ import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search 
 import { vendorService } from '../services/api';
 
 const VENDOR_CATEGORIES = [
-  { id: 'All', label: 'All Vendors', icon: '🏪' },
-  { id: 'Catering', label: 'Catering Buffets', icon: '🍽️' },
-  { id: 'AudioVisual', label: 'Sound & Lighting', icon: '🔊' },
-  { id: 'Decor', label: 'Decor & Stage', icon: '🌸' },
-  { id: 'MarqueeTent', label: 'Tents & Safeguards', icon: '⛺' },
-  { id: 'PowerBackup', label: 'Power Backup', icon: '⚡' },
+  { id: 'All', label: 'All', icon: '🏪' },
+  { id: 'Catering', label: 'Catering', icon: '🍽️' },
+  { id: 'AudioVisual', label: 'Audio & Light', icon: '🔊' },
+  { id: 'Decor', label: 'Decor', icon: '🌸' },
+  { id: 'MarqueeTent', label: 'Tents', icon: '⛺' },
+  { id: 'PowerBackup', label: 'Power', icon: '⚡' },
 ];
 
 export const VendorsPage: React.FC = () => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  // Separate states for Pending list
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [pendingCategory, setPendingCategory] = useState('All');
+
+  // Separate states for Confirmed list
+  const [confirmedSearch, setConfirmedSearch] = useState('');
+  const [confirmedCategory, setConfirmedCategory] = useState('All');
 
   const fetchVendors = async () => {
     try {
@@ -50,61 +56,32 @@ export const VendorsPage: React.FC = () => {
     }
   };
 
-  const filteredVendors = vendors.filter(v => {
-    const searchLower = searchTerm.toLowerCase();
+  // Filter Pending Vendors
+  const pendingVendors = vendors.filter(v => {
+    if (v.status !== 'Pending') return false;
+    const searchLower = pendingSearch.toLowerCase();
     const matchesSearch = v.name.toLowerCase().includes(searchLower) || 
-                          (v.contactNumber || v.contact || '').includes(searchTerm);
-    const matchesCategory = selectedCategory === 'All' || v.category === selectedCategory;
+                          (v.contactNumber || v.contact || '').includes(pendingSearch);
+    const matchesCategory = pendingCategory === 'All' || v.category === pendingCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const pendingVendors = filteredVendors.filter(v => v.status === 'Pending');
-  const confirmedVendors = filteredVendors.filter(v => v.status === 'Verified');
+  // Filter Confirmed Vendors
+  const confirmedVendors = vendors.filter(v => {
+    if (v.status !== 'Verified') return false;
+    const searchLower = confirmedSearch.toLowerCase();
+    const matchesSearch = v.name.toLowerCase().includes(searchLower) || 
+                          (v.contactNumber || v.contact || '').includes(confirmedSearch);
+    const matchesCategory = confirmedCategory === 'All' || v.category === confirmedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Partner & Vendor Management</h1>
         <p className="text-slate-500 text-sm mt-1">Review new vendor applications and manage confirmed business partners in the EventCraft network.</p>
-      </div>
-
-      {/* Filtering & Search Bar */}
-      <div className="mb-8 space-y-4">
-        {/* Search Input */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-slate-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search vendors by name, contact or keyword..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
-          />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <span className="text-xs text-slate-400 font-medium">Showing {filteredVendors.length} vendors</span>
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div className="flex overflow-x-auto space-x-2 pb-2 scrollbar-hide">
-          {VENDOR_CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === cat.id 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              <span>{cat.icon}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* SECTION 1: Pending Verifications */}
@@ -115,20 +92,52 @@ export const VendorsPage: React.FC = () => {
             <h3 className="font-semibold text-base">Pending Vendor Verification Requests</h3>
           </div>
           <span className="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700">
-            {pendingVendors.length} Action(s) Required
+            {vendors.filter(v => v.status === 'Pending').length} Total Pending
           </span>
+        </div>
+
+        {/* Pending Filters */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search pending requests..."
+              value={pendingSearch}
+              onChange={(e) => setPendingSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex overflow-x-auto space-x-2 pb-1 scrollbar-hide">
+            {VENDOR_CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setPendingCategory(cat.id)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
+                  pendingCategory === cat.id 
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="divide-y divide-slate-200">
           {pendingVendors.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-sm">
-              {searchTerm || selectedCategory !== 'All' 
-                ? 'No pending verification requests match your current filters.' 
+              {pendingSearch || pendingCategory !== 'All' 
+                ? 'No pending verification requests match your filter.' 
                 : 'No pending verification requests at the moment.'}
             </div>
           ) : (
             pendingVendors.map(vendor => (
-              <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                 <div>
                   <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                   <div className="flex items-center text-xs text-slate-500 mt-1 space-x-3">
@@ -172,19 +181,51 @@ export const VendorsPage: React.FC = () => {
             <Building2 className="w-5 h-5 text-indigo-600" />
             <h3 className="font-bold text-slate-800 text-base">Confirmed Members (Active Network)</h3>
           </div>
-          <span className="text-xs text-slate-500 font-medium">{confirmedVendors.length} Verified Partners</span>
+          <span className="text-xs text-slate-500 font-medium">{vendors.filter(v => v.status === 'Verified').length} Verified Partners</span>
+        </div>
+
+        {/* Confirmed Filters */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-3">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search confirmed members..."
+              value={confirmedSearch}
+              onChange={(e) => setConfirmedSearch(e.target.value)}
+              className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm"
+            />
+          </div>
+          <div className="flex overflow-x-auto space-x-2 pb-1 scrollbar-hide">
+            {VENDOR_CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setConfirmedCategory(cat.id)}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
+                  confirmedCategory === cat.id 
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-6 gap-4 bg-slate-50/50">
           {confirmedVendors.length === 0 ? (
             <div className="col-span-full py-8 text-center text-slate-500 text-sm">
-              {searchTerm || selectedCategory !== 'All' 
-                ? 'No confirmed vendors match your current filters.' 
-                : 'No confirmed vendors yet. Approve pending requests to add them to the network.'}
+              {confirmedSearch || confirmedCategory !== 'All' 
+                ? 'No confirmed vendors match your filter.' 
+                : 'No confirmed vendors yet.'}
             </div>
           ) : (
             confirmedVendors.map(vendor => (
-              <div key={vendor.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition">
+              <div key={vendor.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition hover:border-indigo-200">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{vendor.name}</h4>
                   <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full">
