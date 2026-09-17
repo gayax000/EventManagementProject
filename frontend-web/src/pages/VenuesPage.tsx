@@ -10,31 +10,11 @@ export interface VendorItem {
   status: string;
 }
 
-const DEFAULT_VENDORS: VendorItem[] = [
-  { id: 'v1', name: 'Royal Colombo Catering Services', category: 'Catering', contact: '+94771234567', status: 'Pending' },
-  { id: 'v2', name: 'Mega Line-Array Sound & Stage Rigs', category: 'AudioVisual', contact: '+94719876543', status: 'Pending' },
-];
-
 export const VenuesPage: React.FC = () => {
   const [venues, setVenues] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [vendors, setVendors] = useState<VendorItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('eventcraft_vendors');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDORS;
-    } catch {
-      return DEFAULT_VENDORS;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('eventcraft_vendors', JSON.stringify(vendors));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [vendors]);
+  const [vendors, setVendors] = useState<VendorItem[]>([]);
 
   // Load Real Venues from our Backend API
   useEffect(() => {
@@ -52,29 +32,29 @@ export const VenuesPage: React.FC = () => {
     fetchVenues();
   }, [searchTerm]);
 
-  // Sync vendors when storage changes or on mount
+  // Load Vendors from Backend API
   useEffect(() => {
-    const syncVendors = () => {
+    const fetchVendors = async () => {
       try {
-        const saved = localStorage.getItem('eventcraft_vendors');
-        if (saved) {
-          setVendors(JSON.parse(saved));
-        }
-      } catch {}
+        const data = await vendorService.getVendors();
+        setVendors(data.map(v => ({
+          ...v,
+          id: v.vendorId || v.id,
+          name: v.businessName || v.name,
+          status: v.verificationStatus || v.status
+        } as any)));
+      } catch (err) {
+        console.error("Failed to fetch vendors", err);
+      }
     };
-    syncVendors();
-    const interval = setInterval(syncVendors, 1000);
+    fetchVendors();
+    // Poll every 5 seconds to get new vendor registrations automatically
+    const interval = setInterval(fetchVendors, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const handleVerifyVendor = async (id: string, newStatus: 'Verified' | 'Rejected') => {
-    setVendors(prev => {
-      const updated = prev.map(v => (v.id === id || (v as any).vendorId === id) ? { ...v, status: newStatus } : v);
-      try {
-        localStorage.setItem('eventcraft_vendors', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    setVendors(prev => prev.map(v => (v.id === id || (v as any).vendorId === id) ? { ...v, status: newStatus } : v));
     try {
       await vendorService.verifyVendor(id, newStatus);
     } catch (e) {
