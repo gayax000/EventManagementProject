@@ -9,10 +9,128 @@ import {
   Sparkles, 
   PlusCircle,
   Layers,
-  AlertCircle
+  AlertCircle,
+  Tag
 } from 'lucide-react';
 import { vendorService, type VendorItem } from '../services/api';
 import { authService } from '../services/authService';
+
+export const VENDOR_SERVICE_CONFIG: Record<string, {
+  label: string;
+  shortLabel: string;
+  icon: string;
+  defaultPackage: string;
+  defaultPrice: number;
+  placeholderName: string;
+  placeholderDescription: string;
+}> = {
+  Catering: {
+    label: 'Catering & Gourmet Buffets',
+    shortLabel: 'Catering Buffets',
+    icon: '🍽️',
+    defaultPackage: '5-Course Royal Gala Dinner Buffet (Per Plate)',
+    defaultPrice: 5500,
+    placeholderName: 'e.g. Ceylon Grand Banquet Caterers',
+    placeholderDescription: 'Describe your buffet menu specialties, live action stations, food hygiene certification, and per-plate packages...'
+  },
+  AudioVisual: {
+    label: 'AudioVisual & Stage Lighting',
+    shortLabel: 'Sound & Lighting',
+    icon: '🔊',
+    defaultPackage: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses',
+    defaultPrice: 180000,
+    placeholderName: 'e.g. Lumina Pro Audio & Stage Lighting',
+    placeholderDescription: 'Describe your line-array sound systems, digital audio consoles, intelligent moving heads, beam trusses, and ambient stage lighting...'
+  },
+  Decor: {
+    label: 'Floral & Event Decoration',
+    shortLabel: 'Decor & Stage',
+    icon: '🌸',
+    defaultPackage: 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor',
+    defaultPrice: 80000,
+    placeholderName: 'e.g. Royal Blooms Floral & Stage Design',
+    placeholderDescription: 'Describe your bespoke floral arches, stage backdrops, ambient tablescapes, theme styling, and entrance decor...'
+  },
+  Photography: {
+    label: 'In-House Photography & Cinematography',
+    shortLabel: 'Photography',
+    icon: '📸',
+    defaultPackage: 'Master Wedding Photography + 4K Highlights Video + Storybook Album',
+    defaultPrice: 100000,
+    placeholderName: 'e.g. Studio Lumiere Wedding & Event Photography',
+    placeholderDescription: 'Describe your 4K cinema cameras, aerial drone footage, photography team size, album printing options, and turnaround time...'
+  },
+  Cake: {
+    label: 'Celebration Cakes & Dessert Art',
+    shortLabel: 'Cakes',
+    icon: '🎂',
+    defaultPackage: '3-Tier Luxury Handcrafted Fondant Floral Wedding Cake',
+    defaultPrice: 35000,
+    placeholderName: 'e.g. Velvet Crumb Artisan Cake Studio',
+    placeholderDescription: 'Describe your handcrafted tiered wedding cakes, flavor profiles, custom fondant sugar flowers, and dessert table spreads...'
+  },
+  Transport: {
+    label: 'Luxury Bridal & VIP Transport',
+    shortLabel: 'VIP Transport',
+    icon: '🚗',
+    defaultPackage: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan',
+    defaultPrice: 50000,
+    placeholderName: 'e.g. Royal Crown VIP & Bridal Chauffeurs',
+    placeholderDescription: 'Describe your fleet of luxury sedans (Mercedes, BMW), vintage Rolls Royce/Jaguar bridal cars, 14-seater VIP vans, and chauffeur service...'
+  },
+  MarqueeTent: {
+    label: 'Marquee & Outdoor Weather Proofing',
+    shortLabel: 'Tents & Safeguards',
+    icon: '🎪',
+    defaultPackage: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)',
+    defaultPrice: 150000,
+    placeholderName: 'e.g. Ceylon WeatherShield Marquee Tents',
+    placeholderDescription: 'Describe your clear-roof marquee tents, waterproof pagoda canopies, rain guttering, wind resistance ratings, and setup crew...'
+  },
+  PowerBackup: {
+    label: 'Power Backup & Industrial Generators',
+    shortLabel: 'Power Backup',
+    icon: '⚡',
+    defaultPackage: 'Backup Diesel Silent Generator (60 kVA Heavy Duty)',
+    defaultPrice: 90000,
+    placeholderName: 'e.g. VoltMax Heavy Power & Generator Hire',
+    placeholderDescription: 'Describe your soundproof diesel generators (15-100 kVA), automatic transfer switches (ATS), power distribution boards, and on-site technician...'
+  }
+};
+
+export const getCategoryInfo = (catKey?: string) => {
+  if (!catKey) {
+    return { 
+      label: 'General Vendor Service', 
+      shortLabel: 'Service', 
+      icon: '🏪', 
+      defaultPackage: 'Standard Service Package', 
+      defaultPrice: 5000, 
+      placeholderName: 'e.g. Event Service Provider', 
+      placeholderDescription: 'Describe your services...' 
+    };
+  }
+  
+  const normalized = catKey.trim().toLowerCase();
+  if (normalized.includes('photo')) return VENDOR_SERVICE_CONFIG.Photography;
+  if (normalized.includes('cake')) return VENDOR_SERVICE_CONFIG.Cake;
+  if (normalized.includes('transport') || normalized.includes('car') || normalized.includes('vehicle') || normalized.includes('vip')) return VENDOR_SERVICE_CONFIG.Transport;
+  if (normalized.includes('sound') || normalized.includes('audio') || normalized.includes('light')) return VENDOR_SERVICE_CONFIG.AudioVisual;
+  if (normalized.includes('cater') || normalized.includes('food') || normalized.includes('buffet')) return VENDOR_SERVICE_CONFIG.Catering;
+  if (normalized.includes('decor') || normalized.includes('flower') || normalized.includes('floral')) return VENDOR_SERVICE_CONFIG.Decor;
+  if (normalized.includes('tent') || normalized.includes('marquee') || normalized.includes('weather')) return VENDOR_SERVICE_CONFIG.MarqueeTent;
+  if (normalized.includes('power') || normalized.includes('gen') || normalized.includes('generator')) return VENDOR_SERVICE_CONFIG.PowerBackup;
+
+  return VENDOR_SERVICE_CONFIG[catKey] || {
+    label: catKey,
+    shortLabel: catKey,
+    icon: '📦',
+    defaultPackage: 'Standard Service Package',
+    defaultPrice: 5000,
+    placeholderName: 'e.g. Service Partner',
+    placeholderDescription: 'Describe your service offerings...'
+  };
+};
 
 export const VendorPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register'>('dashboard');
@@ -26,6 +144,8 @@ export const VendorPortal: React.FC = () => {
   const [packagePrice, setPackagePrice] = useState(5500);
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
+
+  const selectedCategoryConfig = VENDOR_SERVICE_CONFIG[category] || getCategoryInfo(category);
 
   // Current Logged-in Vendor Identity
   const userName = authService.getUserName();
@@ -77,6 +197,14 @@ export const VendorPortal: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentVendor?.id, currentVendor?.status]);
 
+  const handleCategoryChange = (newCat: string) => {
+    setCategory(newCat);
+    const config = VENDOR_SERVICE_CONFIG[newCat] || getCategoryInfo(newCat);
+    if (config) {
+      setPackagePrice(config.defaultPrice);
+    }
+  };
+
   // Handle New Vendor Registration
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +218,7 @@ export const VendorPortal: React.FC = () => {
         businessName,
         category,
         contactNumber,
-        description: description || packageName
+        description: description || packageName || selectedCategoryConfig.defaultPackage
       });
 
       const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
@@ -100,8 +228,8 @@ export const VendorPortal: React.FC = () => {
         id: newVendorId,
         verificationStatus: 'Pending',
         status: 'Pending',
-        packageName: packageName || 'Standard Service Package',
-        packagePrice: packagePrice || 5000
+        packageName: packageName || selectedCategoryConfig.defaultPackage,
+        packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
       };
 
       setCurrentVendor(newVendorData);
@@ -124,6 +252,8 @@ export const VendorPortal: React.FC = () => {
     }
   };
 
+  const activeCategoryInfo = currentVendor ? getCategoryInfo(currentVendor.category) : null;
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
@@ -137,7 +267,7 @@ export const VendorPortal: React.FC = () => {
             <span className="text-xs text-slate-400">• Member 1 Component</span>
           </div>
           <h1 className="text-2xl font-black mt-2">Vendor Business Management & Onboarding</h1>
-          <p className="text-slate-400 text-sm mt-1">Register your catering, sound, lighting or marquee equipment for AI-assisted event curation.</p>
+          <p className="text-slate-400 text-sm mt-1">Register your catering, sound, lighting, decor, photography, cakes, VIP transport, marquee or power equipment for AI-assisted event curation.</p>
         </div>
 
         {/* Portal Tabs */}
@@ -185,9 +315,15 @@ export const VendorPortal: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-100">
                 <div>
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Registered Partner Profile</span>
-                  <h2 className="text-2xl font-black text-slate-900 mt-1">{currentVendor.businessName || currentVendor.name}</h2>
+                  <div className="flex items-center space-x-2.5 mt-1">
+                    <span className="text-2xl">{activeCategoryInfo?.icon || '🏪'}</span>
+                    <h2 className="text-2xl font-black text-slate-900">{currentVendor.businessName || currentVendor.name}</h2>
+                  </div>
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500">
-                    <span className="px-2.5 py-1 bg-slate-100 text-slate-700 font-medium rounded-md">Category: {currentVendor.category}</span>
+                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-md border border-indigo-100 flex items-center space-x-1">
+                      <span>{activeCategoryInfo?.icon}</span>
+                      <span>Category: {activeCategoryInfo?.label || currentVendor.category}</span>
+                    </span>
                     <span className="flex items-center"><Phone className="w-3 h-3 mr-1 text-slate-400" />{currentVendor.contactNumber || currentVendor.contact}</span>
                   </div>
                 </div>
@@ -223,7 +359,7 @@ export const VendorPortal: React.FC = () => {
                       <div>
                         <h4 className="font-bold">Autonomous AI Recommendation Engine Integration: Active!</h4>
                         <p className="text-xs text-emerald-800 mt-1">
-                          Your catering and equipment packages are actively indexed by the <strong>EventCraft Multi-Agent Planner</strong>. When customers submit event requests within your category and budget, your services are automatically curated into client proposals!
+                          Your services and equipment packages are actively indexed by the <strong>EventCraft Multi-Agent Planner</strong>. When customers submit event requests matching <strong>{activeCategoryInfo?.label || currentVendor.category}</strong>, your services are automatically curated into client proposals!
                         </p>
                       </div>
                     </div>
@@ -261,10 +397,16 @@ export const VendorPortal: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900 text-sm">{currentVendor.adminRemarks || (currentVendor as any).packageName || 'Standard Service Package'}</h4>
-                    <p className="text-xs text-slate-500 mt-1">Category: {currentVendor.category}</p>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">{activeCategoryInfo?.icon || '📦'}</span>
+                      <h4 className="font-bold text-slate-900 text-sm">{currentVendor.adminRemarks || (currentVendor as any).packageName || activeCategoryInfo?.defaultPackage || 'Standard Service Package'}</h4>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1.5 flex items-center space-x-1">
+                      <Tag className="w-3 h-3 text-slate-400" />
+                      <span>{activeCategoryInfo?.label || currentVendor.category}</span>
+                    </p>
                     <p className="text-xs font-bold text-indigo-600 mt-2">
-                      Price: Rs. {Number((currentVendor as any).packagePrice || 5000).toLocaleString()}
+                      Price: Rs. {Number((currentVendor as any).packagePrice || activeCategoryInfo?.defaultPrice || 5000).toLocaleString()}
                     </p>
                   </div>
                   <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
@@ -288,7 +430,7 @@ export const VendorPortal: React.FC = () => {
             </span>
             <h2 className="text-2xl font-black text-slate-900 mt-4">Welcome to EventCraft, {userName}!</h2>
             <p className="text-slate-500 text-sm max-w-md mx-auto mt-2 leading-relaxed">
-              You haven't registered your business profile yet. Register your catering, audiovisual, stage, or equipment services below to get audited and verified by EventCraft Operations Management.
+              You haven't registered your business profile yet. Register your catering, audiovisual, decor, photography, cakes, VIP transport, marquee tents, or power backup services below to get audited and verified by EventCraft Operations Management.
             </p>
             <div className="pt-6">
               <button
@@ -308,7 +450,7 @@ export const VendorPortal: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-2xl mx-auto">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-slate-900">Partner Business Registration Form</h2>
-            <p className="text-slate-500 text-xs mt-1">Fill in your business details to apply for verified vendor status in the EventCraft platform.</p>
+            <p className="text-slate-500 text-xs mt-1">Fill in your business details across any of our 8 certified service categories to apply for verified vendor status.</p>
           </div>
 
           <form onSubmit={handleRegister} className="space-y-4">
@@ -319,24 +461,27 @@ export const VendorPortal: React.FC = () => {
                 required
                 value={businessName}
                 onChange={e => setBusinessName(e.target.value)}
-                placeholder="e.g. Ceylon Grand Banquet Caterers"
+                placeholder={selectedCategoryConfig.placeholderName}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Service Category *</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Service Category (8 Categories) *</label>
                 <select
                   value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={e => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 >
-                  <option value="Catering">Catering & Food Service</option>
-                  <option value="AudioVisual">AudioVisual & Stage Lighting</option>
-                  <option value="MarqueeTent">Marquee & Outdoor Weather Proofing</option>
-                  <option value="PowerBackup">Power Backup & Generators</option>
-                  <option value="Decor">Floral & Event Decoration</option>
+                  <option value="SoundLighting">🔊 Sound & Lighting</option>
+                  <option value="Decor">🌸 Decor & Stage</option>
+                  <option value="Photography">📸 Photography</option>
+                  <option value="Cake">🎂 Cakes</option>
+                  <option value="Transport">🚗 VIP Transport</option>
+                  <option value="Catering">🍽️ Catering Buffets</option>
+                  <option value="MarqueeTent">🎪 Tents & Safeguards</option>
+                  <option value="PowerBackup">⚡ Power Backup</option>
                 </select>
               </div>
 
@@ -359,7 +504,7 @@ export const VendorPortal: React.FC = () => {
                 type="text"
                 value={packageName}
                 onChange={e => setPackageName(e.target.value)}
-                placeholder="e.g. 5-Course Royal Gala Dinner Buffet"
+                placeholder={selectedCategoryConfig.defaultPackage}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
@@ -390,7 +535,7 @@ export const VendorPortal: React.FC = () => {
                 rows={3}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="Describe your equipment, food hygiene certifications, or previous high-profile events..."
+                placeholder={selectedCategoryConfig.placeholderDescription}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
