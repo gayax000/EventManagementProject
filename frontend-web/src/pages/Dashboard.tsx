@@ -51,6 +51,20 @@ export const Dashboard: React.FC = () => {
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
           if (p) {
+            let parsedImages: string[] = [];
+            if (Array.isArray(p.inspirationImages) && p.inspirationImages.length > 0) {
+              parsedImages = p.inspirationImages;
+            } else if (p.inspirationImageUrl) {
+              const raw = p.inspirationImageUrl.trim();
+              if (raw.startsWith('[')) {
+                try { parsedImages = JSON.parse(raw); } catch (e) { parsedImages = [raw]; }
+              } else if (raw.includes('|||')) {
+                parsedImages = raw.split('|||').filter(Boolean);
+              } else {
+                parsedImages = [raw];
+              }
+            }
+
             setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { 
               ...prev, 
               estimatedTotalCost: p.estimatedTotalCost ?? prev.estimatedTotalCost,
@@ -59,8 +73,10 @@ export const Dashboard: React.FC = () => {
               banquetHallName: p.banquetHallName || prev.banquetHallName,
               hallRentalPrice: p.hallRentalPrice ?? prev.hallRentalPrice,
               perPlatePrice: p.perPlatePrice ?? prev.perPlatePrice,
+              isOutdoor: p.isOutdoor ?? prev.isOutdoor,
+              additionalDetails: p.additionalDetails || prev.additionalDetails,
               selectedServices: p.selectedServices || prev.selectedServices,
-              inspirationImages: p.inspirationImages || (p.inspirationImageUrl ? p.inspirationImageUrl.split(',') : (prev.inspirationImages || [])),
+              inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
             } : prev);
           }
         })
@@ -81,7 +97,9 @@ export const Dashboard: React.FC = () => {
     const decoCost = hasDeco ? 80000 : 0;
     const cakeCost = hasCake ? 35000 : 0;
     const weatherTentCost = 150000;
-    const computedSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost;
+    const hasSpecialRequests = Boolean(selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
+    const otherCost = hasSpecialRequests ? 35000 : 0;
+    const computedSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
     const computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
 
     try {
@@ -112,7 +130,9 @@ export const Dashboard: React.FC = () => {
   const decoCost = hasDeco ? 80000 : 0;
   const cakeCost = hasCake ? 35000 : 0;
   const weatherTentCost = 150000;
-  const currentSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost;
+  const hasSpecialRequests = Boolean(selectedEvent?.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
+  const otherCost = hasSpecialRequests ? 35000 : 0;
+  const currentSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
   const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
     ? selectedEvent.estimatedTotalCost
     : Math.max(0, currentSubtotal - specialDiscount);
@@ -231,6 +251,13 @@ export const Dashboard: React.FC = () => {
                   <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
                     {selectedEvent.eventType || "Event"}
                   </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded border flex items-center ${
+                    selectedEvent.isOutdoor 
+                      ? 'text-amber-700 bg-amber-50 border-amber-200' 
+                      : 'text-indigo-700 bg-indigo-50 border-indigo-200'
+                  }`}>
+                    {selectedEvent.isOutdoor ? '🌳 Outdoor Setting' : '🏛️ Indoor Setting'}
+                  </span>
                   {selectedEvent.banquetHallName && (
                     <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center">
                       <MapPin className="w-3 h-3 mr-1" />
@@ -296,6 +323,26 @@ export const Dashboard: React.FC = () => {
                 </div>
               )}
 
+              {/* Special Client Requests & Add-ons (e.g. Flower Bouquet) */}
+              {selectedEvent.additionalDetails && (
+                <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">💐</span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
+                        Special Client Requests & Add-ons
+                      </h4>
+                    </div>
+                    <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200">
+                      Budget Allocated: Rs. 35,000
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6">
+                    "{selectedEvent.additionalDetails}"
+                  </p>
+                </div>
+              )}
+
               {/* Weather Contingency Alert */}
               <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-xl flex items-start space-x-3">
                 <CloudRain className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -351,6 +398,18 @@ export const Dashboard: React.FC = () => {
                     <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
                       <span className="text-slate-700">🎂 Custom {cakeLabel} (Tiered Masterpiece)</span>
                       <span className="font-semibold text-slate-900">Rs. 35,000</span>
+                    </div>
+                  )}
+
+                  {hasSpecialRequests && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
+                      <div>
+                        <span className="text-rose-900 font-medium">
+                          💐 Special Client Request: {selectedEvent.additionalDetails}
+                        </span>
+                        <p className="text-[11px] text-rose-500">Dedicated arrangement budget (e.g. surprise flower bouquet / welcome add-ons)</p>
+                      </div>
+                      <span className="font-semibold text-rose-700">Rs. 35,000</span>
                     </div>
                   )}
 

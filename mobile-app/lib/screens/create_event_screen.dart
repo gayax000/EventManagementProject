@@ -33,6 +33,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   String _selectedEventType = 'Wedding';
   final _customEventTypeController = TextEditingController();
 
+  // Smart Indoor / Outdoor Selection
+  // Inherently indoor for: Product Launch, Dinner/Gala, Award Ceremony
+  bool _isOutdoor = false;
+
   // Basic Details
   final _titleController = TextEditingController(text: 'Royal Wedding Celebration');
   final _guestController = TextEditingController(text: '200');
@@ -43,6 +47,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final Set<String> _selectedServices = {'Photography', 'Decorations'};
   bool _includeOtherServices = false;
   final _customServiceNotesController = TextEditingController();
+
+  // Special Client Requests & Additional Details (e.g. Flower Bouquet)
+  final _additionalDetailsController = TextEditingController();
 
   // Location / Venue Selection
   // Modes: 'hotel' (Luxury Hotels & Halls), 'district' (Districts of SL), 'custom' (Private / Home Venue)
@@ -98,9 +105,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     _budgetController.dispose();
     _customEventTypeController.dispose();
     _customServiceNotesController.dispose();
+    _additionalDetailsController.dispose();
     _districtVenueNameController.dispose();
     _customAddressController.dispose();
     super.dispose();
+  }
+
+  bool get _isInherentlyIndoor {
+    final lower = _selectedEventType.toLowerCase();
+    return lower == 'product launch' || lower == 'dinner/gala' || lower.contains('award');
   }
 
   String get _dynamicCakeLabel {
@@ -127,6 +140,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (newType == null) return;
     setState(() {
       _selectedEventType = newType;
+      if (_isInherentlyIndoor) {
+        _isOutdoor = false;
+      }
       // Auto suggest title
       if (_selectedEventType == 'Wedding') {
         _titleController.text = 'Grand Wedding Celebration';
@@ -179,9 +195,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _pickImages() async {
     try {
       final List<XFile> images = await _picker.pickMultiImage(
-        imageQuality: 70,
-        maxWidth: 1200,
-        maxHeight: 1200,
+        imageQuality: 65,
+        maxWidth: 800,
+        maxHeight: 800,
       );
       if (images.isNotEmpty) {
         setState(() {
@@ -290,6 +306,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       // 3. Compile selected services
       final servicesList = _selectedServices.toList();
       final customNotes = _includeOtherServices ? _customServiceNotesController.text.trim() : null;
+      final additionalDetails = _additionalDetailsController.text.trim();
 
       final guestCount = int.tryParse(_guestController.text) ?? 100;
       final budget = double.tryParse(_budgetController.text) ?? 1000000.0;
@@ -301,6 +318,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         targetDate: _selectedDate,
         guestCount: guestCount,
         budgetLimit: budget,
+        isOutdoor: _isInherentlyIndoor ? false : _isOutdoor,
+        additionalDetails: additionalDetails.isNotEmpty ? additionalDetails : null,
         venueId: venueId,
         banquetHallId: banquetHallId,
         preferredLocation: preferredLocation,
@@ -323,7 +342,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ],
             ),
             content: Text(
-              'Your event request for "${_titleController.text.trim()}" has been submitted successfully.\n\nOur AI planning agents and Operations Manager will prepare a customized proposal.',
+              'Your event request for "${_titleController.text.trim()}" has been submitted successfully.\n\nOur AI planning agents and Operations Manager will prepare a customized proposal with your requested arrangements.',
               style: const TextStyle(color: Colors.white70),
             ),
             actions: [
@@ -447,6 +466,94 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           ),
                         ],
                         const SizedBox(height: 16),
+
+                        // SMART INDOOR / OUTDOOR SELECTION
+                        if (_isInherentlyIndoor) ...[
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF38BDF8).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 18),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue.',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ] else ...[
+                          const Text(
+                            'Event Setting (Indoor vs Outdoor)',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _isOutdoor = false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: !_isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '🏛️ Indoor (AC Hall)',
+                                        style: TextStyle(
+                                          color: !_isOutdoor ? Colors.black : Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() => _isOutdoor = true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: _isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '🌳 Outdoor (Lawn/Garden)',
+                                        style: TextStyle(
+                                          color: _isOutdoor ? Colors.black : Colors.white70,
+                                          fontSize: 12,
+                                          fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+
                         TextFormField(
                           controller: _titleController,
                           style: const TextStyle(color: Colors.white),
@@ -623,6 +730,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                 children: _hallsForSelectedHotel.map((hall) {
                                   final isSelected = _selectedHall?.banquetHallId == hall.banquetHallId;
                                   final isAvail = hall.isAvailable;
+                                  final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 10),
                                     decoration: BoxDecoration(
@@ -674,6 +782,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                                     ),
                                                   ),
                                                 ),
+                                                if (hall.isOutdoor)
+                                                  Container(
+                                                    margin: const EdgeInsets.only(right: 6),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.teal.withOpacity(0.2),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: Colors.teal.withOpacity(0.4)),
+                                                    ),
+                                                    child: Text(
+                                                      matchesSetting ? '🌳 OUTDOOR MATCH' : 'OUTDOOR',
+                                                      style: const TextStyle(color: Colors.tealAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                   decoration: BoxDecoration(
@@ -885,7 +1007,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             style: const TextStyle(color: Colors.white),
                             decoration: _inputDecoration(
                               'Describe Other Services Needed',
-                              hint: 'e.g. Traditional Dancers, Live Band, Poruwa Ceremony Setup, Drone videography, Champagne fountain',
+                              hint: 'e.g. Traditional Dancers, Live Band, Poruwa Ceremony Setup, Drone videography',
                             ),
                           ),
                         ],
@@ -895,8 +1017,57 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
                   const SizedBox(height: 24),
 
-                  // SECTION 5: Client Inspiration & Venue Photos
-                  _buildSectionHeader('5. Inspiration & Venue Photos', Icons.photo_library),
+                  // SECTION 5: Special Client Requests & Additional Details
+                  _buildSectionHeader('5. Special Requests & Additional Details', Icons.card_giftcard),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Special arrangements for the day (e.g. surprise flower bouquet, custom welcome gifts, etc.):',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(
+                          controller: _additionalDetailsController,
+                          maxLines: 3,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: _inputDecoration(
+                            'Special Requests & Arrangements',
+                            hint: 'e.g. Arrange surprise red rose flower bouquet on arrival, VIP welcome mocktails, custom backdrop monogram...',
+                            icon: Icons.local_florist,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.monetization_on_outlined, color: Color(0xFFD4AF37), size: 16),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'A budget allocation of LKR 35,000 will be included in your AI proposal for coordinating these custom arrangements.',
+                                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // SECTION 6: Client Inspiration & Venue Photos
+                  _buildSectionHeader('6. Inspiration & Venue Photos', Icons.photo_library),
                   const SizedBox(height: 6),
                   const Text(
                     'Upload theme photos, cake designs, or decor ideas for our planners & vendors:',

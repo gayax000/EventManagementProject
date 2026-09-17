@@ -84,6 +84,36 @@ public class EventsController : ControllerBase
             ? dto.CustomEventType.Trim() 
             : (!string.IsNullOrWhiteSpace(dto.EventType) ? dto.EventType.Trim() : "Wedding");
 
+        bool isInherentlyIndoor = 
+            eventType.Equals("Product Launch", StringComparison.OrdinalIgnoreCase) ||
+            eventType.Equals("Dinner/Gala", StringComparison.OrdinalIgnoreCase) ||
+            eventType.Equals("Award Ceremony", StringComparison.OrdinalIgnoreCase) ||
+            eventType.Equals("Award Ceramony", StringComparison.OrdinalIgnoreCase);
+
+        bool isOutdoor = isInherentlyIndoor ? false : dto.IsOutdoor;
+
+        string? additionalDetails = !string.IsNullOrWhiteSpace(dto.AdditionalDetails) 
+            ? dto.AdditionalDetails.Trim() 
+            : null;
+
+        string? inspirationJson = null;
+        if (dto.InspirationImages != null && dto.InspirationImages.Count > 0)
+        {
+            inspirationJson = JsonSerializer.Serialize(dto.InspirationImages);
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.InspirationImageUrl))
+        {
+            var raw = dto.InspirationImageUrl.Trim();
+            if (raw.StartsWith("["))
+            {
+                inspirationJson = raw;
+            }
+            else
+            {
+                inspirationJson = JsonSerializer.Serialize(new List<string> { raw });
+            }
+        }
+
         var servicesJson = dto.SelectedServices != null && dto.SelectedServices.Count > 0
             ? JsonSerializer.Serialize(dto.SelectedServices)
             : null;
@@ -98,7 +128,9 @@ public class EventsController : ControllerBase
             TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
             GuestCount = dto.GuestCount,
             BudgetLimit = dto.BudgetLimit,
-            InspirationImageUrl = dto.InspirationImageUrl,
+            IsOutdoor = isOutdoor,
+            AdditionalDetails = additionalDetails,
+            InspirationImageUrl = inspirationJson,
             SelectedServicesJson = servicesJson,
             Status = "UnderReview"
         };
@@ -117,6 +149,8 @@ public class EventsController : ControllerBase
             TargetDate = newEvent.TargetDate,
             GuestCount = newEvent.GuestCount,
             BudgetLimit = newEvent.BudgetLimit,
+            IsOutdoor = newEvent.IsOutdoor,
+            AdditionalDetails = newEvent.AdditionalDetails,
             Status = newEvent.Status, // Will be 'PendingManagerApproval' after AI execution
             VenueId = newEvent.VenueId,
             BanquetHallId = newEvent.BanquetHallId,
@@ -124,6 +158,7 @@ public class EventsController : ControllerBase
             HallRentalPrice = chosenHall?.HallRentalPrice,
             PerPlatePrice = chosenHall?.PerPlatePrice,
             InspirationImageUrl = newEvent.InspirationImageUrl,
+            InspirationImages = ParseInspirationImages(newEvent.InspirationImageUrl),
             SelectedServices = dto.SelectedServices,
             CreatedAt = newEvent.CreatedAt
         };
@@ -152,6 +187,8 @@ public class EventsController : ControllerBase
             TargetDate = ev.TargetDate,
             GuestCount = ev.GuestCount,
             BudgetLimit = ev.BudgetLimit,
+            IsOutdoor = ev.IsOutdoor,
+            AdditionalDetails = ev.AdditionalDetails,
             Status = ev.Status,
             VenueId = ev.VenueId,
             VenueName = ev.Venue?.Name,
@@ -160,6 +197,7 @@ public class EventsController : ControllerBase
             HallRentalPrice = ev.BanquetHall?.HallRentalPrice,
             PerPlatePrice = ev.BanquetHall?.PerPlatePrice,
             InspirationImageUrl = ev.InspirationImageUrl,
+            InspirationImages = ParseInspirationImages(ev.InspirationImageUrl),
             SelectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
                 ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
                 : new List<string>(),
@@ -189,9 +227,7 @@ public class EventsController : ControllerBase
             ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
             : new List<string>();
 
-        var inspirationImages = !string.IsNullOrEmpty(ev.InspirationImageUrl)
-            ? ev.InspirationImageUrl.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-            : Array.Empty<string>();
+        var inspirationImages = ParseInspirationImages(ev.InspirationImageUrl);
 
         return Ok(new
         {
@@ -201,6 +237,8 @@ public class EventsController : ControllerBase
             targetDate = ev.TargetDate,
             guestCount = ev.GuestCount,
             budgetLimit = ev.BudgetLimit,
+            isOutdoor = ev.IsOutdoor,
+            additionalDetails = ev.AdditionalDetails,
             status = ev.Status,
             venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
             banquetHallName = ev.BanquetHall?.HallName,
@@ -248,6 +286,8 @@ public class EventsController : ControllerBase
                 TargetDate = ev.TargetDate,
                 GuestCount = ev.GuestCount,
                 BudgetLimit = ev.BudgetLimit,
+                IsOutdoor = ev.IsOutdoor,
+                AdditionalDetails = ev.AdditionalDetails,
                 Status = ev.Status,
                 VenueId = ev.VenueId,
                 VenueName = ev.Venue != null ? ev.Venue.Name : null,
@@ -260,6 +300,11 @@ public class EventsController : ControllerBase
                 CreatedAt = ev.CreatedAt
             })
             .ToListAsync();
+
+        foreach (var item in events)
+        {
+            item.InspirationImages = ParseInspirationImages(item.InspirationImageUrl);
+        }
 
         return Ok(events);
     }
@@ -284,8 +329,12 @@ public class EventsController : ControllerBase
             }
             else
             {
-                // Dynamic baseline: (guests * 5000) + 300000 - discount
+                // Dynamic baseline: (guests * 5000) + 300000 + (special requests: 35000) - discount
                 decimal baseSubtotal = (ev.GuestCount * 5000m) + 300000m;
+                if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+                {
+                    baseSubtotal += 35000m;
+                }
                 aiState.EstimatedTotalCost = Math.Max(0, baseSubtotal - discount);
             }
         }
@@ -387,5 +436,40 @@ public class EventsController : ControllerBase
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         return user;
+    }
+
+    private static List<string> ParseInspirationImages(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return new List<string>();
+        raw = raw.Trim();
+        if (raw.StartsWith("["))
+        {
+            try
+            {
+                var list = JsonSerializer.Deserialize<List<string>>(raw);
+                if (list != null && list.Count > 0) return list;
+            }
+            catch
+            {
+                // Fallback to single string
+            }
+        }
+        if (raw.StartsWith("data:image"))
+        {
+            if (raw.Contains("|||"))
+            {
+                return raw.Split(new[] { "|||" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+            return new List<string> { raw };
+        }
+        if (raw.Contains("|||"))
+        {
+            return raw.Split(new[] { "|||" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+        if (!raw.Contains("base64") && raw.Contains(","))
+        {
+            return raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        }
+        return new List<string> { raw };
     }
 }

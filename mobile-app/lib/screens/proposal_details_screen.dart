@@ -179,15 +179,139 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(proposal.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
-                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(proposal.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: proposal.isOutdoor ? Colors.amber.withOpacity(0.15) : Colors.cyan.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: proposal.isOutdoor ? Colors.amber : Colors.cyan),
+                      ),
+                      child: Text(
+                        proposal.isOutdoor ? '🌳 Outdoor' : '🏛️ Indoor',
+                        style: TextStyle(
+                          color: proposal.isOutdoor ? Colors.amber : Colors.cyanAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Text("📅 Date: $formattedDate", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 Text("👥 Guests: ${proposal.guestCount}  |  📍 Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 Text("💰 Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Colors.white70, fontSize: 13)),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Special Client Requests (Flower Bouquet / Add-ons)
+          if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE11D48).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE11D48).withOpacity(0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Text('💐', style: TextStyle(fontSize: 16)),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'SPECIAL CLIENT REQUESTS & ADD-ONS',
+                          style: TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ),
+                      Text(
+                        'Budget: LKR 35,000',
+                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    proposal.additionalDetails!,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Inspiration Photos Thumbnail Preview
+          if (proposal.inspirationImages.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.photo_library, color: Color(0xFFD4AF37), size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Inspiration Photos (${proposal.inspirationImages.length})',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 70,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: proposal.inspirationImages.length,
+                      itemBuilder: (ctx, idx) {
+                        final img = proposal.inspirationImages[idx];
+                        return Container(
+                          width: 70,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: img.startsWith('data:image')
+                                ? Image.memory(
+                                    base64Decode(img.split(',').last),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
+                                  )
+                                : Image.network(
+                                    img,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
 
           // 3. AI Generated Breakdown Card
           Container(

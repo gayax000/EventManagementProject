@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class EventSummary {
   final String eventId;
   final String title;
@@ -5,6 +7,8 @@ class EventSummary {
   final DateTime targetDate;
   final int guestCount;
   final double budgetLimit;
+  final bool isOutdoor;
+  final String? additionalDetails;
   final String status;
   final String? venueName;
   final String? banquetHallName;
@@ -18,6 +22,8 @@ class EventSummary {
     required this.targetDate,
     required this.guestCount,
     required this.budgetLimit,
+    this.isOutdoor = false,
+    this.additionalDetails,
     required this.status,
     this.venueName,
     this.banquetHallName,
@@ -33,6 +39,8 @@ class EventSummary {
       targetDate: DateTime.tryParse(json['targetDate'] ?? '') ?? DateTime.now(),
       guestCount: json['guestCount'] ?? 0,
       budgetLimit: (json['budgetLimit'] as num?)?.toDouble() ?? 0.0,
+      isOutdoor: json['isOutdoor'] == true,
+      additionalDetails: json['additionalDetails']?.toString(),
       status: json['status'] ?? 'UnderReview',
       venueName: json['venueName'],
       banquetHallName: json['banquetHallName'],
@@ -49,6 +57,8 @@ class EventProposalDetail {
   final DateTime targetDate;
   final int guestCount;
   final double budgetLimit;
+  final bool isOutdoor;
+  final String? additionalDetails;
   final String status;
   final String venueName;
   final String? banquetHallName;
@@ -70,6 +80,8 @@ class EventProposalDetail {
     required this.targetDate,
     required this.guestCount,
     required this.budgetLimit,
+    this.isOutdoor = false,
+    this.additionalDetails,
     required this.status,
     required this.venueName,
     this.banquetHallName,
@@ -91,10 +103,22 @@ class EventProposalDetail {
       services = (json['selectedServices'] as List).map((e) => e.toString()).toList();
     }
     List<String> images = [];
-    if (json['inspirationImages'] is List) {
+    if (json['inspirationImages'] is List && (json['inspirationImages'] as List).isNotEmpty) {
       images = (json['inspirationImages'] as List).map((e) => e.toString()).toList();
     } else if (json['inspirationImageUrl'] is String && (json['inspirationImageUrl'] as String).isNotEmpty) {
-      images = (json['inspirationImageUrl'] as String).split(',');
+      final raw = (json['inspirationImageUrl'] as String).trim();
+      if (raw.startsWith('[')) {
+        try {
+          final decoded = jsonDecode(raw);
+          if (decoded is List) images = decoded.map((e) => e.toString()).toList();
+        } catch (_) {
+          images = [raw];
+        }
+      } else if (raw.contains('|||')) {
+        images = raw.split('|||').where((s) => s.isNotEmpty).toList();
+      } else {
+        images = [raw];
+      }
     }
 
     return EventProposalDetail(
@@ -104,6 +128,8 @@ class EventProposalDetail {
       targetDate: DateTime.tryParse(json['targetDate'] ?? '') ?? DateTime.now(),
       guestCount: json['guestCount'] ?? 0,
       budgetLimit: (json['budgetLimit'] as num?)?.toDouble() ?? 0.0,
+      isOutdoor: json['isOutdoor'] == true,
+      additionalDetails: json['additionalDetails']?.toString(),
       status: json['status'] ?? 'PendingManagerApproval',
       venueName: json['venueName'] ?? 'Selected Luxury Resort',
       banquetHallName: json['banquetHallName']?.toString(),

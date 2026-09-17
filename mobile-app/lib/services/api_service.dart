@@ -105,6 +105,8 @@ class ApiService {
     required DateTime targetDate,
     required int guestCount,
     required double budgetLimit,
+    bool isOutdoor = false,
+    String? additionalDetails,
     String? venueId,
     String? banquetHallId,
     String? preferredLocation,
@@ -122,14 +124,17 @@ class ApiService {
         'targetDate': targetDate.toIso8601String(),
         'guestCount': guestCount,
         'budgetLimit': budgetLimit,
+        'isOutdoor': isOutdoor,
+        'additionalDetails': additionalDetails,
         'venueId': venueId,
         'banquetHallId': banquetHallId,
         'customerId': userId,
         'preferredLocation': preferredLocation,
         'selectedServices': selectedServices,
         'customServiceNotes': customServiceNotes,
+        'inspirationImages': inspirationImages,
         'inspirationImageUrl': inspirationImages != null && inspirationImages.isNotEmpty 
-            ? inspirationImages.join(',') 
+            ? jsonEncode(inspirationImages) 
             : null,
       });
 

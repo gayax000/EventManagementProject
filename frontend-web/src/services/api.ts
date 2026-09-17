@@ -38,6 +38,8 @@ export interface EventItem {
   banquetHallName?: string;
   hallRentalPrice?: number;
   perPlatePrice?: number;
+  isOutdoor?: boolean;
+  additionalDetails?: string;
   selectedServices?: string[];
   inspirationImages?: string[];
   inspirationImageUrl?: string;

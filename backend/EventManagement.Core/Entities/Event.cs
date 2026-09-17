@@ -25,6 +25,8 @@ public class Event : BaseEntity
     public DateTime TargetDate { get; set; }
     public int GuestCount { get; set; }
     public decimal BudgetLimit { get; set; }
+    public bool IsOutdoor { get; set; } = false;
+    public string? AdditionalDetails { get; set; }
     public string? InspirationImageUrl { get; set; }
 
     public string? SelectedServicesJson { get; set; }

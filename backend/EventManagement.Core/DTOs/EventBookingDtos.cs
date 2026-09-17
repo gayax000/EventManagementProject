@@ -22,6 +22,9 @@ public class CreateEventRequestDto
 
     public Guid? VenueId { get; set; }
     public Guid? BanquetHallId { get; set; }
+    public bool IsOutdoor { get; set; } = false;
+    public string? AdditionalDetails { get; set; }
+    public List<string>? InspirationImages { get; set; }
     public string? InspirationImageUrl { get; set; }
     public Guid? CustomerId { get; set; }
     public string? PreferredLocation { get; set; }
@@ -39,6 +42,8 @@ public class EventResponseDto
     public DateTime TargetDate { get; set; }
     public int GuestCount { get; set; }
     public decimal BudgetLimit { get; set; }
+    public bool IsOutdoor { get; set; } = false;
+    public string? AdditionalDetails { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? VenueId { get; set; }
     public string? VenueName { get; set; }
@@ -47,6 +52,7 @@ public class EventResponseDto
     public decimal? HallRentalPrice { get; set; }
     public decimal? PerPlatePrice { get; set; }
     public string? InspirationImageUrl { get; set; }
+    public List<string> InspirationImages { get; set; } = new();
     public List<string>? SelectedServices { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public DateTime CreatedAt { get; set; }

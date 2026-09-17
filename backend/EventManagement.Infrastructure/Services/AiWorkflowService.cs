@@ -95,14 +95,29 @@ public class AiWorkflowService : IAiWorkflowService
             // Dynamic realistic package calculation based on guest count and safeguards:
             // 1. Premium Dinner Buffet B (Rs. 5,000 per guest)
             // 2. Sound & Lighting Rig (Rs. 150,000)
-            // 3. Waterproof Marquee Tent safeguard (Rs. 150,000)
-            decimal dynamicCost = (ev.GuestCount * 5000m) + 150000m + 150000m;
+            // 3. Waterproof Marquee Tent safeguard (Rs. 150,000) if outdoor or rain alert
+            // 4. Special Client Requests / Others (e.g. Surprise flower bouquet: Rs. 35,000)
+            decimal othersCost = !string.IsNullOrWhiteSpace(ev.AdditionalDetails) ? 35000m : 0m;
+            decimal dynamicCost = (ev.GuestCount * 5000m) + 150000m + 150000m + othersCost;
+
+            var planItems = new List<string>
+            {
+                "Weather Assessment: 70% Rain Alert",
+                "Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)",
+                $"Premium Buffet B ({ev.GuestCount} guests @ Rs. 5,000)",
+                "Sound & Stage Rig (Rs. 150,000)"
+            };
+
+            if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+            {
+                planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Allocated: Rs. 35,000)");
+            }
 
             var fallbackState = new AIWorkflowState
             {
                 EventId = ev.EventId,
                 ObjectiveText = $"Autonomous proposal for {ev.Title} ({ev.GuestCount} guests)",
-                GeneratedPlanJson = $"[\"Weather Assessment: 70% Rain Alert\", \"Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)\", \"Premium Buffet B ({ev.GuestCount} guests @ Rs. 5,000)\", \"Sound & Stage Rig (Rs. 150,000)\"]",
+                GeneratedPlanJson = JsonSerializer.Serialize(planItems),
                 WeatherAssessmentJson = "{\"rainProbabilityPercent\": 70, \"condition\": \"Monsoon Rain Alert\", \"safeguard\": \"Heavy Duty Waterproof Marquee Tent\"}",
                 ToolExecutionLogsJson = "[\"WeatherAgent: 70% rain alert triggered\", \"ResourceAgent: Compiled catering & AV packages\", \"SafetyAgent: Safeguard verified under budget\"]",
                 EstimatedTotalCost = dynamicCost,
