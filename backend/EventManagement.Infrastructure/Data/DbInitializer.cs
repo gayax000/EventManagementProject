@@ -184,19 +184,75 @@ public static class DbInitializer
                 else if (lower.Contains("earl's regency") || lower.Contains("regency"))
                 {
                     halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Regent Grand Ballroom", MaxCapacity = 700, HallRentalPrice = 280000, PerPlatePrice = 4800, IsOutdoor = false });
-                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Mountbatten Pavilion", MaxCapacity = 300, HallRentalPrice = 200000, PerPlatePrice = 4500, IsOutdoor = true });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Mountbatten Pavilion & Garden", MaxCapacity = 300, HallRentalPrice = 200000, PerPlatePrice = 4500, IsOutdoor = true });
+                }
+                else if (lower.Contains("bentota"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Estuary Grand Ballroom", MaxCapacity = 450, HallRentalPrice = 380000, PerPlatePrice = 5800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Bentota Beachfront Coconut Lawn", MaxCapacity = 600, HallRentalPrice = 420000, PerPlatePrice = 6000, IsOutdoor = true });
+                }
+                else if (lower.Contains("tea factory"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Highland Mist Banquet Hall", MaxCapacity = 150, HallRentalPrice = 220000, PerPlatePrice = 4800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Cloud View Tea Plantation Lawn", MaxCapacity = 200, HallRentalPrice = 280000, PerPlatePrice = 5000, IsOutdoor = true });
+                }
+                else if (lower.Contains("peace haven") || lower.Contains("tangalle"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Peace Haven Grand Ballroom", MaxCapacity = 200, HallRentalPrice = 400000, PerPlatePrice = 6500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Cliffside Ocean Palm Lawn", MaxCapacity = 300, HallRentalPrice = 500000, PerPlatePrice = 7000, IsOutdoor = true });
+                }
+                else if (lower.Contains("water's edge") || lower.Contains("waters edge"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Grand Ballroom & Eagle Suite", MaxCapacity = 600, HallRentalPrice = 400000, PerPlatePrice = 5500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "The Boardwalk & Lakefront Lawn", MaxCapacity = 1000, HallRentalPrice = 450000, PerPlatePrice = 5800, IsOutdoor = true });
+                }
+                else if (lower.Contains("golf club"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Heritage Golf Clubhouse Hall", MaxCapacity = 180, HallRentalPrice = 220000, PerPlatePrice = 4500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Colonial Pine Fairway Lawn", MaxCapacity = 300, HallRentalPrice = 280000, PerPlatePrice = 4800, IsOutdoor = true });
+                }
+                else if (lower.Contains("aliya"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Audangawa Banquet Suite", MaxCapacity = 250, HallRentalPrice = 280000, PerPlatePrice = 4800, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Sigiriya Rock View Garden Lawn", MaxCapacity = 450, HallRentalPrice = 350000, PerPlatePrice = 5200, IsOutdoor = true });
+                }
+                else if (lower.Contains("marriott") || lower.Contains("weligama"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Pearl Grand Ballroom", MaxCapacity = 550, HallRentalPrice = 480000, PerPlatePrice = 6200, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Sunset Oceanfront Lawn", MaxCapacity = 400, HallRentalPrice = 450000, PerPlatePrice = 6000, IsOutdoor = true });
+                }
+                else if (lower.Contains("marino beach"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Sky Grand Ballroom", MaxCapacity = 350, HallRentalPrice = 320000, PerPlatePrice = 5200, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Rooftop Oceanview Deck", MaxCapacity = 250, HallRentalPrice = 300000, PerPlatePrice = 5000, IsOutdoor = true });
+                }
+                else if (lower.Contains("lighthouse"))
+                {
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Lighthouse Grand Ballroom", MaxCapacity = 300, HallRentalPrice = 380000, PerPlatePrice = 5500, IsOutdoor = false });
+                    halls.Add(new BanquetHall { VenueId = v.VenueId, HallName = "Oceanfront Rocks Lawn", MaxCapacity = 450, HallRentalPrice = 420000, PerPlatePrice = 5800, IsOutdoor = true });
                 }
                 else
                 {
-                    var hallName = v.IsOutdoor ? "Grand Garden Lawn" : "Main Banquet Hall";
+                    // Indoor Grand Banquet Ballroom
                     halls.Add(new BanquetHall 
                     { 
                         VenueId = v.VenueId, 
-                        HallName = hallName, 
+                        HallName = $"{v.Name.Replace("Hotel", "").Replace("Resort", "").Trim()} Grand Ballroom", 
+                        MaxCapacity = Math.Max(200, (int)(v.MaxCapacity * 0.75)), 
+                        HallRentalPrice = Math.Min(v.BaseRentalPrice * 0.85m, 350000m), 
+                        PerPlatePrice = 5200m, 
+                        IsOutdoor = false 
+                    });
+
+                    // Outdoor Scenic Lawn / Terrace
+                    halls.Add(new BanquetHall 
+                    { 
+                        VenueId = v.VenueId, 
+                        HallName = $"{v.Name.Replace("Hotel", "").Replace("Resort", "").Trim()} Scenic Garden Lawn & Terrace", 
                         MaxCapacity = v.MaxCapacity, 
-                        HallRentalPrice = Math.Min(v.BaseRentalPrice, 300000m), 
-                        PerPlatePrice = 5000m, 
-                        IsOutdoor = v.IsOutdoor 
+                        HallRentalPrice = Math.Min(v.BaseRentalPrice, 400000m), 
+                        PerPlatePrice = 5500m, 
+                        IsOutdoor = true 
                     });
                 }
             }
