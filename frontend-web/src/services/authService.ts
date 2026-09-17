@@ -9,6 +9,7 @@ export const authService = {
         localStorage.setItem('user_role', response.data.role || 'Manager');
         const name = response.data.fullName || email.split('@')[0];
         localStorage.setItem('user_name', name);
+        localStorage.setItem('user_email', email);
         return true;
       }
       return false;
@@ -32,6 +33,7 @@ export const authService = {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
   },
 
   getToken: () => {
@@ -40,6 +42,10 @@ export const authService = {
 
   getUserName: () => {
     return localStorage.getItem('user_name') || 'User';
+  },
+
+  getUserEmail: () => {
+    return localStorage.getItem('user_email') || '';
   },
 
   getUserRole: () => {

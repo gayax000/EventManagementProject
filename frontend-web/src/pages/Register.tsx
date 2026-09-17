@@ -24,12 +24,13 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
     setIsLoading(true);
     setError('');
     
-    const success = await authService.register(fullName, email, password, phone, role);
+    // Public registrations are strictly Vendors / Suppliers
+    const success = await authService.register(fullName, email, password, phone, 'Vendor');
     
     setIsLoading(false);
 
     if (success) {
-      alert(`Registration successful as ${role}! Please sign in.`);
+      alert(`Vendor account created successfully! Please sign in with your email and password.`);
       onNavigateLogin();
     } else {
       setError('Registration failed. Please try again.');
@@ -40,8 +41,11 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center items-center px-4 py-12">
       <div className="w-full max-w-md bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white">Create Account</h2>
-          <p className="text-slate-400 mt-2">Join EventCraft AI</p>
+          <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 inline-block mb-3">
+            Supplier Onboarding
+          </span>
+          <h2 className="text-3xl font-bold text-white">Vendor Registration</h2>
+          <p className="text-slate-400 mt-2 text-sm">Register your supplier account to onboard your catering, audio/visual or event services.</p>
         </div>
 
         {error && (
@@ -52,22 +56,24 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Full Name</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Full Name / Contact Person</label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 text-white"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
+              placeholder="e.g. Yohan Fernando"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Business Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 text-white"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
+              placeholder="vendor@example.com"
             />
           </div>
 
@@ -77,7 +83,8 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 text-white"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
+              placeholder="+94 77 123 4567"
             />
           </div>
 
@@ -87,53 +94,17 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 text-white"
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
+              placeholder="••••••••"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Account Role</label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className={`flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition ${
-                role === 'Vendor' 
-                  ? 'bg-indigo-950/60 border-indigo-500 text-white' 
-                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
-              }`}>
-                <input 
-                  type="radio" 
-                  name="role" 
-                  value="Vendor" 
-                  checked={role === 'Vendor'} 
-                  onChange={() => setRole('Vendor')} 
-                  className="hidden"
-                />
-                <span className="text-xs font-semibold">Vendor / Supplier</span>
-              </label>
-
-              <label className={`flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition ${
-                role === 'Manager' 
-                  ? 'bg-cyan-950/60 border-cyan-500 text-white' 
-                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
-              }`}>
-                <input 
-                  type="radio" 
-                  name="role" 
-                  value="Manager" 
-                  checked={role === 'Manager'} 
-                  onChange={() => setRole('Manager')} 
-                  className="hidden"
-                />
-                <span className="text-xs font-semibold">Operations Manager</span>
-              </label>
-            </div>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 mt-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+            className="w-full py-3 px-4 mt-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors disabled:opacity-50 shadow-md"
           >
-            {isLoading ? 'Creating...' : 'Sign Up'}
+            {isLoading ? 'Creating Vendor Account...' : 'Register as Vendor'}
           </button>
         </form>
 
