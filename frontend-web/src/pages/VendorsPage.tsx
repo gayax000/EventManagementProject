@@ -1,15 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search } from 'lucide-react';
+import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag } from 'lucide-react';
 import { vendorService } from '../services/api';
 
 const VENDOR_CATEGORIES = [
   { id: 'All', label: 'All', icon: '🏪' },
-  { id: 'Catering', label: 'Catering', icon: '🍽️' },
-  { id: 'AudioVisual', label: 'Audio & Light', icon: '🔊' },
-  { id: 'Decor', label: 'Decor', icon: '🌸' },
-  { id: 'MarqueeTent', label: 'Tents', icon: '⛺' },
-  { id: 'PowerBackup', label: 'Power', icon: '⚡' },
+  { id: 'SoundLighting', label: 'Sound & Lighting', icon: '🔊' },
+  { id: 'Decor', label: 'Decor & Stage', icon: '🌸' },
+  { id: 'Photography', label: 'Photography', icon: '📸' },
+  { id: 'Cake', label: 'Cakes', icon: '🎂' },
+  { id: 'Transport', label: 'VIP Transport', icon: '🚗' },
+  { id: 'Catering', label: 'Catering Buffets', icon: '🍽️' },
+  { id: 'MarqueeTent', label: 'Tents & Safeguards', icon: '🎪' },
+  { id: 'PowerBackup', label: 'Power Backup', icon: '⚡' },
 ];
+
+const matchesCategoryFilter = (vendorCat?: string, filterId: string = 'All') => {
+  if (!filterId || filterId === 'All') return true;
+  if (!vendorCat) return false;
+  const v = vendorCat.toLowerCase().trim();
+  const f = filterId.toLowerCase().trim();
+
+  if (f.includes('photo')) return v.includes('photo');
+  if (f.includes('cake')) return v.includes('cake');
+  if (f.includes('transport') || f.includes('car') || f.includes('vip')) return v.includes('transport') || v.includes('car') || v.includes('vehicle') || v.includes('vip');
+  if (f.includes('sound') || f.includes('audio') || f.includes('light')) return v.includes('sound') || v.includes('audio') || v.includes('light');
+  if (f.includes('cater') || f.includes('food') || f.includes('buffet')) return v.includes('cater') || v.includes('food') || v.includes('buffet');
+  if (f.includes('decor') || f.includes('flower') || f.includes('floral')) return v.includes('decor') || v.includes('flower') || v.includes('floral');
+  if (f.includes('tent') || f.includes('marquee') || f.includes('weather')) return v.includes('tent') || v.includes('marquee') || v.includes('weather');
+  if (f.includes('power') || f.includes('gen')) return v.includes('power') || v.includes('gen');
+
+  return v === f;
+};
+
+const getCategoryBadge = (vendorCat?: string) => {
+  if (!vendorCat) return { label: 'General', icon: '🏪' };
+  const v = vendorCat.toLowerCase().trim();
+  if (v.includes('photo')) return { label: 'Photography', icon: '📸' };
+  if (v.includes('cake')) return { label: 'Cakes & Desserts', icon: '🎂' };
+  if (v.includes('transport') || v.includes('car') || v.includes('vip')) return { label: 'VIP Transport', icon: '🚗' };
+  if (v.includes('sound') || v.includes('audio') || v.includes('light')) return { label: 'Sound & Lighting', icon: '🔊' };
+  if (v.includes('cater') || v.includes('food') || v.includes('buffet')) return { label: 'Catering Buffets', icon: '🍽️' };
+  if (v.includes('decor') || v.includes('flower') || v.includes('floral')) return { label: 'Decor & Stage', icon: '🌸' };
+  if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) return { label: 'Tents & Safeguards', icon: '🎪' };
+  if (v.includes('power') || v.includes('gen')) return { label: 'Power Backup', icon: '⚡' };
+  return { label: vendorCat, icon: '📦' };
+};
 
 export const VendorsPage: React.FC = () => {
   const [vendors, setVendors] = useState<any[]>([]);
@@ -60,9 +95,9 @@ export const VendorsPage: React.FC = () => {
   const pendingVendors = vendors.filter(v => {
     if (v.status !== 'Pending') return false;
     const searchLower = pendingSearch.toLowerCase();
-    const matchesSearch = v.name.toLowerCase().includes(searchLower) || 
+    const matchesSearch = (v.name || '').toLowerCase().includes(searchLower) || 
                           (v.contactNumber || v.contact || '').includes(pendingSearch);
-    const matchesCategory = pendingCategory === 'All' || v.category === pendingCategory;
+    const matchesCategory = matchesCategoryFilter(v.category, pendingCategory);
     return matchesSearch && matchesCategory;
   });
 
@@ -70,9 +105,9 @@ export const VendorsPage: React.FC = () => {
   const confirmedVendors = vendors.filter(v => {
     if (v.status !== 'Verified') return false;
     const searchLower = confirmedSearch.toLowerCase();
-    const matchesSearch = v.name.toLowerCase().includes(searchLower) || 
+    const matchesSearch = (v.name || '').toLowerCase().includes(searchLower) || 
                           (v.contactNumber || v.contact || '').includes(confirmedSearch);
-    const matchesCategory = confirmedCategory === 'All' || v.category === confirmedCategory;
+    const matchesCategory = matchesCategoryFilter(v.category, confirmedCategory);
     return matchesSearch && matchesCategory;
   });
 
@@ -81,7 +116,7 @@ export const VendorsPage: React.FC = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900">Partner & Vendor Management</h1>
-        <p className="text-slate-500 text-sm mt-1">Review new vendor applications and manage confirmed business partners in the EventCraft network.</p>
+        <p className="text-slate-500 text-sm mt-1">Review new vendor applications and manage confirmed business partners across all 8 certified event service categories.</p>
       </div>
 
       {/* SECTION 1: Pending Verifications */}
@@ -136,40 +171,48 @@ export const VendorsPage: React.FC = () => {
                 : 'No pending verification requests at the moment.'}
             </div>
           ) : (
-            pendingVendors.map(vendor => (
-              <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
-                  <div className="flex items-center text-xs text-slate-500 mt-1 space-x-3">
-                    <span className="flex items-center"><Briefcase className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.category}</span>
-                    <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+            pendingVendors.map(vendor => {
+              const badge = getCategoryBadge(vendor.category);
+              return (
+                <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">{badge.icon}</span>
+                      <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
+                    </div>
+                    <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
+                      <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
+                        <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
+                      </span>
+                      <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      Status: {vendor.status}
+                    </span>
+
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleVerifyVendor(vendor.id, 'Verified')}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center space-x-1 shadow-sm transition"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Approve</span>
+                      </button>
+                      <button 
+                        onClick={() => handleVerifyVendor(vendor.id, 'Rejected')}
+                        className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-3">
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    Status: {vendor.status}
-                  </span>
-
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => handleVerifyVendor(vendor.id, 'Verified')}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center space-x-1 shadow-sm transition"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Approve</span>
-                    </button>
-                    <button 
-                      onClick={() => handleVerifyVendor(vendor.id, 'Rejected')}
-                      className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      <span>Reject</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
@@ -224,20 +267,26 @@ export const VendorsPage: React.FC = () => {
                 : 'No confirmed vendors yet.'}
             </div>
           ) : (
-            confirmedVendors.map(vendor => (
-              <div key={vendor.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition hover:border-indigo-200">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{vendor.name}</h4>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full">
-                    Verified
-                  </span>
+            confirmedVendors.map(vendor => {
+              const badge = getCategoryBadge(vendor.category);
+              return (
+                <div key={vendor.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition hover:border-indigo-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-base">{badge.icon}</span>
+                      <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{vendor.name}</h4>
+                    </div>
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full">
+                      Verified
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-slate-600">
+                    <p className="flex items-center"><Tag className="w-3.5 h-3.5 mr-2 text-indigo-400" /> {badge.label}</p>
+                    <p className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2 text-indigo-400" /> {vendor.contactNumber || vendor.contact}</p>
+                  </div>
                 </div>
-                <div className="space-y-1.5 text-xs text-slate-600">
-                  <p className="flex items-center"><Briefcase className="w-3.5 h-3.5 mr-2 text-indigo-400" /> {vendor.category}</p>
-                  <p className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2 text-indigo-400" /> {vendor.contactNumber || vendor.contact}</p>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
