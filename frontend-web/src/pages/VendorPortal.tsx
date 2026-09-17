@@ -10,7 +10,10 @@ import {
   PlusCircle,
   Layers,
   AlertCircle,
-  Tag
+  Tag,
+  ChevronRight,
+  TrendingUp,
+  Cpu
 } from 'lucide-react';
 import { vendorService, type VendorItem } from '../services/api';
 import { authService } from '../services/authService';
@@ -23,15 +26,17 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
   defaultPrice: number;
   placeholderName: string;
   placeholderDescription: string;
+  tierSample: string;
 }> = {
-  Catering: {
-    label: 'Catering & Gourmet Buffets',
-    shortLabel: 'Catering Buffets',
-    icon: '🍽️',
-    defaultPackage: '5-Course Royal Gala Dinner Buffet (Per Plate)',
-    defaultPrice: 5500,
-    placeholderName: 'e.g. Ceylon Grand Banquet Caterers',
-    placeholderDescription: 'Describe your buffet menu specialties, live action stations, food hygiene certification, and per-plate packages...'
+  SoundLighting: {
+    label: 'AudioVisual & Stage Lighting',
+    shortLabel: 'Sound & Lighting',
+    icon: '🔊',
+    defaultPackage: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses',
+    defaultPrice: 180000,
+    placeholderName: 'e.g. Lumina Pro Audio & Stage Lighting',
+    placeholderDescription: 'Describe your line-array sound systems, digital audio consoles, intelligent moving heads, beam trusses, and ambient stage lighting...',
+    tierSample: 'Line-Array Rig, Moving Heads & Beam Trusses'
   },
   AudioVisual: {
     label: 'AudioVisual & Stage Lighting',
@@ -40,7 +45,8 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses',
     defaultPrice: 180000,
     placeholderName: 'e.g. Lumina Pro Audio & Stage Lighting',
-    placeholderDescription: 'Describe your line-array sound systems, digital audio consoles, intelligent moving heads, beam trusses, and ambient stage lighting...'
+    placeholderDescription: 'Describe your line-array sound systems, digital audio consoles, intelligent moving heads, beam trusses, and ambient stage lighting...',
+    tierSample: 'Line-Array Rig, Moving Heads & Beam Trusses'
   },
   Decor: {
     label: 'Floral & Event Decoration',
@@ -49,7 +55,8 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor',
     defaultPrice: 80000,
     placeholderName: 'e.g. Royal Blooms Floral & Stage Design',
-    placeholderDescription: 'Describe your bespoke floral arches, stage backdrops, ambient tablescapes, theme styling, and entrance decor...'
+    placeholderDescription: 'Describe your bespoke floral arches, stage backdrops, ambient tablescapes, theme styling, and entrance decor...',
+    tierSample: 'Floral Drapes, Thematic Stage & Archway Design'
   },
   Photography: {
     label: 'In-House Photography & Cinematography',
@@ -58,7 +65,8 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Master Wedding Photography + 4K Highlights Video + Storybook Album',
     defaultPrice: 100000,
     placeholderName: 'e.g. Studio Lumiere Wedding & Event Photography',
-    placeholderDescription: 'Describe your 4K cinema cameras, aerial drone footage, photography team size, album printing options, and turnaround time...'
+    placeholderDescription: 'Describe your 4K cinema cameras, aerial drone footage, photography team size, album printing options, and turnaround time...',
+    tierSample: '4K Cinema Video, Drone & Storybook Leather Album'
   },
   Cake: {
     label: 'Celebration Cakes & Dessert Art',
@@ -67,7 +75,18 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: '3-Tier Luxury Handcrafted Fondant Floral Wedding Cake',
     defaultPrice: 35000,
     placeholderName: 'e.g. Velvet Crumb Artisan Cake Studio',
-    placeholderDescription: 'Describe your handcrafted tiered wedding cakes, flavor profiles, custom fondant sugar flowers, and dessert table spreads...'
+    placeholderDescription: 'Describe your handcrafted tiered wedding cakes, flavor profiles, custom fondant sugar flowers, and dessert table spreads...',
+    tierSample: '3-5 Tier Fondant Cake, Custom Theme & Dessert Art'
+  },
+  Cakes: {
+    label: 'Celebration Cakes & Dessert Art',
+    shortLabel: 'Cakes',
+    icon: '🎂',
+    defaultPackage: '3-Tier Luxury Handcrafted Fondant Floral Wedding Cake',
+    defaultPrice: 35000,
+    placeholderName: 'e.g. Velvet Crumb Artisan Cake Studio',
+    placeholderDescription: 'Describe your handcrafted tiered wedding cakes, flavor profiles, custom fondant sugar flowers, and dessert table spreads...',
+    tierSample: '3-5 Tier Fondant Cake, Custom Theme & Dessert Art'
   },
   Transport: {
     label: 'Luxury Bridal & VIP Transport',
@@ -76,7 +95,38 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan',
     defaultPrice: 50000,
     placeholderName: 'e.g. Royal Crown VIP & Bridal Chauffeurs',
-    placeholderDescription: 'Describe your fleet of luxury sedans (Mercedes, BMW), vintage Rolls Royce/Jaguar bridal cars, 14-seater VIP vans, and chauffeur service...'
+    placeholderDescription: 'Describe your fleet of luxury sedans (Mercedes, BMW), vintage Rolls Royce/Jaguar bridal cars, 14-seater VIP vans, and chauffeur service...',
+    tierSample: 'Vintage Rolls Royce, Mercedes S-Class & VIP Vans'
+  },
+  VIPTransport: {
+    label: 'Luxury Bridal & VIP Transport',
+    shortLabel: 'VIP Transport',
+    icon: '🚗',
+    defaultPackage: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan',
+    defaultPrice: 50000,
+    placeholderName: 'e.g. Royal Crown VIP & Bridal Chauffeurs',
+    placeholderDescription: 'Describe your fleet of luxury sedans (Mercedes, BMW), vintage Rolls Royce/Jaguar bridal cars, 14-seater VIP vans, and chauffeur service...',
+    tierSample: 'Vintage Rolls Royce, Mercedes S-Class & VIP Vans'
+  },
+  Catering: {
+    label: 'Catering & Gourmet Buffets',
+    shortLabel: 'Catering Buffets',
+    icon: '🍽️',
+    defaultPackage: '5-Course Royal Gala Dinner Buffet (Per Plate)',
+    defaultPrice: 5500,
+    placeholderName: 'e.g. Ceylon Grand Banquet Caterers',
+    placeholderDescription: 'Describe your buffet menu specialties, live action stations, food hygiene certification, and per-plate packages...',
+    tierSample: 'Royal 5-7 Course International Gala Buffets'
+  },
+  CateringPackage: {
+    label: 'Catering & Gourmet Buffets',
+    shortLabel: 'Catering Buffets',
+    icon: '🍽️',
+    defaultPackage: '5-Course Royal Gala Dinner Buffet (Per Plate)',
+    defaultPrice: 5500,
+    placeholderName: 'e.g. Ceylon Grand Banquet Caterers',
+    placeholderDescription: 'Describe your buffet menu specialties, live action stations, food hygiene certification, and per-plate packages...',
+    tierSample: 'Royal 5-7 Course International Gala Buffets'
   },
   MarqueeTent: {
     label: 'Marquee & Outdoor Weather Proofing',
@@ -85,7 +135,8 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)',
     defaultPrice: 150000,
     placeholderName: 'e.g. Ceylon WeatherShield Marquee Tents',
-    placeholderDescription: 'Describe your clear-roof marquee tents, waterproof pagoda canopies, rain guttering, wind resistance ratings, and setup crew...'
+    placeholderDescription: 'Describe your clear-roof marquee tents, waterproof pagoda canopies, rain guttering, wind resistance ratings, and setup crew...',
+    tierSample: 'Clear-Roof Transparent Marquee & Pagoda Sets'
   },
   PowerBackup: {
     label: 'Power Backup & Industrial Generators',
@@ -94,7 +145,8 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     defaultPackage: 'Backup Diesel Silent Generator (60 kVA Heavy Duty)',
     defaultPrice: 90000,
     placeholderName: 'e.g. VoltMax Heavy Power & Generator Hire',
-    placeholderDescription: 'Describe your soundproof diesel generators (15-100 kVA), automatic transfer switches (ATS), power distribution boards, and on-site technician...'
+    placeholderDescription: 'Describe your soundproof diesel generators (15-100 kVA), automatic transfer switches (ATS), power distribution boards, and on-site technician...',
+    tierSample: 'Silent Soundproof Diesel Dual 35-100 kVA Units'
   }
 };
 
@@ -107,7 +159,8 @@ export const getCategoryInfo = (catKey?: string) => {
       defaultPackage: 'Standard Service Package', 
       defaultPrice: 5000, 
       placeholderName: 'e.g. Event Service Provider', 
-      placeholderDescription: 'Describe your services...' 
+      placeholderDescription: 'Describe your services...',
+      tierSample: 'General Event Equipment & Service'
     };
   }
   
@@ -115,7 +168,7 @@ export const getCategoryInfo = (catKey?: string) => {
   if (normalized.includes('photo')) return VENDOR_SERVICE_CONFIG.Photography;
   if (normalized.includes('cake')) return VENDOR_SERVICE_CONFIG.Cake;
   if (normalized.includes('transport') || normalized.includes('car') || normalized.includes('vehicle') || normalized.includes('vip')) return VENDOR_SERVICE_CONFIG.Transport;
-  if (normalized.includes('sound') || normalized.includes('audio') || normalized.includes('light')) return VENDOR_SERVICE_CONFIG.AudioVisual;
+  if (normalized.includes('sound') || normalized.includes('audio') || normalized.includes('light')) return VENDOR_SERVICE_CONFIG.SoundLighting;
   if (normalized.includes('cater') || normalized.includes('food') || normalized.includes('buffet')) return VENDOR_SERVICE_CONFIG.Catering;
   if (normalized.includes('decor') || normalized.includes('flower') || normalized.includes('floral')) return VENDOR_SERVICE_CONFIG.Decor;
   if (normalized.includes('tent') || normalized.includes('marquee') || normalized.includes('weather')) return VENDOR_SERVICE_CONFIG.MarqueeTent;
@@ -128,20 +181,32 @@ export const getCategoryInfo = (catKey?: string) => {
     defaultPackage: 'Standard Service Package',
     defaultPrice: 5000,
     placeholderName: 'e.g. Service Partner',
-    placeholderDescription: 'Describe your service offerings...'
+    placeholderDescription: 'Describe your service offerings...',
+    tierSample: 'Custom Service'
   };
 };
+
+const ALL_8_CAT_CARDS = [
+  { key: 'SoundLighting', title: 'Sound & Lighting', icon: '🔊', price: 'From Rs. 40,000 - 250,000', desc: 'Concert line arrays, moving heads, wireless mics & ambient trussing.' },
+  { key: 'Decor', title: 'Decor & Stage', icon: '🌸', price: 'From Rs. 30,000 - 200,000', desc: 'Royal floral stage drapes, bespoke table styling & entrance tunnel arches.' },
+  { key: 'Photography', title: 'Photography & Media', icon: '📸', price: 'From Rs. 35,000 - 250,000', desc: '4K cinema video, drone photography, senior camera team & photo albums.' },
+  { key: 'Cake', title: 'Cakes & Desserts', icon: '🎂', price: 'From Rs. 12,000 - 65,000', desc: 'Artisan tiered wedding cakes, birthday gateaus & dessert table styling.' },
+  { key: 'Transport', title: 'VIP & Bridal Transport', icon: '🚗', price: 'From Rs. 20,000 - 95,000', desc: 'Vintage Rolls Royce, Mercedes S-Class, BMW sedans & VIP 14-seater vans.' },
+  { key: 'Catering', title: 'Catering Buffets', icon: '🍽️', price: 'From Rs. 2,500 - 8,500/plate', desc: '5-7 course international banquets, live cooking & action food stations.' },
+  { key: 'MarqueeTent', title: 'Tents & Safeguards', icon: '🎪', price: 'From Rs. 45,000 - 220,000', desc: 'Clear-roof transparent marquee tents, rain shelters & pagoda setups.' },
+  { key: 'PowerBackup', title: 'Power Backup & Gens', icon: '⚡', price: 'From Rs. 20,000 - 160,000', desc: 'Soundproof diesel generators (15-100 kVA) with ATS & on-site technicians.' },
+];
 
 export const VendorPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register'>('dashboard');
 
   // Form State
   const [businessName, setBusinessName] = useState('');
-  const [category, setCategory] = useState('Catering');
+  const [category, setCategory] = useState('SoundLighting');
   const [contactNumber, setContactNumber] = useState('');
   const [description, setDescription] = useState('');
   const [packageName, setPackageName] = useState('');
-  const [packagePrice, setPackagePrice] = useState(5500);
+  const [packagePrice, setPackagePrice] = useState(180000);
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
 
@@ -203,6 +268,15 @@ export const VendorPortal: React.FC = () => {
     if (config) {
       setPackagePrice(config.defaultPrice);
     }
+  };
+
+  const handleSelectCategoryToRegister = (catKey: string) => {
+    setCategory(catKey);
+    const config = VENDOR_SERVICE_CONFIG[catKey] || getCategoryInfo(catKey);
+    if (config) {
+      setPackagePrice(config.defaultPrice);
+    }
+    setActiveTab('register');
   };
 
   // Handle New Vendor Registration
@@ -267,7 +341,7 @@ export const VendorPortal: React.FC = () => {
             <span className="text-xs text-slate-400">• Member 1 Component</span>
           </div>
           <h1 className="text-2xl font-black mt-2">Vendor Business Management & Onboarding</h1>
-          <p className="text-slate-400 text-sm mt-1">Register your catering, sound, lighting, decor, photography, cakes, VIP transport, marquee or power equipment for AI-assisted event curation.</p>
+          <p className="text-slate-400 text-sm mt-1">Onboard your business across all 8 certified event services for autonomous AI-assisted event proposal allocation.</p>
         </div>
 
         {/* Portal Tabs */}
@@ -418,28 +492,93 @@ export const VendorPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* EventCraft Network 8 Service Categories Overview */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                    <span>EventCraft 8 Service Categories & Tiered Catalog</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Explore standard rate cards and active AI allocation indexing across the entire supplier network.</p>
+                </div>
+                <span className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold border border-indigo-200">
+                  8 Services Certified
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {ALL_8_CAT_CARDS.map(cat => (
+                  <div key={cat.key} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 transition shadow-xs">
+                    <div className="flex items-center space-x-2 mb-1.5">
+                      <span className="text-xl">{cat.icon}</span>
+                      <h4 className="font-bold text-slate-900 text-xs">{cat.title}</h4>
+                    </div>
+                    <p className="text-[11px] text-indigo-600 font-bold mb-1">{cat.price}</p>
+                    <p className="text-[11px] text-slate-500 leading-tight line-clamp-2">{cat.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         ) : (
           /* Empty state for a newly registered vendor who hasn't onboarded a business yet */
-          <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center shadow-sm max-w-2xl mx-auto">
-            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-sm">
-              <Building2 className="w-8 h-8" />
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center shadow-sm max-w-3xl mx-auto">
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-indigo-100 shadow-sm">
+                <Building2 className="w-8 h-8" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Account Active • Onboarding Required
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 mt-4">Welcome to EventCraft, {userName}!</h2>
+              <p className="text-slate-500 text-sm max-w-xl mx-auto mt-2 leading-relaxed">
+                You haven't registered your business profile yet. Register your catering, audiovisual, decor, photography, cakes, VIP transport, marquee tents, or power backup services below to get audited and verified by EventCraft Operations Management.
+              </p>
+              <div className="pt-6">
+                <button
+                  onClick={() => setActiveTab('register')}
+                  className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition hover:scale-[1.02]"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Register Your Business Profile Now</span>
+                </button>
+              </div>
             </div>
-            <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-              Account Active • Onboarding Required
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 mt-4">Welcome to EventCraft, {userName}!</h2>
-            <p className="text-slate-500 text-sm max-w-md mx-auto mt-2 leading-relaxed">
-              You haven't registered your business profile yet. Register your catering, audiovisual, decor, photography, cakes, VIP transport, marquee tents, or power backup services below to get audited and verified by EventCraft Operations Management.
-            </p>
-            <div className="pt-6">
-              <button
-                onClick={() => setActiveTab('register')}
-                className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-md transition hover:scale-[1.02]"
-              >
-                <PlusCircle className="w-4 h-4" />
-                <span>Register Your Business Profile Now</span>
-              </button>
+
+            {/* Quick 8 Category Selection Cards */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-5xl mx-auto">
+              <div className="mb-4">
+                <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <span>Select Your Service Category to Start Onboarding (8 Categories)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Click on your industry category below to automatically configure your application form.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {ALL_8_CAT_CARDS.map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => handleSelectCategoryToRegister(cat.key)}
+                    className="p-4 rounded-xl border border-slate-200 bg-slate-50 text-left hover:border-indigo-500 hover:bg-indigo-50/40 transition group flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-2xl">{cat.icon}</span>
+                        <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition" />
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-xs mb-1 group-hover:text-indigo-600">{cat.title}</h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-tight">{cat.desc}</p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-200/60 text-[11px] font-bold text-indigo-600 flex items-center justify-between">
+                      <span>{cat.price}</span>
+                      <span className="text-[10px] text-indigo-500 underline">Register</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )
@@ -476,12 +615,12 @@ export const VendorPortal: React.FC = () => {
                 >
                   <option value="SoundLighting">🔊 Sound & Lighting</option>
                   <option value="Decor">🌸 Decor & Stage</option>
-                  <option value="Photography">📸 Photography</option>
-                  <option value="Cake">🎂 Cakes</option>
-                  <option value="Transport">🚗 VIP Transport</option>
+                  <option value="Photography">📸 Photography & Media</option>
+                  <option value="Cake">🎂 Cakes & Celebration Desserts</option>
+                  <option value="Transport">🚗 VIP & Luxury Transport</option>
                   <option value="Catering">🍽️ Catering Buffets</option>
                   <option value="MarqueeTent">🎪 Tents & Safeguards</option>
-                  <option value="PowerBackup">⚡ Power Backup</option>
+                  <option value="PowerBackup">⚡ Power Backup & Generators</option>
                 </select>
               </div>
 
