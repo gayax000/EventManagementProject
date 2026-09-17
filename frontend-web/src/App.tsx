@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
 import { VenuesPage } from './pages/VenuesPage';
+import { VendorsPage } from './pages/VendorsPage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { Login } from './pages/Login';
@@ -59,6 +60,7 @@ function App() {
           <>
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}><Dashboard /></div>
             <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
+            <div className={activeTab === 'vendors' ? 'block' : 'hidden'}><VendorsPage /></div>
             <div className={activeTab === 'resources' ? 'block' : 'hidden'}><ResourcesPage /></div>
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
           </>
