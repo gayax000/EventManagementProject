@@ -204,5 +204,32 @@ public static class DbInitializer
             context.BanquetHalls.AddRange(halls);
             await context.SaveChangesAsync();
         }
+
+        // 6. Realistic Multi-Category Event Vendors Seeding
+        if (!await context.Vendors.AnyAsync())
+        {
+            var defaultUser = await context.Users.FirstOrDefaultAsync();
+            var userId = defaultUser?.UserId ?? Guid.Empty;
+
+            var vendors = new List<Vendor>
+            {
+                new() { BusinessName = "Lumina Pro Audio & Stage Lighting", Category = "SoundLighting", ContactNumber = "+94 77 123 4567", VerificationStatus = "Verified", AdminRemarks = "Concert Line-Array Rig + 16 Moving Heads", UserId = userId },
+                new() { BusinessName = "Royal Blooms Floral & Stage Design", Category = "Decor", ContactNumber = "+94 77 234 5678", VerificationStatus = "Verified", AdminRemarks = "Royal Fresh Flower Ceiling Drapes & Grand Stage", UserId = userId },
+                new() { BusinessName = "Studio Lumiere Wedding & Event Photography", Category = "Photography", ContactNumber = "+94 77 345 6789", VerificationStatus = "Verified", AdminRemarks = "Master Wedding Photography + 4K Highlights Video + Album", UserId = userId },
+                new() { BusinessName = "Velvet Crumb Artisan Cake Studio", Category = "Cake", ContactNumber = "+94 77 456 7890", VerificationStatus = "Verified", AdminRemarks = "5-Tier Royal Handcrafted Fondant Wedding Cake", UserId = userId },
+                new() { BusinessName = "Royal Crown VIP & Bridal Chauffeurs", Category = "Transport", ContactNumber = "+94 77 567 8901", VerificationStatus = "Verified", AdminRemarks = "Classic Vintage Rolls Royce / Jaguar Bridal Car", UserId = userId },
+                new() { BusinessName = "Ceylon Grand Banquet Caterers", Category = "Catering", ContactNumber = "+94 77 678 9012", VerificationStatus = "Verified", AdminRemarks = "Royal 7-Course International Gala Buffet", UserId = userId },
+                new() { BusinessName = "Ceylon WeatherShield Marquee Tents", Category = "MarqueeTent", ContactNumber = "+94 77 789 0123", VerificationStatus = "Verified", AdminRemarks = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)", UserId = userId },
+                new() { BusinessName = "VoltMax Heavy Power & Generator Hire", Category = "PowerBackup", ContactNumber = "+94 77 890 1234", VerificationStatus = "Verified", AdminRemarks = "Backup Diesel Silent Generator (60 kVA Heavy Duty)", UserId = userId },
+                
+                // Pending Verification Requests
+                new() { BusinessName = "LensCraft 4K Drone & Cinematic Media", Category = "Photography", ContactNumber = "+94 70 332 1144", VerificationStatus = "Pending", AdminRemarks = "Professional Event Coverage (2 Photographers + Unlimited Soft Copies)", UserId = userId },
+                new() { BusinessName = "Sweet Elegance Designer Cake House", Category = "Cake", ContactNumber = "+94 72 667 8899", VerificationStatus = "Pending", AdminRemarks = "3-Tier Luxury Floral Wedding Cake", UserId = userId },
+                new() { BusinessName = "Prestige Executive Mercedes Fleet", Category = "Transport", ContactNumber = "+94 75 998 8776", VerificationStatus = "Pending", AdminRemarks = "Mercedes-Benz S-Class Luxury Chauffeur Sedan", UserId = userId }
+            };
+
+            context.Vendors.AddRange(vendors);
+            await context.SaveChangesAsync();
+        }
     }
 }
