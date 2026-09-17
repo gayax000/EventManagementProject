@@ -204,8 +204,11 @@ class ApiService {
       final payload = jsonEncode({
         if (bookingId != null && bookingId.isNotEmpty) 'bookingId': bookingId,
         'eventId': eventId,
-        'amount': amount,
+        'amountPaid': amount > 0 ? amount : 1000.0,
+        'amount': amount > 0 ? amount : 1000.0,
+        'slipImageUrl': slipImageBase64,
         'paymentSlipUrl': slipImageBase64,
+        'paymentMethod': 'BankTransferSlip',
         'bankReferenceNumber': bankReferenceNumber,
         'notes': notes ?? 'Customer Bank Transfer via Mobile App',
       });
