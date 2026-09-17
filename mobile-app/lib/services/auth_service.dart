@@ -3,6 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+class AuthResult {
+  final bool success;
+  final String? message;
+
+  AuthResult({required this.success, this.message});
+}
+
 class AuthService {
   static String get baseUrl {
     if (kIsWeb) {
@@ -19,49 +26,71 @@ class AuthService {
   static const String _userRoleKey = 'user_role';
   static const String _userNameKey = 'user_name';
 
-  static Future<bool> login(String email, String password) async {
+  static Future<AuthResult> login(String email, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
+        body: jsonEncode({'email': email.trim(), 'password': password.trim()}),
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['token'];
         final role = data['role'] ?? 'Customer';
-        
-        // Dynamic name from backend or email prefix
         final name = data['fullName'] ?? email.split('@').first;
 
         await saveToken(token, role, name);
-        return true;
+        return AuthResult(success: true);
+      } else {
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map && data.containsKey('message')) {
+            return AuthResult(success: false, message: data['message'].toString());
+          }
+        } catch (_) {}
+        return AuthResult(success: false, message: 'Invalid email or password.');
       }
-      return false;
     } catch (e) {
       debugPrint('Login Error: $e');
-      return false;
+      return AuthResult(success: false, message: 'Connection error: Unable to reach server.');
     }
   }
 
-  static Future<bool> register(String fullName, String email, String password, String phoneNumber) async {
+  static Future<AuthResult> register(String fullName, String email, String password, String phoneNumber, {String role = 'Customer'}) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'fullName': fullName,
-          'email': email,
-          'password': password,
-          'phoneNumber': phoneNumber,
+          'fullName': fullName.trim(),
+          'email': email.trim(),
+          'password': password.trim(),
+          'phoneNumber': phoneNumber.trim(),
+          'role': role,
         }),
-      );
+      ).timeout(const Duration(seconds: 15));
       
-      return response.statusCode == 201 || response.statusCode == 200;
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return AuthResult(success: true, message: 'Registration successful! Please login.');
+      } else {
+        try {
+          final data = jsonDecode(response.body);
+          if (data is Map && data.containsKey('message')) {
+            return AuthResult(success: false, message: data['message'].toString());
+          }
+          if (data is Map && data.containsKey('errors')) {
+            final errors = data['errors'] as Map;
+            final firstKey = errors.keys.first;
+            final firstErrorList = errors[firstKey] as List;
+            return AuthResult(success: false, message: firstErrorList.first.toString());
+          }
+        } catch (_) {}
+        return AuthResult(success: false, message: 'Registration failed (${response.statusCode}).');
+      }
     } catch (e) {
       debugPrint('Register Error: $e');
-      return false;
+      return AuthResult(success: false, message: 'Connection error: Unable to reach server.');
     }
   }
 

@@ -28,18 +28,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     
-    final success = await AuthService.login(email, password);
+    final result = await AuthService.login(email, password);
     
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (result.success) {
       if (mounted) {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login failed. Please check your credentials.', style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(result.message ?? 'Login failed. Please check your credentials.', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
         );
       }
     }

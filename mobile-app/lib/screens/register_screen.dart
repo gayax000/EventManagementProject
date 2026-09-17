@@ -28,35 +28,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters', style: TextStyle(color: Colors.white)), backgroundColor: Colors.amber),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     
-    final success = await AuthService.register(name, email, password, phone);
+    final result = await AuthService.register(name, email, password, phone, role: 'Customer');
     
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (result.success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration successful! Please login.', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+          SnackBar(content: Text(result.message ?? 'Registration successful! Please login.', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
         );
         Navigator.pop(context); // Go back to login screen
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration failed. Try again.', style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text(result.message ?? 'Registration failed. Try again.', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, bool obscureText = false, TextInputType? keyboardType}) {
+  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, bool obscureText = false, TextInputType? keyboardType, ValueChanged<String>? onSubmitted}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        onSubmitted: onSubmitted,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
@@ -110,7 +118,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_outline),
                 _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
                 _buildTextField(controller: _phoneController, label: "Phone Number", icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
-                _buildTextField(controller: _passwordController, label: "Password", icon: Icons.lock_outline, obscureText: true),
+                _buildTextField(
+                  controller: _passwordController, 
+                  label: "Password (Min. 6 characters)", 
+                  icon: Icons.lock_outline, 
+                  obscureText: true,
+                  onSubmitted: (_) => _isLoading ? null : _handleRegister(),
+                ),
                 
                 const SizedBox(height: 16),
                 
@@ -124,6 +138,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: _isLoading 
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : const Text("Sign Up", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+
+                const SizedBox(height: 24),
+                
+                // Already have account link
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Already have an account?", style: TextStyle(color: Colors.white54)),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Log In", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
                 ),
               ],
             ),
