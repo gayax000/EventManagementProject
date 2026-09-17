@@ -226,9 +226,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // 1. Status Header
           if (isConfirmed)
             _buildBadge("✅ STATUS: BOOKING CONFIRMED & PASS ISSUED", Colors.green, Colors.greenAccent)
-          else if (isApproved)
-            _buildBadge("🟢 STATUS: APPROVED BY MANAGER", Colors.green, Colors.greenAccent)
-          else
+          else if (isApproved) ...[
+            if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
+              _buildBadge("🟢 PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", Colors.green, Colors.greenAccent)
+            else if (proposal.paymentStatus == 'PendingVerification')
+              _buildBadge("🟡 PAYMENT SLIP UNDER MANAGER VERIFICATION", Colors.amber, Colors.amberAccent)
+            else
+              _buildBadge("💳 PROPOSAL APPROVED: AWAITING PAYMENT DEPOSIT", const Color(0xFFD4AF37), const Color(0xFFD4AF37)),
+          ] else
             _buildBadge("🟡 STATUS: UNDER MANAGER REVIEW", Colors.amber, Colors.amber),
 
           const SizedBox(height: 16),
@@ -594,50 +599,154 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               ),
             ),
           ] else if (isApproved) ...[
-            // Digital Signature Pad (Customer signs to confirm proposal)
-            const Text("✍️ DRAW YOUR DIGITAL SIGNATURE TO CONFIRM", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            const Text("Manager approved this proposal. Sign below to confirm booking and receive your QR Pass.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.cyan, width: 2),
-              ),
-              child: Signature(
-                controller: _signatureController,
-                height: 140,
-                backgroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white24),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            Builder(
+              builder: (context) {
+                final isPaymentVerified = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';
+
+                if (isPaymentVerified) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF064E3B).withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified_user_rounded, color: Colors.greenAccent, size: 22),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "PAYMENT VERIFIED: SIGN CONTRACT TO MINT ENTRY PASS",
+                                    style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                  Text(
+                                    "Finance Manager approved your payment (Invoice: ${proposal.invoiceNumber ?? 'INV-PAID'}). Draw your signature below to legally execute the agreement and receive your QR Entry Pass.",
+                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Text(
+                        "✍️ DRAW YOUR DIGITAL SIGNATURE TO CONFIRM",
+                        style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.greenAccent, width: 2),
+                        ),
+                        child: Signature(
+                          controller: _signatureController,
+                          height: 140,
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white24),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () => _signatureController.clear(),
+                              child: const Text("Clear Signature", style: TextStyle(color: Colors.white70)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green.shade600,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: _isSubmittingSignature ? null : _confirmAndSign,
+                              child: _isSubmittingSignature
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text("CONFIRM & ISSUE PASS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  // LOCKED STATE (Option 1: Strict Payment First)
+                  final isPendingVerification = proposal.paymentStatus == 'PendingVerification';
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
                     ),
-                    onPressed: () => _signatureController.clear(),
-                    child: const Text("Clear Signature", style: TextStyle(color: Colors.white70)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.lock_person_rounded, color: Color(0xFFD4AF37), size: 36),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "🔒 Digital Signature Locked (Payment Required)",
+                          style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          isPendingVerification
+                              ? "Your bank transfer slip has been uploaded and is currently in the Manager's verification queue. This signature pad and your QR Entry Pass will unlock as soon as your payment is approved."
+                              : "Please transfer the required total (LKR $formattedCost) to our Commercial Bank account above and upload your deposit slip. Once our Finance Manager approves the transaction on the Web Dashboard, this pad will unlock automatically.",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isPendingVerification ? Icons.hourglass_top : Icons.pending_actions,
+                                size: 14,
+                                color: isPendingVerification ? Colors.amberAccent : Colors.white60,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isPendingVerification
+                                    ? "Step 2: Awaiting Manager Slip Verification"
+                                    : "Step 1: Upload Bank Transfer Slip Above",
+                                style: TextStyle(
+                                  color: isPendingVerification ? Colors.amberAccent : Colors.white60,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    onPressed: _isSubmittingSignature ? null : _confirmAndSign,
-                    child: _isSubmittingSignature
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text("CONFIRM & ISSUE PASS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ),
-                ),
-              ],
+                  );
+                }
+              },
             ),
           ] else ...[
             // Under Review Message

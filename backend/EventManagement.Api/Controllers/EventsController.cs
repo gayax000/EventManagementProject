@@ -261,7 +261,7 @@ public class EventsController : ControllerBase
             bookingId = booking?.BookingId,
             bookingRef = booking?.BookingReferenceCode,
             qrCodeData = booking?.EntryPass?.QrCodeData,
-            isConfirmed = booking != null,
+            isConfirmed = booking != null && booking.Status == "Confirmed" && !string.IsNullOrEmpty(booking.DigitalSignatureUrl) && booking.EntryPass != null,
             paymentStatus = payment?.Status,
             slipImageUrl = payment?.SlipImageUrl,
             invoiceNumber = invoice?.InvoiceNumber
@@ -373,30 +373,60 @@ public class EventsController : ControllerBase
         if (ev == null)
             return NotFound(new { message = "Event not found." });
 
-        var referenceCode = $"EV-2026-{new Random().Next(1000, 9999)}";
+        // Find existing booking if created during slip upload
+        var booking = await _context.Bookings
+            .Include(b => b.EntryPass)
+            .FirstOrDefaultAsync(b => b.EventId == id);
+
+        // Security Check (Option 1: Strict Payment Verification Gate)
+        var payment = booking != null
+            ? await _context.Payments.OrderByDescending(p => p.PaidAt).FirstOrDefaultAsync(p => p.BookingId == booking.BookingId)
+            : null;
+
+        if (payment == null || (payment.Status != "Approved" && payment.Status != "Completed"))
+        {
+            return BadRequest(new 
+            { 
+                message = "Payment slip must be uploaded and verified by Manager before signing contract and issuing QR entry pass." 
+            });
+        }
+
+        var referenceCode = booking?.BookingReferenceCode ?? $"EV-2026-{new Random().Next(1000, 9999)}";
         var qrData = $"EVENTCRAFT|{referenceCode}|{ev.EventId}|{DateTime.UtcNow:yyyyMMdd}";
 
-        var booking = new Booking
+        if (booking == null)
         {
-            EventId = ev.EventId,
-            BookingReferenceCode = referenceCode,
-            TotalAgreedAmount = dto.AgreedTotalAmount,
-            DigitalSignatureUrl = dto.DigitalSignatureUrl,
-            Status = "Confirmed",
-            ConfirmedAt = DateTime.UtcNow
-        };
-
-        var entryPass = new EntryPass
+            booking = new Booking
+            {
+                EventId = ev.EventId,
+                BookingReferenceCode = referenceCode,
+                TotalAgreedAmount = dto.AgreedTotalAmount,
+                DigitalSignatureUrl = dto.DigitalSignatureUrl,
+                Status = "Confirmed",
+                ConfirmedAt = DateTime.UtcNow
+            };
+            _context.Bookings.Add(booking);
+        }
+        else
         {
-            BookingId = booking.BookingId,
-            QrCodeData = qrData,
-            IsScanned = false
-        };
+            booking.DigitalSignatureUrl = dto.DigitalSignatureUrl;
+            booking.TotalAgreedAmount = dto.AgreedTotalAmount > 0 ? dto.AgreedTotalAmount : booking.TotalAgreedAmount;
+            booking.Status = "Confirmed";
+            booking.ConfirmedAt = DateTime.UtcNow;
+        }
 
-        booking.EntryPass = entryPass;
+        if (booking.EntryPass == null)
+        {
+            var entryPass = new EntryPass
+            {
+                BookingId = booking.BookingId,
+                QrCodeData = qrData,
+                IsScanned = false
+            };
+            booking.EntryPass = entryPass;
+        }
+
         ev.Status = "Confirmed";
-
-        _context.Bookings.Add(booking);
         await _context.SaveChangesAsync();
 
         return Ok(new BookingResponseDto
@@ -406,7 +436,7 @@ public class EventsController : ControllerBase
             BookingReferenceCode = booking.BookingReferenceCode,
             TotalAgreedAmount = booking.TotalAgreedAmount,
             Status = booking.Status,
-            QrCodeData = entryPass.QrCodeData,
+            QrCodeData = booking.EntryPass?.QrCodeData ?? string.Empty,
             ConfirmedAt = booking.ConfirmedAt
         });
     }

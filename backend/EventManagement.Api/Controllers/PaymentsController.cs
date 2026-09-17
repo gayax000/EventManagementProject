@@ -44,17 +44,9 @@ public class PaymentsController : ControllerBase
                         EventId = ev.EventId,
                         BookingReferenceCode = refCode,
                         TotalAgreedAmount = dto.AmountPaid,
-                        Status = "Confirmed",
-                        ConfirmedAt = DateTime.UtcNow
+                        Status = "PendingPaymentVerification",
+                        ConfirmedAt = null
                     };
-                    var entryPass = new EntryPass
-                    {
-                        BookingId = booking.BookingId,
-                        QrCodeData = $"EVENTCRAFT|{refCode}|{ev.EventId}|{DateTime.UtcNow:yyyyMMdd}",
-                        IsScanned = false
-                    };
-                    booking.EntryPass = entryPass;
-                    ev.Status = "Confirmed";
                     _context.Bookings.Add(booking);
                     await _context.SaveChangesAsync();
                 }
