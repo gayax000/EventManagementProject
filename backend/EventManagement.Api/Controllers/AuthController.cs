@@ -23,8 +23,10 @@ public class AuthController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             return BadRequest(new { message = "Email is already registered." });
 
-        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer")
-                           ?? new Role { RoleName = "Customer" };
+        var targetRoleName = !string.IsNullOrEmpty(dto.Role) ? dto.Role : "Vendor";
+        var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == targetRoleName)
+                   ?? await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer")
+                   ?? new Role { RoleName = targetRoleName };
 
         var user = new User
         {
@@ -32,7 +34,7 @@ public class AuthController : ControllerBase
             Email = dto.Email,
             PasswordHash = dto.Password,
             PhoneNumber = dto.PhoneNumber,
-            RoleId = customerRole.RoleId
+            RoleId = role.RoleId
         };
 
         _context.Users.Add(user);
@@ -43,7 +45,7 @@ public class AuthController : ControllerBase
             UserId = user.UserId,
             FullName = user.FullName,
             Email = user.Email,
-            Role = "Customer",
+            Role = targetRoleName,
             Token = "sample-jwt-token"
         });
     }

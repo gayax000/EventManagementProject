@@ -5,44 +5,42 @@ import { authService } from '../services/authService';
 interface NavbarProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
-  currentPortal: 'manager' | 'vendor';
-  onPortalChange: (portal: 'manager' | 'vendor') => void;
-  onLogout?: () => void;
+  userRole: 'Manager' | 'Vendor';
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ 
   currentTab, 
   onTabChange,
-  currentPortal,
-  onPortalChange,
+  userRole,
   onLogout
 }) => {
-  const userName = authService.getUserName() || (currentPortal === 'manager' ? 'Kasun (Manager)' : 'Supplier Session');
+  const userName = authService.getUserName();
 
   return (
     <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onPortalChange('manager')}>
+          {/* Logo & Portal Branding */}
+          <div className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-lg shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
               <span className="font-bold text-lg tracking-tight text-white">EventCraft<span className="text-sky-400">.AI</span></span>
-              <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full border ${
-                currentPortal === 'manager' 
+              <span className={`ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                userRole === 'Manager' 
                   ? 'bg-slate-800 text-sky-300 border-slate-700' 
                   : 'bg-indigo-950 text-indigo-300 border-indigo-800'
               }`}>
-                {currentPortal === 'manager' ? 'Manager Portal' : 'Vendor Portal'}
+                {userRole === 'Manager' ? 'Operations Manager Portal' : 'Supplier & Vendor Portal'}
               </span>
             </div>
           </div>
 
-          {/* Navigation Tabs (Only in Manager Portal) */}
-          {currentPortal === 'manager' ? (
+          {/* Navigation Tabs (Strictly for Manager Only) */}
+          {userRole === 'Manager' ? (
             <div className="hidden lg:flex items-center space-x-1">
               <button 
                 onClick={() => onTabChange('dashboard')}
@@ -85,58 +83,33 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
           ) : (
-            <div className="hidden md:flex items-center space-x-2 text-xs text-indigo-300 bg-indigo-950/60 px-3 py-1.5 rounded-xl border border-indigo-800/60">
+            <div className="hidden md:flex items-center space-x-2 text-xs text-indigo-300 bg-indigo-950/60 px-3.5 py-1.5 rounded-xl border border-indigo-800/60">
               <Building2 className="w-4 h-4 text-indigo-400" />
-              <span>External Supplier View • Onboarding & Status Tracking</span>
+              <span>Dedicated Supplier View • Business Registration & Audit Tracking</span>
             </div>
           )}
 
-          {/* Right Side: Role Switcher & Profile */}
+          {/* Right Side: Logged-in Persona & Logout */}
           <div className="flex items-center space-x-4">
             
-            {/* Role / Portal Switcher */}
-            <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700 shadow-inner">
-              <button
-                onClick={() => onPortalChange('manager')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition ${
-                  currentPortal === 'manager'
-                    ? 'bg-sky-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Manager View</span>
-              </button>
-              <button
-                onClick={() => onPortalChange('vendor')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition ${
-                  currentPortal === 'vendor'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Vendor View</span>
-              </button>
-            </div>
-
             {/* Persona Status */}
-            <div className="hidden sm:flex items-center space-x-2 text-xs text-slate-300">
-              <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-                currentPortal === 'manager' ? 'bg-emerald-500' : 'bg-indigo-400'
+            <div className="flex items-center space-x-2 text-xs text-slate-300 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/60">
+              <span className={`w-2 h-2 rounded-full ${
+                userRole === 'Manager' ? 'bg-emerald-500 animate-pulse' : 'bg-indigo-400'
               }`}></span>
-              <span>{userName}</span>
+              <span className="font-medium text-slate-200">{userName}</span>
+              <span className="text-slate-500 font-normal">({userRole})</span>
             </div>
 
-            {onLogout && (
-              <button 
-                onClick={onLogout}
-                className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-full transition"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
+            {/* Logout Button */}
+            <button 
+              onClick={onLogout}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 rounded-lg transition"
+              title="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
 
           </div>
 

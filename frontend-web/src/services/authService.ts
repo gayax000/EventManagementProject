@@ -18,9 +18,9 @@ export const authService = {
     }
   },
 
-  register: async (fullName: string, email: string, password: string, phoneNumber: string) => {
+  register: async (fullName: string, email: string, password: string, phoneNumber: string, role: string = 'Vendor') => {
     try {
-      const response = await apiClient.post('/auth/register', { fullName, email, password, phoneNumber });
+      const response = await apiClient.post('/auth/register', { fullName, email, password, phoneNumber, role });
       return response.status === 201 || response.status === 200;
     } catch (error) {
       console.error('Register error', error);
@@ -40,6 +40,10 @@ export const authService = {
 
   getUserName: () => {
     return localStorage.getItem('user_name') || 'User';
+  },
+
+  getUserRole: () => {
+    return localStorage.getItem('user_role') || 'Customer';
   },
 
   isLoggedIn: () => {

@@ -10,6 +10,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'Vendor' | 'Manager'>('Vendor');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,12 +24,12 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
     setIsLoading(true);
     setError('');
     
-    const success = await authService.register(fullName, email, password, phone);
+    const success = await authService.register(fullName, email, password, phone, role);
     
     setIsLoading(false);
 
     if (success) {
-      alert('Registration successful! Please login.');
+      alert(`Registration successful as ${role}! Please sign in.`);
       onNavigateLogin();
     } else {
       setError('Registration failed. Please try again.');
@@ -88,6 +89,43 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 text-white"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Account Role</label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className={`flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition ${
+                role === 'Vendor' 
+                  ? 'bg-indigo-950/60 border-indigo-500 text-white' 
+                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
+              }`}>
+                <input 
+                  type="radio" 
+                  name="role" 
+                  value="Vendor" 
+                  checked={role === 'Vendor'} 
+                  onChange={() => setRole('Vendor')} 
+                  className="hidden"
+                />
+                <span className="text-xs font-semibold">Vendor / Supplier</span>
+              </label>
+
+              <label className={`flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition ${
+                role === 'Manager' 
+                  ? 'bg-cyan-950/60 border-cyan-500 text-white' 
+                  : 'bg-slate-900/60 border-slate-700 text-slate-400'
+              }`}>
+                <input 
+                  type="radio" 
+                  name="role" 
+                  value="Manager" 
+                  checked={role === 'Manager'} 
+                  onChange={() => setRole('Manager')} 
+                  className="hidden"
+                />
+                <span className="text-xs font-semibold">Operations Manager</span>
+              </label>
+            </div>
           </div>
 
           <button

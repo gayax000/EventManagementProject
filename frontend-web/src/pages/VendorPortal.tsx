@@ -14,11 +14,7 @@ import {
 } from 'lucide-react';
 import { vendorService, type VendorItem } from '../services/api';
 
-interface VendorPortalProps {
-  onSwitchToManager?: () => void;
-}
-
-export const VendorPortal: React.FC<VendorPortalProps> = ({ onSwitchToManager }) => {
+export const VendorPortal: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'register'>('dashboard');
 
   // Form State
@@ -248,15 +244,10 @@ export const VendorPortal: React.FC<VendorPortalProps> = ({ onSwitchToManager })
                       <p className="text-xs text-amber-800 mt-1">
                         Your application is currently listed in the <strong>Pending Verification Requests Queue</strong> of the Operations Manager dashboard.
                       </p>
-                      {onSwitchToManager && (
-                        <button
-                          onClick={onSwitchToManager}
-                          className="mt-3 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                        >
-                          <span>Switch to Operations Manager View to Verify</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      )}
+                      <p className="text-xs text-amber-700/80 mt-2 flex items-center">
+                        <Clock className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                        Audited by EventCraft Operations Management. Once verified, your status will update automatically.
+                      </p>
                     </div>
                   </div>
                 </div>

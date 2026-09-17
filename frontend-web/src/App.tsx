@@ -11,18 +11,25 @@ import { authService } from './services/authService';
 import { VendorPortal } from './pages/VendorPortal';
 
 function App() {
-  const [currentPortal, setCurrentPortal] = useState<'manager' | 'vendor'>('manager');
+  const [userRole, setUserRole] = useState<'Manager' | 'Vendor'>('Manager');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
   useEffect(() => {
-    setIsAuthenticated(authService.isLoggedIn());
+    const loggedIn = authService.isLoggedIn();
+    setIsAuthenticated(loggedIn);
+    if (loggedIn) {
+      const role = authService.getUserRole();
+      setUserRole(role === 'Vendor' ? 'Vendor' : 'Manager');
+    }
   }, []);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setShowRegister(false);
+    const role = authService.getUserRole();
+    setUserRole(role === 'Vendor' ? 'Vendor' : 'Manager');
     setActiveTab('dashboard');
   };
 
@@ -43,13 +50,12 @@ function App() {
       <Navbar 
         currentTab={activeTab} 
         onTabChange={setActiveTab} 
-        currentPortal={currentPortal}
-        onPortalChange={setCurrentPortal}
+        userRole={userRole}
         onLogout={handleLogout}
       />
       
       <main className="flex-1">
-        {currentPortal === 'manager' ? (
+        {userRole === 'Manager' ? (
           <>
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}><Dashboard /></div>
             <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
@@ -57,10 +63,7 @@ function App() {
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
           </>
         ) : (
-          <VendorPortal onSwitchToManager={() => {
-            setCurrentPortal('manager');
-            setActiveTab('venues');
-          }} />
+          <VendorPortal />
         )}
       </main>
 

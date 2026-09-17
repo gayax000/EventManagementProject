@@ -84,11 +84,46 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
           </button>
         </form>
 
+        {/* Quick Demo Access Buttons */}
+        <div className="mt-6 pt-6 border-t border-slate-700">
+          <p className="text-xs text-slate-400 text-center uppercase tracking-wider font-semibold mb-3">
+            Quick Persona Login (Strict RBAC)
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('jwt_token', 'token-mgr');
+                localStorage.setItem('user_role', 'Manager');
+                localStorage.setItem('user_name', 'Kasun Bandara');
+                onLoginSuccess();
+              }}
+              className="p-3 bg-slate-900/90 hover:bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 rounded-xl text-left transition"
+            >
+              <span className="text-xs font-bold text-cyan-400 block">Operations Manager</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Full Admin Dashboard</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.setItem('jwt_token', 'token-vnd');
+                localStorage.setItem('user_role', 'Vendor');
+                localStorage.setItem('user_name', 'Royal Colombo Catering');
+                onLoginSuccess();
+              }}
+              className="p-3 bg-slate-900/90 hover:bg-slate-900 border border-indigo-500/40 hover:border-indigo-400 rounded-xl text-left transition"
+            >
+              <span className="text-xs font-bold text-indigo-400 block">Vendor / Supplier</span>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Onboarding Portal</span>
+            </button>
+          </div>
+        </div>
+
         <div className="mt-6 text-center">
           <p className="text-slate-400 text-sm">
             Don't have an account?{' '}
             <button onClick={onNavigateRegister} className="text-cyan-400 hover:text-cyan-300 font-medium">
-              Create one
+              Register as Vendor
             </button>
           </p>
         </div>
