@@ -32,11 +32,24 @@ jobs:
 
       - name: Build Flutter Web
         working-directory: ./mobile-app
-        run: flutter build web --release
+        run: flutter build web --release --pwa-strategy none
 
       - name: Copy build to mobile-web folder
         run: |
           cp -R mobile-app/build/web/* mobile-web/
+          cat << 'EOF' > mobile-web/flutter_service_worker.js
+          'use strict';
+          self.addEventListener('install', (e) => { self.skipWaiting(); });
+          self.addEventListener('activate', (e) => {
+            e.waitUntil(
+              caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+                .then(() => self.clients.claim())
+                .then(() => self.registration.unregister())
+            );
+          });
+          self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });
+          EOF
+          sed -i 's/serviceWorkerSettings: {[^}]*}/serviceWorkerSettings: null/g' mobile-web/flutter_bootstrap.js
 
       - name: Commit and Push changes
         run: |
