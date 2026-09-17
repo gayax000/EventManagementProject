@@ -11,65 +11,88 @@ namespace EventManagement.Api.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<PaymentsController> _logger;
 
-    public PaymentsController(AppDbContext context)
+    public PaymentsController(AppDbContext context, ILogger<PaymentsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // 1. POST: api/payments/upload-slip (Customer uploads Bank Transfer Slip)
     [HttpPost("upload-slip")]
-    public async Task<ActionResult<Payment>> UploadPaymentSlip([FromBody] SubmitPaymentSlipDto dto)
+    public async Task<ActionResult> UploadPaymentSlip([FromBody] SubmitPaymentSlipDto dto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        Booking? booking = null;
-        if (dto.BookingId.HasValue && dto.BookingId.Value != Guid.Empty)
+        try
         {
-            booking = await _context.Bookings.FindAsync(dto.BookingId.Value);
-        }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-        if (booking == null && dto.EventId.HasValue && dto.EventId.Value != Guid.Empty)
-        {
-            booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
-            if (booking == null)
+            Booking? booking = null;
+            if (dto.BookingId.HasValue && dto.BookingId.Value != Guid.Empty)
             {
-                var ev = await _context.Events.FindAsync(dto.EventId.Value);
-                if (ev != null)
+                booking = await _context.Bookings.FindAsync(dto.BookingId.Value);
+            }
+
+            if (booking == null && dto.EventId.HasValue && dto.EventId.Value != Guid.Empty)
+            {
+                booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+                if (booking == null)
                 {
-                    var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
-                    booking = new Booking
+                    var ev = await _context.Events.FindAsync(dto.EventId.Value);
+                    if (ev != null)
                     {
-                        EventId = ev.EventId,
-                        BookingReferenceCode = refCode,
-                        TotalAgreedAmount = dto.AmountPaid,
-                        Status = "PendingPaymentVerification",
-                        ConfirmedAt = null
-                    };
-                    _context.Bookings.Add(booking);
-                    await _context.SaveChangesAsync();
+                        var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
+                        booking = new Booking
+                        {
+                            EventId = ev.EventId,
+                            BookingReferenceCode = refCode,
+                            TotalAgreedAmount = dto.AmountPaid,
+                            Status = "PendingPaymentVerification",
+                            ConfirmedAt = null
+                        };
+                        _context.Bookings.Add(booking);
+                        await _context.SaveChangesAsync();
+                    }
                 }
             }
+
+            if (booking == null)
+                return NotFound(new { message = "Booking or Event not found." });
+
+            var payment = new Payment
+            {
+                BookingId = booking.BookingId,
+                AmountPaid = dto.AmountPaid,
+                PaymentMethod = dto.PaymentMethod,
+                SlipImageUrl = dto.SlipImageUrl,
+                Status = "PendingVerification",
+                PaidAt = DateTime.UtcNow
+            };
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Payment slip uploaded successfully and is pending Manager verification.",
+                paymentId = payment.PaymentId,
+                bookingId = payment.BookingId,
+                amountPaid = payment.AmountPaid,
+                status = payment.Status,
+                paidAt = payment.PaidAt
+            });
         }
-
-        if (booking == null)
-            return NotFound(new { message = "Booking or Event not found." });
-
-        var payment = new Payment
+        catch (Exception ex)
         {
-            BookingId = booking.BookingId,
-            AmountPaid = dto.AmountPaid,
-            PaymentMethod = dto.PaymentMethod,
-            SlipImageUrl = dto.SlipImageUrl,
-            Status = "PendingVerification",
-            PaidAt = DateTime.UtcNow
-        };
-
-        _context.Payments.Add(payment);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(UploadPaymentSlip), new { id = payment.PaymentId }, payment);
+            _logger.LogError(ex, "Error uploading payment slip for booking {BookingId}, event {EventId}", dto.BookingId, dto.EventId);
+            return StatusCode(500, new
+            {
+                message = "An error occurred while uploading payment slip.",
+                error = ex.Message,
+                inner = ex.InnerException?.Message
+            });
+        }
     }
 
     // 1.1 GET: api/payments (List all customer payment slips for Manager Verification Queue)
