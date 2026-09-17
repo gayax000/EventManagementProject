@@ -58,55 +58,55 @@ public static class DbInitializer
             var venues = new List<Venue>
             {
                 // Colombo & Western Province
-                new() { Name = "Shangri-La Colombo - Lotus Ballroom", LocationAddress = "1 Galle Face, Colombo 02", MaxCapacity = 1200, BaseRentalPrice = 850000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "Cinnamon Grand Colombo - Oak Room", LocationAddress = "77 Galle Road, Colombo 03", MaxCapacity = 600, BaseRentalPrice = 650000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "Galle Face Hotel - Chequerboard Lawn", LocationAddress = "2 Galle Road, Colombo 03", MaxCapacity = 500, BaseRentalPrice = 750000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Cinnamon Lakeside - Waters Edge Lawn", LocationAddress = "115 Sir Chittampalam A Gardiner Mawatha, Colombo 02", MaxCapacity = 450, BaseRentalPrice = 550000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Hilton Colombo - Grand Ballroom", LocationAddress = "2 Sir Chittampalam A Gardiner Mawatha, Colombo 02", MaxCapacity = 700, BaseRentalPrice = 700000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "The Kingsbury Colombo - The Balmoral", LocationAddress = "48 Janadhipathi Mawatha, Colombo 01", MaxCapacity = 400, BaseRentalPrice = 500000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "Water's Edge Battaramulla - Grand Lawn", LocationAddress = "316 Pannipitiya Road, Battaramulla", MaxCapacity = 1000, BaseRentalPrice = 600000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Mount Lavinia Hotel - Imperial Beach Lawn", LocationAddress = "100 Hotel Road, Mount Lavinia", MaxCapacity = 600, BaseRentalPrice = 580000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Mövenpick Hotel Colombo - Sky Lounge & Terrace", LocationAddress = "24 Dharmapala Mawatha, Colombo 03", MaxCapacity = 200, BaseRentalPrice = 400000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Marino Beach Colombo - Sky Ballroom", LocationAddress = "590 Marine Drive, Colombo 03", MaxCapacity = 350, BaseRentalPrice = 450000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Shangri-La Colombo", LocationAddress = "1 Galle Face, Colombo 02", MaxCapacity = 1200, BaseRentalPrice = 850000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Cinnamon Grand Colombo", LocationAddress = "77 Galle Road, Colombo 03", MaxCapacity = 600, BaseRentalPrice = 650000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Galle Face Hotel", LocationAddress = "2 Galle Road, Colombo 03", MaxCapacity = 500, BaseRentalPrice = 750000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Cinnamon Lakeside", LocationAddress = "115 Sir Chittampalam A Gardiner Mawatha, Colombo 02", MaxCapacity = 450, BaseRentalPrice = 550000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Hilton Colombo", LocationAddress = "2 Sir Chittampalam A Gardiner Mawatha, Colombo 02", MaxCapacity = 700, BaseRentalPrice = 700000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "The Kingsbury Colombo", LocationAddress = "48 Janadhipathi Mawatha, Colombo 01", MaxCapacity = 400, BaseRentalPrice = 500000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Water's Edge Battaramulla", LocationAddress = "316 Pannipitiya Road, Battaramulla", MaxCapacity = 1000, BaseRentalPrice = 600000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Mount Lavinia Hotel", LocationAddress = "100 Hotel Road, Mount Lavinia", MaxCapacity = 600, BaseRentalPrice = 580000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Mövenpick Hotel Colombo", LocationAddress = "24 Dharmapala Mawatha, Colombo 03", MaxCapacity = 200, BaseRentalPrice = 400000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Marino Beach Colombo", LocationAddress = "590 Marine Drive, Colombo 03", MaxCapacity = 350, BaseRentalPrice = 450000, IsOutdoor = false, ManagerId = manager.UserId },
 
                 // Nuwara Eliya & Central Highlands (Cold & Rain Risk Locations)
-                new() { Name = "The Grand Hotel Nuwara Eliya - Governors Lawn", LocationAddress = "Grand Hotel Road, Nuwara Eliya", MaxCapacity = 350, BaseRentalPrice = 450000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Heritance Tea Factory - Highland View Terrace", LocationAddress = "Kandapola, Nuwara Eliya", MaxCapacity = 200, BaseRentalPrice = 380000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Araliya Green City - Banquet Pavilion", LocationAddress = "Nuwara Eliya Town Center", MaxCapacity = 400, BaseRentalPrice = 420000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "Jetwing St. Andrew's - Pine Lawn", LocationAddress = "St. Andrew's Drive, Nuwara Eliya", MaxCapacity = 180, BaseRentalPrice = 320000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Nuwara Eliya Golf Club - Heritage Club Grounds", LocationAddress = "Park Road, Nuwara Eliya", MaxCapacity = 300, BaseRentalPrice = 350000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Langdale Boutique Hotel - Valley View Lawn", LocationAddress = "Radella, Nuwara Eliya", MaxCapacity = 150, BaseRentalPrice = 280000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "The Grand Hotel Nuwara Eliya", LocationAddress = "Grand Hotel Road, Nuwara Eliya", MaxCapacity = 350, BaseRentalPrice = 450000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Heritance Tea Factory", LocationAddress = "Kandapola, Nuwara Eliya", MaxCapacity = 200, BaseRentalPrice = 380000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Araliya Green City", LocationAddress = "Nuwara Eliya Town Center", MaxCapacity = 400, BaseRentalPrice = 420000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Jetwing St. Andrew's", LocationAddress = "St. Andrew's Drive, Nuwara Eliya", MaxCapacity = 180, BaseRentalPrice = 320000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Nuwara Eliya Golf Club", LocationAddress = "Park Road, Nuwara Eliya", MaxCapacity = 300, BaseRentalPrice = 350000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Langdale Boutique Hotel", LocationAddress = "Radella, Nuwara Eliya", MaxCapacity = 150, BaseRentalPrice = 280000, IsOutdoor = true, ManagerId = manager.UserId },
 
                 // Kandy & Cultural Capital
-                new() { Name = "Earl's Regency Kandy - Regent Ballroom", LocationAddress = "Tennekumbura, Kandy", MaxCapacity = 700, BaseRentalPrice = 550000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "The Grand Kandyan Hotel - Royal Ballroom", LocationAddress = "89/10 Lady Gordon's Drive, Kandy", MaxCapacity = 800, BaseRentalPrice = 600000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "Mahaweli Reach Hotel - River Lawn", LocationAddress = "35 P.B.A. Weerakoon Mawatha, Kandy", MaxCapacity = 400, BaseRentalPrice = 480000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Amaya Hills Kandy - Eagles Terrace", LocationAddress = "Heerassagala, Kandy", MaxCapacity = 300, BaseRentalPrice = 400000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Cinnamon Citadel Kandy - Riverside Pavilion", LocationAddress = "124 Srimath Kuda Ratwatte Mawatha, Kandy", MaxCapacity = 250, BaseRentalPrice = 380000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Earl's Regency Kandy", LocationAddress = "Tennekumbura, Kandy", MaxCapacity = 700, BaseRentalPrice = 550000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "The Grand Kandyan Hotel", LocationAddress = "89/10 Lady Gordon's Drive, Kandy", MaxCapacity = 800, BaseRentalPrice = 600000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "Mahaweli Reach Hotel", LocationAddress = "35 P.B.A. Weerakoon Mawatha, Kandy", MaxCapacity = 400, BaseRentalPrice = 480000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Amaya Hills Kandy", LocationAddress = "Heerassagala, Kandy", MaxCapacity = 300, BaseRentalPrice = 400000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Cinnamon Citadel Kandy", LocationAddress = "124 Srimath Kuda Ratwatte Mawatha, Kandy", MaxCapacity = 250, BaseRentalPrice = 380000, IsOutdoor = true, ManagerId = manager.UserId },
 
                 // Down South & Coastal Venues
-                new() { Name = "Jetwing Lighthouse Galle - Ocean Rocks Lawn", LocationAddress = "Dadella, Galle", MaxCapacity = 450, BaseRentalPrice = 620000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Heritance Ahungalla - Coconut Grove Lawn", LocationAddress = "Galle Road, Ahungalla", MaxCapacity = 500, BaseRentalPrice = 550000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Cinnamon Bentota Beach - Estuary Grand Lawn", LocationAddress = "Bentota Coastal Strip", MaxCapacity = 600, BaseRentalPrice = 680000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Weligama Bay Marriott Resort - Sunset Ballroom", LocationAddress = "700 Matara Road, Weligama", MaxCapacity = 550, BaseRentalPrice = 720000, IsOutdoor = false, ManagerId = manager.UserId },
-                new() { Name = "The Fortress Resort & Spa - Beachfront Lawn", LocationAddress = "Koggala, Galle", MaxCapacity = 250, BaseRentalPrice = 520000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Anantara Peace Haven Tangalle - Cliffside View", LocationAddress = "Goyambokka Estate, Tangalle", MaxCapacity = 300, BaseRentalPrice = 750000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Jetwing Lighthouse Galle", LocationAddress = "Dadella, Galle", MaxCapacity = 450, BaseRentalPrice = 620000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Heritance Ahungalla", LocationAddress = "Galle Road, Ahungalla", MaxCapacity = 500, BaseRentalPrice = 550000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Cinnamon Bentota Beach", LocationAddress = "Bentota Coastal Strip", MaxCapacity = 600, BaseRentalPrice = 680000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Weligama Bay Marriott Resort", LocationAddress = "700 Matara Road, Weligama", MaxCapacity = 550, BaseRentalPrice = 720000, IsOutdoor = false, ManagerId = manager.UserId },
+                new() { Name = "The Fortress Resort & Spa", LocationAddress = "Koggala, Galle", MaxCapacity = 250, BaseRentalPrice = 520000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Anantara Peace Haven Tangalle", LocationAddress = "Goyambokka Estate, Tangalle", MaxCapacity = 300, BaseRentalPrice = 750000, IsOutdoor = true, ManagerId = manager.UserId },
 
                 // Cultural Triangle & North Central
-                new() { Name = "Heritance Kandalama - Lakeview Observation Deck", LocationAddress = "Kandalama, Dambulla", MaxCapacity = 350, BaseRentalPrice = 580000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Cinnamon Lodge Habarana - Forest Lawn", LocationAddress = "Habarana", MaxCapacity = 400, BaseRentalPrice = 460000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Jetwing Lake Dambulla - Lakefront Grounds", LocationAddress = "Mirisgonioya, Dambulla", MaxCapacity = 300, BaseRentalPrice = 420000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Aliya Resort & Spa - Sigiriya View Lawn", LocationAddress = "Audangawa, Sigiriya", MaxCapacity = 450, BaseRentalPrice = 500000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Heritance Kandalama", LocationAddress = "Kandalama, Dambulla", MaxCapacity = 350, BaseRentalPrice = 580000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Cinnamon Lodge Habarana", LocationAddress = "Habarana", MaxCapacity = 400, BaseRentalPrice = 460000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Jetwing Lake Dambulla", LocationAddress = "Mirisgonioya, Dambulla", MaxCapacity = 300, BaseRentalPrice = 420000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Aliya Resort & Spa", LocationAddress = "Audangawa, Sigiriya", MaxCapacity = 450, BaseRentalPrice = 500000, IsOutdoor = true, ManagerId = manager.UserId },
 
                 // Negombo & Airport Zone
-                new() { Name = "Heritance Negombo - Golden Sands Lawn", LocationAddress = "Lewis Place, Negombo", MaxCapacity = 500, BaseRentalPrice = 540000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Jetwing Blue Negombo - Coastal Pavilion", LocationAddress = "Ethukale, Negombo", MaxCapacity = 400, BaseRentalPrice = 480000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Club Hotel Dolphin - Beachside Arena", LocationAddress = "Waikkal, Negombo", MaxCapacity = 600, BaseRentalPrice = 520000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Heritance Negombo", LocationAddress = "Lewis Place, Negombo", MaxCapacity = 500, BaseRentalPrice = 540000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Jetwing Blue Negombo", LocationAddress = "Ethukale, Negombo", MaxCapacity = 400, BaseRentalPrice = 480000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Club Hotel Dolphin", LocationAddress = "Waikkal, Negombo", MaxCapacity = 600, BaseRentalPrice = 520000, IsOutdoor = true, ManagerId = manager.UserId },
 
                 // Eastern & Northern Coast
-                new() { Name = "Trinqua Blu by Cinnamon - Sandy Beach Arena", LocationAddress = "Sampalthivu Post, Trincomalee", MaxCapacity = 350, BaseRentalPrice = 440000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Jetwing Jaffna - Skyview Terrace", LocationAddress = "37 Mahatma Gandhi Road, Jaffna", MaxCapacity = 200, BaseRentalPrice = 320000, IsOutdoor = true, ManagerId = manager.UserId },
-                new() { Name = "Uga Bay Passikudah - Palm Beach Lawn", LocationAddress = "Passikudah Bay, Kalkudah", MaxCapacity = 300, BaseRentalPrice = 560000, IsOutdoor = true, ManagerId = manager.UserId }
+                new() { Name = "Trinqua Blu by Cinnamon", LocationAddress = "Sampalthivu Post, Trincomalee", MaxCapacity = 350, BaseRentalPrice = 440000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Jetwing Jaffna", LocationAddress = "37 Mahatma Gandhi Road, Jaffna", MaxCapacity = 200, BaseRentalPrice = 320000, IsOutdoor = true, ManagerId = manager.UserId },
+                new() { Name = "Uga Bay Passikudah", LocationAddress = "Passikudah Bay, Kalkudah", MaxCapacity = 300, BaseRentalPrice = 560000, IsOutdoor = true, ManagerId = manager.UserId }
             };
 
             context.Venues.AddRange(venues);
