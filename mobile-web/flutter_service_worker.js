@@ -1,21 +1,10 @@
-﻿'use strict';
-// Self-destructing service worker to purge all stale caches on mobile devices
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(keys.map((key) => caches.delete(key)));
-    }).then(() => {
-      return self.clients.claim();
-    }).then(() => {
-      return self.registration.unregister();
-    })
+'use strict';
+self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+      .then(() => self.registration.unregister())
   );
 });
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
-});
+self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });
