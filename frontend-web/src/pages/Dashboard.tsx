@@ -96,18 +96,179 @@ export const Dashboard: React.FC = () => {
     }
   }, [selectedEvent?.eventId]);
 
+  // Smart AI Tiered Resource Allocation Engine (Budget & Event-Type Context Aware)
+  const getAllocations = (ev: EventItem | null) => {
+    if (!ev) {
+      return {
+        hasSounds: false, soundsCost: 0, soundsName: '',
+        hasDeco: false, decoCost: 0, decoName: '',
+        hasPhoto: false, photoCost: 0, photoName: '',
+        hasCake: false, cakeCost: 0, cakeLabel: '',
+        hasTransport: false, transportCost: 0, transportName: '',
+        hasSpecialRequests: false, otherCost: 0,
+      };
+    }
+
+    const budget = Number(ev.budgetLimit) || 1000000;
+    const eventType = (ev.eventType || 'Wedding').toLowerCase();
+    const services = ev.selectedServices || ['Photography', 'Sound and Lighting', 'Decorations'];
+
+    // 1. Sound & Lighting
+    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting'));
+    let soundsCost = 0;
+    let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
+    if (hasSounds) {
+      if (budget >= 2000000) {
+        soundsCost = 250000;
+        soundsName = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';
+      } else if (budget >= 1200000) {
+        soundsCost = 180000;
+        soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
+      } else if (budget >= 700000) {
+        soundsCost = 120000;
+        soundsName = 'Standard Stage Audio + Ambient Warm LED PAR Cans';
+      } else {
+        soundsCost = 75000;
+        soundsName = 'Acoustic PA System + Wireless Dual Mics + Mood Uplights';
+      }
+    }
+
+    // 2. Decorations
+    const hasDeco = services.some(s => s.toLowerCase().includes('deco'));
+    let decoCost = 0;
+    let decoName = 'Floral Stage & Tablescape Theme Decoration';
+    if (hasDeco) {
+      if (budget >= 2000000) {
+        decoCost = 200000;
+        decoName = 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor';
+      } else if (budget >= 1200000) {
+        decoCost = 130000;
+        decoName = 'Thematic Floral Stage + Entrance Tunnel Arch Decor';
+      } else if (budget >= 700000) {
+        decoCost = 80000;
+        decoName = 'Floral Stage & Tablescape Theme Decoration';
+      } else {
+        decoCost = 50000;
+        decoName = 'Fairy-Light Star Backdrop + Geometric Floral Frame';
+      }
+    }
+
+    // 3. Photography & Media
+    const hasPhoto = services.some(s => s.toLowerCase().includes('photo'));
+    let photoCost = 0;
+    let photoName = 'Professional Event Coverage';
+    if (hasPhoto) {
+      if (budget >= 2000000) {
+        photoCost = 250000;
+        photoName = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
+      } else if (budget >= 1200000) {
+        photoCost = 160000;
+        photoName = 'Master Wedding Photography + 4K Highlights Video + Storybook Album';
+      } else if (budget >= 700000) {
+        photoCost = 100000;
+        photoName = 'Professional Event Coverage (2 Photographers + Unlimited Soft Copies)';
+      } else {
+        photoCost = 60000;
+        photoName = 'Standard Event Photography (Full Day Coverage + Highlights)';
+      }
+    }
+
+    // 4. Celebration Cakes (Event-Type Strict Context + Budget Tiering)
+    const hasCake = services.some(s => s.toLowerCase().includes('cake'));
+    let cakeCost = 0;
+    let cakeLabel = 'Celebration Cake';
+    if (hasCake) {
+      if (eventType.includes('birthday')) {
+        if (budget >= 1000000) {
+          cakeCost = 35000;
+          cakeLabel = '3-Tier Grand Custom Thematic Birthday Cake';
+        } else if (budget >= 500000) {
+          cakeCost = 20000;
+          cakeLabel = '2-Tier Thematic Custom Fondant Birthday Cake';
+        } else {
+          cakeCost = 12000;
+          cakeLabel = 'Classic Celebration Birthday Gateau';
+        }
+      } else if (eventType.includes('wedding')) {
+        if (budget >= 1800000) {
+          cakeCost = 65000;
+          cakeLabel = '5-Tier Royal Handcrafted Fondant Wedding Cake';
+        } else if (budget >= 1000000) {
+          cakeCost = 45000;
+          cakeLabel = '3-Tier Luxury Floral Wedding Cake';
+        } else {
+          cakeCost = 30000;
+          cakeLabel = '2-Tier Classic Wedding Cake';
+        }
+      } else if (eventType.includes('anniversary') || eventType.includes('engagement')) {
+        if (budget >= 1200000) {
+          cakeCost = 40000;
+          cakeLabel = '3-Tier Luxury Floral Engagement / Anniversary Cake';
+        } else {
+          cakeCost = 25000;
+          cakeLabel = '2-Tier Signature Handcrafted Engagement Cake';
+        }
+      } else {
+        // Corporate, Gala, Launch, Other
+        if (budget >= 1000000) {
+          cakeCost = 35000;
+          cakeLabel = 'Custom 3D Corporate Logo Reveal Branding Cake';
+        } else {
+          cakeCost = 18000;
+          cakeLabel = 'Signature Celebration Gateau';
+        }
+      }
+    }
+
+    // 5. Luxury Bridal & VIP Transport
+    const hasTransport = services.some(s => 
+      s.toLowerCase().includes('transport') || 
+      s.toLowerCase().includes('car') || 
+      s.toLowerCase().includes('bridal')
+    );
+    let transportCost = 0;
+    let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
+    if (hasTransport) {
+      if (eventType.includes('wedding')) {
+        if (budget >= 2000000) {
+          transportCost = 95000;
+          transportName = 'Classic Vintage Rolls Royce / Jaguar Bridal Car';
+        } else if (budget >= 1000000) {
+          transportCost = 65000;
+          transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
+        } else {
+          transportCost = 50000;
+          transportName = 'BMW 5-Series Executive Bridal Sedan';
+        }
+      } else if (eventType.includes('gala') || eventType.includes('award') || eventType.includes('launch')) {
+        transportCost = 50000;
+        transportName = 'BMW 5-Series Executive VIP Sedan';
+      } else {
+        transportCost = 35000;
+        transportName = 'Luxury High-Roof VIP Passenger Van (14-Seater)';
+      }
+    }
+
+    const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
+    const otherCost = hasSpecialRequests ? 35000 : 0;
+
+    return {
+      hasSounds, soundsCost, soundsName,
+      hasDeco, decoCost, decoName,
+      hasPhoto, photoCost, photoName,
+      hasCake, cakeCost, cakeLabel,
+      hasTransport, transportCost, transportName,
+      hasSpecialRequests, otherCost,
+    };
+  };
+
   // Manager Approve Proposal Action
   const handleApprove = async () => {
     if (!selectedEvent) return;
     const perPlate = selectedEvent.perPlatePrice || 5000;
     const cateringCost = selectedEvent.guestCount * perPlate;
     const hallRental = selectedEvent.hallRentalPrice || 350000;
-    const hasSounds = !selectedEvent.selectedServices || selectedEvent.selectedServices.includes('Sound and Lighting');
-    const hasDeco = !selectedEvent.selectedServices || selectedEvent.selectedServices.includes('Decorations');
-    const hasCake = selectedEvent.selectedServices && selectedEvent.selectedServices.some(s => s.toLowerCase().includes('cake'));
-    const soundsCost = hasSounds ? 150000 : 0;
-    const decoCost = hasDeco ? 80000 : 0;
-    const cakeCost = hasCake ? 35000 : 0;
+    const alloc = getAllocations(selectedEvent);
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
     const weatherData = selectedEvent.weatherAssessment;
@@ -117,9 +278,7 @@ export const Dashboard: React.FC = () => {
       ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
       : 0;
 
-    const hasSpecialRequests = Boolean(selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
-    const otherCost = hasSpecialRequests ? 35000 : 0;
-    const computedSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
+    const computedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
     const computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
 
     try {
@@ -142,13 +301,7 @@ export const Dashboard: React.FC = () => {
   const perPlate = selectedEvent?.perPlatePrice || 5000;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
   const hallRental = selectedEvent?.hallRentalPrice || 350000;
-  const hasSounds = !selectedEvent?.selectedServices || selectedEvent.selectedServices.includes('Sound and Lighting');
-  const hasDeco = !selectedEvent?.selectedServices || selectedEvent.selectedServices.includes('Decorations');
-  const hasCake = selectedEvent?.selectedServices && selectedEvent.selectedServices.some(s => s.toLowerCase().includes('cake'));
-  const cakeLabel = selectedEvent?.selectedServices?.find(s => s.toLowerCase().includes('cake')) || 'Celebration Cake';
-  const soundsCost = hasSounds ? 150000 : 0;
-  const decoCost = hasDeco ? 80000 : 0;
-  const cakeCost = hasCake ? 35000 : 0;
+  const alloc = getAllocations(selectedEvent);
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
   const weatherData = selectedEvent?.weatherAssessment;
@@ -161,9 +314,7 @@ export const Dashboard: React.FC = () => {
     ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
     : 0;
 
-  const hasSpecialRequests = Boolean(selectedEvent?.additionalDetails && selectedEvent.additionalDetails.trim().length > 0);
-  const otherCost = hasSpecialRequests ? 35000 : 0;
-  const currentSubtotal = cateringCost + hallRental + soundsCost + decoCost + cakeCost + weatherTentCost + otherCost;
+  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
   const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
     ? selectedEvent.estimatedTotalCost
     : Math.max(0, currentSubtotal - specialDiscount);
@@ -462,28 +613,57 @@ export const Dashboard: React.FC = () => {
                     <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                   </div>
 
-                  {hasSounds && (
+                  {alloc.hasSounds && (
                     <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <span className="text-slate-700">🔊 Stage, Line-Array Sound & Intelligent LED Lighting Rig</span>
-                      <span className="font-semibold text-slate-900">Rs. 150,000</span>
+                      <div>
+                        <span className="text-slate-700 font-medium">🔊 {alloc.soundsName}</span>
+                        <p className="text-[11px] text-slate-400">Pro audio, digital mixing & intelligent stage lights</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
                     </div>
                   )}
 
-                  {hasDeco && (
+                  {alloc.hasDeco && (
                     <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <span className="text-slate-700">🌸 Floral Stage & Tablescape Theme Decoration</span>
-                      <span className="font-semibold text-slate-900">Rs. 80,000</span>
+                      <div>
+                        <span className="text-slate-700 font-medium">🌸 {alloc.decoName}</span>
+                        <p className="text-[11px] text-slate-400">Custom theme stage styling & floral tablescapes</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
                     </div>
                   )}
 
-                  {hasCake && (
-                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <span className="text-slate-700">🎂 Custom {cakeLabel} (Tiered Masterpiece)</span>
-                      <span className="font-semibold text-slate-900">Rs. 35,000</span>
+                  {alloc.hasPhoto && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-sky-50/70 rounded-lg border border-sky-200">
+                      <div>
+                        <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
+                        <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
                     </div>
                   )}
 
-                  {hasSpecialRequests && (
+                  {alloc.hasCake && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <div>
+                        <span className="text-slate-700 font-medium">🎂 {alloc.cakeLabel}</span>
+                        <p className="text-[11px] text-slate-400">Handcrafted bespoke celebration tier</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {alloc.hasTransport && (
+                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
+                      <div>
+                        <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
+                        <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
+                      </div>
+                      <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {alloc.hasSpecialRequests && (
                     <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
                       <div>
                         <span className="text-rose-900 font-medium">
@@ -491,7 +671,7 @@ export const Dashboard: React.FC = () => {
                         </span>
                         <p className="text-[11px] text-rose-500">Dedicated arrangement budget (e.g. surprise flower bouquet / welcome add-ons)</p>
                       </div>
-                      <span className="font-semibold text-rose-700">Rs. 35,000</span>
+                      <span className="font-semibold text-rose-700">Rs. {alloc.otherCost.toLocaleString()}</span>
                     </div>
                   )}
 

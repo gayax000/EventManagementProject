@@ -436,6 +436,43 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     }
                   },
                 ),
+                if (proposal.selectedServices.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Text("📦 Selected Packages & Services:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                  const SizedBox(height: 4),
+                  ...proposal.selectedServices.map((s) {
+                    IconData ic = Icons.check_circle_outline;
+                    String desc = s;
+                    if (s.toLowerCase().contains('photo')) {
+                      ic = Icons.camera_alt_rounded;
+                      desc = "In-House Photography & Cinematography Coverage";
+                    } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
+                      ic = Icons.speaker_rounded;
+                      desc = "Concert Line-Array Sound & Intelligent Lighting Rig";
+                    } else if (s.toLowerCase().contains('deco')) {
+                      ic = Icons.park_rounded;
+                      desc = "Floral Stage Styling & Theme Decoration";
+                    } else if (s.toLowerCase().contains('cake')) {
+                      ic = Icons.cake_rounded;
+                      desc = "$s (Handcrafted Celebration Tier)";
+                    } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
+                      ic = Icons.directions_car_rounded;
+                      desc = "Luxury Chauffeur-Driven Bridal Car / VIP Transport";
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Icon(ic, size: 13, color: const Color(0xFFD4AF37)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
                 const Divider(color: Colors.white12, height: 22),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -233,15 +233,100 @@ public class AiWorkflowService : IAiWorkflowService
         bool hasDeco = selectedServices.Count == 0 || selectedServices.Any(s => s.Contains("Deco"));
         bool hasPhoto = selectedServices.Any(s => s.Contains("Photo"));
         bool hasCake = selectedServices.Any(s => s.ToLower().Contains("cake"));
+        bool hasTransport = selectedServices.Any(s => s.ToLower().Contains("transport") || s.ToLower().Contains("car") || s.ToLower().Contains("bridal"));
 
-        decimal soundsCost = hasSounds ? 150000m : 0m;
-        decimal decoCost = hasDeco ? 80000m : 0m;
-        decimal photoCost = hasPhoto ? 85000m : 0m;
-        decimal cakeCost = hasCake ? 35000m : 0m;
+        decimal budget = ev.BudgetLimit;
+        string eventType = (ev.EventType ?? "Wedding").ToLower();
+
+        // 1. Sounds & Lighting
+        decimal soundsCost = 0m;
+        string soundsName = "Concert Line-Array Sound & Digital Mixer Package";
+        if (hasSounds)
+        {
+            if (budget >= 2000000m) { soundsCost = 250000m; soundsName = "Concert Line-Array Rig + 16 Moving Heads + Beam Trusses"; }
+            else if (budget >= 1200000m) { soundsCost = 180000m; soundsName = "Concert Line-Array Sound & Digital Mixer Package"; }
+            else if (budget >= 700000m) { soundsCost = 120000m; soundsName = "Standard Stage Audio + Ambient Warm LED PAR Cans"; }
+            else { soundsCost = 75000m; soundsName = "Acoustic PA System + Wireless Dual Mics + Mood Uplights"; }
+        }
+
+        // 2. Deco
+        decimal decoCost = 0m;
+        string decoName = "Floral Stage & Tablescape Theme Decoration";
+        if (hasDeco)
+        {
+            if (budget >= 2000000m) { decoCost = 200000m; decoName = "Royal Fresh Flower Ceiling Drapes & Grand Stage Decor"; }
+            else if (budget >= 1200000m) { decoCost = 130000m; decoName = "Thematic Floral Stage + Entrance Tunnel Arch Decor"; }
+            else if (budget >= 700000m) { decoCost = 80000m; decoName = "Floral Stage & Tablescape Theme Decoration"; }
+            else { decoCost = 50000m; decoName = "Fairy-Light Star Backdrop + Geometric Floral Frame"; }
+        }
+
+        // 3. Photography
+        decimal photoCost = 0m;
+        string photoName = "Professional Event Coverage";
+        if (hasPhoto)
+        {
+            if (budget >= 2000000m) { photoCost = 250000m; photoName = "Royal Cinematic Rig + Drone + 3 Senior Photographers"; }
+            else if (budget >= 1200000m) { photoCost = 160000m; photoName = "Master Wedding Photography + 4K Highlights Video + Storybook Album"; }
+            else if (budget >= 700000m) { photoCost = 100000m; photoName = "Professional Event Coverage (2 Photographers + Unlimited Soft Copies)"; }
+            else { photoCost = 60000m; photoName = "Standard Event Photography (Full Day Coverage + Highlights)"; }
+        }
+
+        // 4. Cake (Event-Type Strict Context + Budget Tiering)
+        decimal cakeCost = 0m;
+        string cakeLabel = "Celebration Cake";
+        if (hasCake)
+        {
+            if (eventType.Contains("birthday"))
+            {
+                if (budget >= 1000000m) { cakeCost = 35000m; cakeLabel = "3-Tier Grand Custom Thematic Birthday Cake"; }
+                else if (budget >= 500000m) { cakeCost = 20000m; cakeLabel = "2-Tier Thematic Custom Fondant Birthday Cake"; }
+                else { cakeCost = 12000m; cakeLabel = "Classic Celebration Birthday Gateau"; }
+            }
+            else if (eventType.Contains("wedding"))
+            {
+                if (budget >= 1800000m) { cakeCost = 65000m; cakeLabel = "5-Tier Royal Handcrafted Fondant Wedding Cake"; }
+                else if (budget >= 1000000m) { cakeCost = 45000m; cakeLabel = "3-Tier Luxury Floral Wedding Cake"; }
+                else { cakeCost = 30000m; cakeLabel = "2-Tier Classic Wedding Cake"; }
+            }
+            else if (eventType.Contains("anniversary") || eventType.Contains("engagement"))
+            {
+                if (budget >= 1200000m) { cakeCost = 40000m; cakeLabel = "3-Tier Luxury Floral Engagement / Anniversary Cake"; }
+                else { cakeCost = 25000m; cakeLabel = "2-Tier Signature Handcrafted Engagement Cake"; }
+            }
+            else
+            {
+                if (budget >= 1000000m) { cakeCost = 35000m; cakeLabel = "Custom 3D Corporate Logo Reveal Branding Cake"; }
+                else { cakeCost = 18000m; cakeLabel = "Signature Celebration Gateau"; }
+            }
+        }
+
+        // 5. Luxury Bridal & VIP Transport
+        decimal transportCost = 0m;
+        string transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan";
+        if (hasTransport)
+        {
+            if (eventType.Contains("wedding"))
+            {
+                if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / Jaguar Bridal Car"; }
+                else if (budget >= 1000000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan"; }
+                else { transportCost = 50000m; transportName = "BMW 5-Series Executive Bridal Sedan"; }
+            }
+            else if (eventType.Contains("gala") || eventType.Contains("award") || eventType.Contains("launch"))
+            {
+                transportCost = 50000m;
+                transportName = "BMW 5-Series Executive VIP Sedan";
+            }
+            else
+            {
+                transportCost = 35000m;
+                transportName = "Luxury High-Roof VIP Passenger Van (14-Seater)";
+            }
+        }
+
         decimal othersCost = !string.IsNullOrWhiteSpace(ev.AdditionalDetails) ? 35000m : 0m;
         decimal weatherTentCost = weather.SafeguardCost; // 0 if indoor or clear weather!
 
-        decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + othersCost + weatherTentCost;
+        decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + othersCost + weatherTentCost;
 
         var planItems = new List<string>();
 
@@ -264,10 +349,11 @@ public class AiWorkflowService : IAiWorkflowService
         planItems.Add($"Venue Booking: {(ev.BanquetHall != null ? ev.BanquetHall.HallName : "Selected Venue")} (Rs. {hallRental:N0})");
         planItems.Add($"In-House Buffet Catering ({ev.GuestCount} guests @ Rs. {cateringPrice:N0}) = Rs. {cateringCost:N0}");
 
-        if (hasSounds) planItems.Add("Stage, Line-Array Sound & Intelligent Lighting (Rs. 150,000)");
-        if (hasDeco) planItems.Add("Floral Theme & Tablescape Decorations (Rs. 80,000)");
-        if (hasPhoto) planItems.Add("Professional Photography & Cinematic Coverage (Rs. 85,000)");
-        if (hasCake) planItems.Add("Custom Celebration Cake (Rs. 35,000)");
+        if (hasSounds) planItems.Add($"{soundsName} (Rs. {soundsCost:N0})");
+        if (hasDeco) planItems.Add($"{decoName} (Rs. {decoCost:N0})");
+        if (hasPhoto) planItems.Add($"{photoName} (Rs. {photoCost:N0})");
+        if (hasCake) planItems.Add($"{cakeLabel} (Rs. {cakeCost:N0})");
+        if (hasTransport) planItems.Add($"{transportName} (Rs. {transportCost:N0})");
         if (othersCost > 0) planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Allocated: Rs. 35,000)");
 
         var traceLogs = new List<string>

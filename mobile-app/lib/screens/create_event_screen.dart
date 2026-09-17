@@ -979,6 +979,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
                             _buildServiceFilterChip('Decorations', Icons.park),
                             _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
+                            _buildServiceFilterChip('Luxury Transport', Icons.directions_car),
                           ],
                         ),
                         const Divider(color: Colors.white12, height: 24),
