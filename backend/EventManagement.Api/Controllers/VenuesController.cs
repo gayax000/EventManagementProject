@@ -1,6 +1,7 @@
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class VenuesController : ControllerBase
         _context = context;
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Venue>>> GetVenues([FromQuery] string? search, [FromQuery] int? minCapacity, [FromQuery] bool? isOutdoor)
     {
@@ -37,6 +39,7 @@ public class VenuesController : ControllerBase
         return Ok(await query.ToListAsync());
     }
 
+    [Authorize(Roles = "Manager")]
     [HttpPost]
     public async Task<ActionResult<Venue>> CreateVenue([FromBody] CreateVenueDto dto)
     {
