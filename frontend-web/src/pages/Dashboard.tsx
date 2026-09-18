@@ -453,11 +453,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
-<<<<<<< HEAD
-    const otherCost = hasSpecialRequests ? (customAddonCost > 0 ? customAddonCost : 0) : 0;
-=======
     const otherCost = hasSpecialRequests ? (customSpecialAllocation !== undefined ? customSpecialAllocation : specialAllocation) : 0;
->>>>>>> 1ff98b2 (feat(web): add manager special request pricing and proposal budget increase trigger)
 
     return {
       hasSounds, soundsCost, soundsName,
