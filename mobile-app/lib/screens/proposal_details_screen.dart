@@ -469,7 +469,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                       Text(
-                        'Budget: LKR 35,000',
+                        'Priced by Manager',
                         style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
