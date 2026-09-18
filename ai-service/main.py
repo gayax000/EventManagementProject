@@ -1,9 +1,13 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import traceback
 
 from schemas import EventObjectiveInput, AgentWorkflowResult, ProposedItem
+from agent_weather_risk import WeatherRiskAgent
 
 app = FastAPI(
     title="EventCraft Agentic AI Subsystem",
@@ -48,45 +52,21 @@ def execute_multi_agent_workflow(event_req: EventObjectiveInput):
         ]
 
         # -------------------------------------------------------------
-        # 2. Member 3: Weather Risk & Environmental Agent
+        # 2. Member 3: Weather Risk & Environmental Agent (Hybrid API + Monsoon Fallback)
         # -------------------------------------------------------------
-        audit_trace.append(f"WeatherRiskAgent (Member 3): Querying Weather Tool for '{event_req.location}'")
-        loc_lower = event_req.location.lower()
-        if any(place in loc_lower for place in ["nuwara", "kandy", "galle", "lawn"]):
-            rain_pct = 75
-            condition = "Heavy Monsoon Rain Showers Expected"
-            risk_level = "High"
-        else:
-            rain_pct = 25
-            condition = "Clear / Partly Cloudy"
-            risk_level = "Low"
-
-        weather_assessment = {
-            "location": event_req.location,
-            "targetDate": event_req.targetDate,
-            "rainProbabilityPercent": rain_pct,
-            "condition": condition,
-            "riskLevel": risk_level
-        }
-
-        safeguard_item = None
-        if event_req.isOutdoor and rain_pct >= 60:
-            safeguard_item = ProposedItem(
-                name="Heavy-Duty Waterproof Marquee Tent (20x40 ft)",
-                category="WeatherSafeguard",
-                cost=150000.0,
-                isSafeguard=True,
-                reason=f"70%+ Rain Probability detected on outdoor grounds in {event_req.location}."
-            )
-            audit_trace.append(f"WeatherRiskAgent (Member 3): ALERT - Rain risk {rain_pct}%. Auto-injected Marquee Tent safeguard (Rs. 150,000).")
-        else:
-            audit_trace.append("WeatherRiskAgent (Member 3): Risk within limits. No structural safeguard required.")
+        weather_agent = WeatherRiskAgent()
+        weather_res = weather_agent.execute(event_req)
+        
+        weather_assessment = weather_res["weatherAssessment"]
+        safeguard_item = weather_res["safeguardItem"]
+        audit_trace.extend(weather_res["trace"])
 
         # -------------------------------------------------------------
         # 3. Member 1: Resource & Budget Optimization Agent
         # -------------------------------------------------------------
         audit_trace.append(f"ResourceOptimizerAgent (Member 1): Querying inventory tools for {event_req.guestCount} guests")
         
+        loc_lower = event_req.location.lower()
         # Venue Selection
         if "nuwara" in loc_lower:
             selected_venue = "The Grand Hotel Nuwara Eliya - Governors Lawn"
