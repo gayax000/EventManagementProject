@@ -31,11 +31,14 @@ public class AuthController : ControllerBase
                    ?? await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer")
                    ?? new Role { RoleName = targetRoleName };
 
+        // Hash password securely via BCrypt
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
         var user = new User
         {
             FullName = dto.FullName,
             Email = dto.Email,
-            PasswordHash = dto.Password,
+            PasswordHash = hashedPassword,
             PhoneNumber = dto.PhoneNumber,
             RoleId = role.RoleId
         };
@@ -59,7 +62,25 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginRequestDto dto)
     {
         var user = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Email == dto.Email);
-        if (user == null || user.PasswordHash != dto.Password)
+        if (user == null)
+            return Unauthorized(new { message = "Invalid email or password." });
+
+        // Verify password hash via BCrypt (with graceful fallback for legacy seed accounts)
+        bool isValidPassword = false;
+        if (!string.IsNullOrEmpty(user.PasswordHash))
+        {
+            if (user.PasswordHash.StartsWith("$2a$") || user.PasswordHash.StartsWith("$2b$") || user.PasswordHash.StartsWith("$2y$"))
+            {
+                isValidPassword = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+            }
+            else
+            {
+                // Fallback for unhashed legacy seed passwords
+                isValidPassword = (user.PasswordHash == dto.Password);
+            }
+        }
+
+        if (!isValidPassword)
             return Unauthorized(new { message = "Invalid email or password." });
 
         var roleName = user.Role?.RoleName ?? "Customer";
