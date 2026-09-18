@@ -2,9 +2,11 @@ using System.Text.Json;
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace EventManagement.Api.Controllers;
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AiWorkflowController : ControllerBase
