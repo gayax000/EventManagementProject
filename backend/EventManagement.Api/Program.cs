@@ -1,6 +1,10 @@
+using System.Text;
+using EventManagement.Core.Interfaces;
 using EventManagement.Infrastructure.Data;
 using EventManagement.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,10 +23,38 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Register HttpClient & Agentic AI Workflow Service (Spec Section 10 Integration)
+// 3. Register Services in DI Container
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddHttpClient<IAiWorkflowService, AiWorkflowService>();
 
-// 4. Add Controllers & Swagger
+// 4. Configure Real JWT Bearer Authentication
+var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "EventCraftAI_Super_Secret_JWT_Signing_Key_2026_SE3090!";
+var issuer = builder.Configuration["JwtSettings:Issuer"] ?? "EventCraft.Api";
+var audience = builder.Configuration["JwtSettings:Audience"] ?? "EventCraft.Client";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// 5. Add Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -33,7 +65,7 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
-// 5. Configure HTTP pipeline
+// 6. Configure HTTP pipeline
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -46,15 +78,16 @@ app.MapGet("/", () => Results.Ok(new
     timestamp = DateTime.UtcNow 
 }));
 
-// Use CORS (Must be before Authorization & MapControllers)
+// Use CORS (Must be before Authentication & Authorization)
 app.UseCors("AllowAll");
 
+app.UseAuthentication();
 app.UseAuthorization();
 
-// 6. Map Controllers
+// 7. Map Controllers
 app.MapControllers();
 
-// 7. Seed Realistic Sri Lankan Venues, Hotels and Resources on Startup
+// 8. Seed Realistic Sri Lankan Venues, Hotels and Resources on Startup
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
