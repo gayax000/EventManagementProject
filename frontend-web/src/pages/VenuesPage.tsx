@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Users, DollarSign, Loader2, Building2, X, Sparkles, ChevronRight, Search } from 'lucide-react';
 import { venueService, banquetHallService, type BanquetHallItem } from '../services/api';
+import { LoadingSpinner, EmptyState, ErrorAlert } from '../components/UIStateComponents';
 
 const QUICK_CITY_FILTERS = [
   'All',
@@ -196,16 +197,14 @@ export const VenuesPage: React.FC = () => {
         </div>
         
         {loading ? (
-          <div className="flex justify-center items-center py-20 text-slate-500 bg-white rounded-2xl border border-slate-200">
-            <Loader2 className="w-6 h-6 animate-spin mr-2 text-sky-600" />
-            <span className="text-sm font-medium">Loading Sri Lankan venues directory...</span>
-          </div>
+          <LoadingSpinner message="Loading Sri Lankan venues directory..." />
         ) : filteredVenues.length === 0 ? (
-          <div className="text-center py-16 text-slate-500 bg-white rounded-2xl border border-slate-200 p-6">
-            <Building2 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-700">No venues match your search query.</p>
-            <p className="text-xs text-slate-400 mt-1">Try searching for a different city or clearing the filter.</p>
-          </div>
+          <EmptyState 
+            title="No Venues Found" 
+            description="No luxury venues match your search query. Try searching for a different city or clearing the filter." 
+            actionText="Clear Filter"
+            onAction={() => { setSelectedCity('All'); setSearchTerm(''); }}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredVenues.map((venue: any) => (
