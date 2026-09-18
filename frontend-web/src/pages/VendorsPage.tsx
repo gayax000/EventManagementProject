@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles } from 'lucide-react';
+import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X } from 'lucide-react';
 import { vendorService } from '../services/api';
 
 const VENDOR_CATEGORIES = [
@@ -56,6 +56,7 @@ export const VendorsPage: React.FC = () => {
     }
   });
   const [loading, setLoading] = useState(false);
+  const [selectedVendorForView, setSelectedVendorForView] = useState<any | null>(null);
   
   // Separate states for Pending list
   const [pendingSearch, setPendingSearch] = useState('');
@@ -105,6 +106,20 @@ export const VendorsPage: React.FC = () => {
       await fetchVendors();
     } catch (e) {
       console.warn("Backend verifyVendor call warning", e);
+    }
+  };
+
+  const handleDeleteVendor = async (id: string, name: string) => {
+    if (window.confirm(`Are you sure you want to delete vendor "${name}"? This action cannot be undone.`)) {
+      try {
+        const updated = vendors.filter(v => v.id !== id);
+        setVendors(updated);
+        localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(updated));
+        await vendorService.deleteVendor(id);
+        await fetchVendors();
+      } catch (e) {
+        console.warn("Backend deleteVendor call warning", e);
+      }
     }
   };
 
@@ -227,17 +242,25 @@ export const VendorsPage: React.FC = () => {
                       Status: {vendor.status}
                     </span>
 
-                    <div className="flex space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={() => setSelectedVendorForView(vendor)}
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4 text-sky-600" />
+                        <span>View Details</span>
+                      </button>
                       <button 
                         onClick={() => handleVerifyVendor(vendor.id, 'Verified')}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center space-x-1 shadow-sm transition"
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center space-x-1 shadow-sm transition"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>Approve</span>
                       </button>
                       <button 
                         onClick={() => handleVerifyVendor(vendor.id, 'Rejected')}
-                        className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
                       >
                         <XCircle className="w-4 h-4" />
                         <span>Reject</span>
@@ -331,9 +354,28 @@ export const VendorsPage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                    <p className="flex items-center"><Tag className="w-3.5 h-3.5 mr-2 text-indigo-500" /> <span className="font-medium">{badge.label}</span></p>
-                    <p className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2 text-indigo-500" /> {vendor.contactNumber || vendor.contact}</p>
+                  <div>
+                    <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
+                      <p className="flex items-center"><Tag className="w-3.5 h-3.5 mr-2 text-indigo-500" /> <span className="font-medium">{badge.label}</span></p>
+                      <p className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2 text-indigo-500" /> {vendor.contactNumber || vendor.contact}</p>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-3">
+                      <button 
+                        onClick={() => setSelectedVendorForView(vendor)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>View Details</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteVendor(vendor.id, vendor.name)}
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -341,6 +383,87 @@ export const VendorsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Vendor Details Modal */}
+      {selectedVendorForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in duration-200">
+            <button 
+              onClick={() => setSelectedVendorForView(null)}
+              className="absolute top-4 right-4 p-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-3 mb-4">
+              <span className="text-3xl bg-slate-100 p-2.5 rounded-xl">{getCategoryBadge(selectedVendorForView.category).icon}</span>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{selectedVendorForView.name}</h3>
+                <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mt-0.5 ${
+                  selectedVendorForView.status === 'Verified' 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}>
+                  Status: {selectedVendorForView.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm text-slate-600 border-t border-b border-slate-100 py-4 my-4">
+              <div>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Service Category</span>
+                <p className="font-medium text-slate-800 flex items-center">
+                  <Tag className="w-4 h-4 mr-1.5 text-indigo-500" />
+                  {getCategoryBadge(selectedVendorForView.category).label} ({selectedVendorForView.category})
+                </p>
+              </div>
+
+              <div>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Contact Number</span>
+                <p className="font-medium text-slate-800 flex items-center">
+                  <Phone className="w-4 h-4 mr-1.5 text-indigo-500" />
+                  {selectedVendorForView.contactNumber || selectedVendorForView.contact || 'N/A'}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Service Package / Description</span>
+                <p className="font-medium text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                  {selectedVendorForView.adminRemarks || 'No additional package details provided.'}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">System Vendor ID</span>
+                <p className="font-mono text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded w-max">
+                  {selectedVendorForView.id}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              {selectedVendorForView.status === 'Pending' && (
+                <button
+                  onClick={() => {
+                    handleVerifyVendor(selectedVendorForView.id, 'Verified');
+                    setSelectedVendorForView(null);
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Approve Vendor</span>
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedVendorForView(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

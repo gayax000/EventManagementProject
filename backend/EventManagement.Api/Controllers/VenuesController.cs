@@ -98,4 +98,18 @@ public class VenuesController : ControllerBase
 
         return Ok(new { message = $"Vendor status updated to {dto.Status} successfully." });
     }
+
+    // 7. DELETE: api/venues/vendors/{id} (Manager Delete Action)
+    [HttpDelete("vendors/{id}")]
+    public async Task<ActionResult> DeleteVendor(Guid id)
+    {
+        var vendor = await _context.Vendors.FindAsync(id);
+        if (vendor == null)
+            return NotFound(new { message = "Vendor not found." });
+
+        _context.Vendors.Remove(vendor);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Vendor deleted successfully." });
+    }
 }

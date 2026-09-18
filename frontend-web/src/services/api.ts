@@ -136,6 +136,10 @@ export const vendorService = {
     const res = await apiClient.put(`/venues/vendors/${id}/verify`, { status, adminRemarks });
     return res.data;
   },
+  deleteVendor: async (id: string) => {
+    const res = await apiClient.delete(`/venues/vendors/${id}`);
+    return res.data;
+  },
 };
 
 export interface LivePaymentItem {
