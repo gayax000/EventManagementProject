@@ -60,10 +60,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setIsLoading(false);
 
     if (success) {
+      const role = authService.getUserRole();
+      if (role === 'Customer') {
+        authService.logout();
+        setError('Access Restricted: This portal is exclusively for Vendors, Suppliers, and Administrators. Clients please use the EventCraft Client Mobile App.');
+        return;
+      }
       setAuthModal(null);
       onLoginSuccess();
     } else {
-      setError('Login failed. Please check your credentials or create an account.');
+      setError('Login failed. Please check your credentials or register as a vendor.');
     }
   };
 
@@ -79,19 +85,18 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError('');
     setSuccessMsg('');
     
-    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, regRole);
+    // Strictly register as 'Vendor'
+    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
     setRegLoading(false);
 
     if (success) {
-      // Auto-login newly registered user
+      // Auto-login newly registered vendor
       const autoLogin = await authService.login(regEmail, regPassword);
       if (autoLogin) {
         setAuthModal(null);
         onLoginSuccess();
       } else {
-        setAuthModal('login');
-        setEmail(regEmail);
-        setSuccessMsg('Account created successfully! Please sign in with your password.');
+        setSuccessMsg('Vendor account registered successfully! Please sign in using the Log In button.');
       }
     } else {
       setError('Registration failed. The email address may already be registered.');
@@ -170,24 +175,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             EventCraft is Sri Lanka's premier AI event management platform, transforming how extraordinary celebrations are born. We seamlessly pair certified 5-star hotel banquet halls with verified elite suppliers, gourmet catering, and real-time environmental weather contingency safeguards into one transparent proposal. Experience stress-free planning, transparent pricing, and unforgettable moments for your royal wedding, corporate gala, or milestone celebration.
           </p>
 
-          {/* Quick CTA Buttons */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => openAuth('register')}
-              className="px-6 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-sky-500/20 transition flex items-center space-x-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Get Started — Sign Up</span>
-            </button>
-            <button
-              onClick={() => openAuth('login')}
-              className="px-6 py-3 bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2"
-            >
-              <LogIn className="w-4 h-4 text-sky-400" />
-              <span>Client Log In</span>
-            </button>
-          </div>
-
         </div>
 
         {/* ========================================================================= */}
@@ -242,31 +229,28 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Modal Header Tabs */}
-            <div className="flex border-b border-slate-800 pb-3 mb-5">
-              <button
-                type="button"
-                onClick={() => { setAuthModal('login'); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 text-center py-2 text-xs font-bold rounded-xl transition ${
-                  authModal === 'login'
-                    ? 'bg-slate-800 text-sky-400 border border-slate-700'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Log In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setAuthModal('register'); setError(''); setSuccessMsg(''); }}
-                className={`flex-1 text-center py-2 text-xs font-bold rounded-xl transition ${
-                  authModal === 'register'
-                    ? 'bg-slate-800 text-indigo-400 border border-slate-700'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Sign Up / Register
-              </button>
-            </div>
+            {/* Dedicated Modal Header (No Tab Switching) */}
+            {authModal === 'login' ? (
+              <div className="border-b border-slate-800 pb-4 mb-5">
+                <div className="flex items-center space-x-2 text-sky-400 mb-1">
+                  <LogIn className="w-5 h-5" />
+                  <h3 className="text-base font-bold text-white">Vendor & Admin Sign In</h3>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Access your vendor workspace or administrative control panel.
+                </p>
+              </div>
+            ) : (
+              <div className="border-b border-slate-800 pb-4 mb-5">
+                <div className="flex items-center space-x-2 text-indigo-400 mb-1">
+                  <Building2 className="w-5 h-5" />
+                  <h3 className="text-base font-bold text-white">Vendor & Supplier Registration</h3>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Register your business as an official event vendor or service partner.
+                </p>
+              </div>
+            )}
 
             {/* Error & Success Alerts */}
             {error && (
@@ -281,7 +265,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Form: Log In */}
+            {/* Form: Log In (Log In Only - No Sign Up Switch) */}
             {authModal === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
@@ -294,7 +278,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                      placeholder="you@example.com"
+                      placeholder="vendor@eventcraft.com"
                     />
                   </div>
                 </div>
@@ -317,30 +301,22 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-500/20 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-sky-500/20 transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-2"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>{isLoading ? 'Signing in...' : 'Sign In to EventCraft'}</span>
+                  <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>
                 </button>
-
-                <div className="text-center pt-2">
-                  <p className="text-xs text-slate-400">
-                    Don't have an account?{' '}
-                    <button
-                      type="button"
-                      onClick={() => { setAuthModal('register'); setError(''); }}
-                      className="text-sky-400 hover:text-sky-300 font-bold underline ml-1"
-                    >
-                      Sign Up
-                    </button>
-                  </p>
-                </div>
               </form>
             ) : (
-              /* Form: Register */
+              /* Form: Register (Vendor Only - No Client Option & No Log In Switch) */
               <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                <div className="p-2.5 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex items-center space-x-2 text-indigo-300 text-xs">
+                  <Building2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                  <span>Account Type: <strong>Vendor / Supplier Partner</strong></span>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Full Name</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
@@ -349,7 +325,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={regFullName}
                       onChange={(e) => setRegFullName(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="e.g. Kasun Perera"
+                      placeholder="e.g. Royal Blooms Floral Decor"
                     />
                   </div>
                 </div>
@@ -364,7 +340,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="kasun@example.com"
+                      placeholder="contact@royalblooms.lk"
                     />
                   </div>
                 </div>
@@ -399,55 +375,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Role</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('Customer')}
-                      className={`py-2 px-2 text-xs font-bold rounded-xl border text-center transition ${
-                        regRole === 'Customer'
-                          ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      🎉 Client
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('Vendor')}
-                      className={`py-2 px-2 text-xs font-bold rounded-xl border text-center transition ${
-                        regRole === 'Vendor'
-                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      🏢 Vendor
-                    </button>
-                  </div>
-                </div>
-
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-2"
+                  className="w-full py-2.5 px-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-3"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>{regLoading ? 'Creating Account...' : 'Create Account'}</span>
+                  <span>{regLoading ? 'Registering Vendor...' : 'Register as Vendor'}</span>
                 </button>
-
-                <div className="text-center pt-1">
-                  <p className="text-xs text-slate-400">
-                    Already have an account?{' '}
-                    <button
-                      type="button"
-                      onClick={() => { setAuthModal('login'); setError(''); }}
-                      className="text-indigo-400 hover:text-indigo-300 font-bold underline ml-1"
-                    >
-                      Log In
-                    </button>
-                  </p>
-                </div>
               </form>
             )}
 
