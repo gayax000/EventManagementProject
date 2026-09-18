@@ -323,7 +323,7 @@ public class AiWorkflowService : IAiWorkflowService
             }
         }
 
-        decimal othersCost = !string.IsNullOrWhiteSpace(ev.AdditionalDetails) ? 35000m : 0m;
+        decimal othersCost = 0m;
         decimal weatherTentCost = weather.SafeguardCost; // 0 if indoor or clear weather!
 
         decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + othersCost + weatherTentCost;
@@ -354,7 +354,7 @@ public class AiWorkflowService : IAiWorkflowService
         if (hasPhoto) planItems.Add($"{photoName} (Rs. {photoCost:N0})");
         if (hasCake) planItems.Add($"{cakeLabel} (Rs. {cakeCost:N0})");
         if (hasTransport) planItems.Add($"{transportName} (Rs. {transportCost:N0})");
-        if (othersCost > 0) planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Allocated: Rs. 35,000)");
+        if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails)) planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Priced by Manager upon Review)");
 
         var traceLogs = new List<string>
         {
