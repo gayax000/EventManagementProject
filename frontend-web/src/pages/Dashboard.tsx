@@ -120,7 +120,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
-  const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
@@ -451,7 +450,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
-    const otherCost = hasSpecialRequests ? (customAddonCost > 0 ? customAddonCost : 0) : 0;
+    const otherCost = hasSpecialRequests ? 35000 : 0;
 
     return {
       hasSounds, soundsCost, soundsName,
@@ -469,7 +468,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const perPlate = selectedEvent.perPlatePrice || 5000;
     const cateringCost = selectedEvent.guestCount * perPlate;
     const hallRental = selectedEvent.hallRentalPrice || 350000;
-    const alloc = getAllocations(selectedEvent);
+    const alloc = getAllocations(selectedEvent, isBudgetAutoFitted);
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
     const weatherData = selectedEvent.weatherAssessment;
@@ -480,12 +479,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
       : 0;
 
     const computedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
-    const computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
+
+    let computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
+    let targetStatus = 'ApprovedByManager';
+
+    if (isBudgetAutoFitted) {
+      computedFinalTotal = Math.min(computedSubtotal, clientBudgetLimit);
+      targetStatus = 'ApprovedByManager';
+    } else if (clientApprovalRequested) {
+      targetStatus = 'PendingClientBudgetApproval';
+    } else if (selectedEvent.status === 'ClientChoiceSubmitted') {
+      computedFinalTotal = selectedEvent.estimatedTotalCost || computedFinalTotal;
+      targetStatus = 'ApprovedByManager';
+    }
 
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, undefined, customAddonCost > 0 ? customAddonCost : undefined);
-      setActionSuccess("Proposal approved successfully! Synchronized in PostgreSQL Database.");
-      setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager', estimatedTotalCost: computedFinalTotal } : null);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus);
+      setActionSuccess(
+        clientApprovalRequested
+          ? "Proposal flagged & sent to client for budget increase request!"
+          : "Proposal approved successfully! Synchronized in PostgreSQL Database."
+      );
+      setSelectedEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
     } catch (err) {
       console.error("Approval failed", err);
@@ -758,11 +773,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center space-x-1.5 ${
                 isApproved
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                  : selectedEvent.status === 'ClientChoiceSubmitted'
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30 animate-bounce'
+                  : selectedEvent.status === 'PendingClientBudgetApproval'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                   : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
               }`}>
-                <span>{isApproved ? '✓ Proposal Approved' : '⏳ Awaiting Manager Approval'}</span>
+                <span>
+                  {isApproved
+                    ? '✓ Proposal Approved'
+                    : selectedEvent.status === 'ClientChoiceSubmitted'
+                    ? '📩 Client Responded to Budget Request'
+                    : selectedEvent.status === 'PendingClientBudgetApproval'
+                    ? '⏳ Sent to Client for Budget Review'
+                    : '⏳ Awaiting Manager Approval'}
+                </span>
               </span>
             </div>
+
+            {selectedEvent.status === 'ClientChoiceSubmitted' && (
+              <div className="mx-6 mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-sm flex-shrink-0">
+                    📩
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+                      Client Responded to Budget Request!
+                    </h4>
+                    <p className="text-xs text-indigo-900 mt-0.5">
+                      Client selected their preferred package total: <strong className="text-indigo-950">Rs. {Number(selectedEvent.estimatedTotalCost).toLocaleString()}</strong>. Click <strong>"Approve Finalized Proposal"</strong> below to confirm and unlock deposit slip upload for client.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
               
@@ -848,8 +893,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Special Requests */}
                 {selectedEvent.additionalDetails && (
-                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
                         <span className="text-base">💐</span>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
@@ -857,27 +902,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </h4>
                       </div>
                       <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200">
-                        {customAddonCost > 0 ? `Allocated: Rs. ${customAddonCost.toLocaleString()}` : 'Priced by Manager'}
+                        Allocated: Rs. 35,000
                       </span>
                     </div>
                     <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6">
                       "{selectedEvent.additionalDetails}"
                     </p>
-                    {!isApproved && (
-                      <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between text-xs">
-                        <span className="font-semibold text-rose-900">Set Manager Allocation (LKR):</span>
-                        <div className="flex items-center space-x-1">
-                          <span className="text-slate-400 font-medium">Rs.</span>
-                          <input
-                            type="number"
-                            value={customAddonCost || ''}
-                            placeholder="e.g. 5000"
-                            onChange={(e) => setCustomAddonCost(Number(e.target.value))}
-                            className="w-32 px-2 py-1 bg-white border border-rose-300 rounded text-right text-xs font-bold text-slate-800 shadow-xs focus:ring-1 focus:ring-rose-500"
-                          />
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1205,6 +1235,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span>
                       {isApproved 
                         ? 'Approved & Ready for Signing' 
+                        : selectedEvent.status === 'ClientChoiceSubmitted'
+                        ? 'Approve Finalized Proposal (Unlock Client Deposit)'
                         : clientApprovalRequested 
                         ? 'Send Proposal with Client Budget Increase Request' 
                         : isBudgetAutoFitted 

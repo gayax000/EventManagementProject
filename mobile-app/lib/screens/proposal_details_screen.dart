@@ -217,7 +217,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
-    final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval' || (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed && !isApproved);
+    final isChoiceSubmitted = proposal.status == 'ClientChoiceSubmitted';
+    final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval' || (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed && !isApproved && !isChoiceSubmitted);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -227,8 +228,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // 1. Status Header
           if (isConfirmed)
             _buildBadge("✅ STATUS: BOOKING CONFIRMED & PASS ISSUED", Colors.green, Colors.greenAccent)
-          else if (isPendingBudgetApproval)
-            _buildBadge("🟣 STATUS: MANAGER RECOMMENDATION (BUDGET OVERRUN)", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
           else if (isApproved) ...[
             if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
               _buildBadge("🟢 PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", Colors.green, Colors.greenAccent)
@@ -236,9 +235,34 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               _buildBadge("🟡 PAYMENT SLIP UNDER MANAGER VERIFICATION", Colors.amber, Colors.amberAccent)
             else
               _buildBadge("💳 PROPOSAL APPROVED: AWAITING PAYMENT DEPOSIT", const Color(0xFFD4AF37), const Color(0xFFD4AF37)),
-          ] else
+          ] else if (isChoiceSubmitted)
+            _buildBadge("📩 CHOICE SUBMITTED: AWAITING MANAGER FINAL CONFIRMATION", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
+          else if (isPendingBudgetApproval)
+            _buildBadge("🟣 STATUS: MANAGER RECOMMENDATION (BUDGET OVERRUN)", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
+          else
             _buildBadge("🟡 STATUS: UNDER MANAGER REVIEW", Colors.amber, Colors.amber),
 
+          const SizedBox(height: 12),
+
+          // Visual Timeline Stepper Bar
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStepItem("1. AI Plan", true, isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed),
+                _buildStepItem("2. Budget Review", isPendingBudgetApproval || isChoiceSubmitted, isApproved || isConfirmed),
+                _buildStepItem("3. Deposit", isApproved && !isConfirmed, isConfirmed),
+                _buildStepItem("4. Pass Issued", isConfirmed, isConfirmed),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
 
           // 2. Event Title & Details Card
@@ -286,7 +310,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           const SizedBox(height: 14),
 
           // Manager Recommendation & Budget Overrun Review Card
-          if (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed) ...[
+          if ((isPendingBudgetApproval || isChoiceSubmitted) && !isConfirmed) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -320,13 +344,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withOpacity(0.2),
+                          color: isChoiceSubmitted ? Colors.cyan.withOpacity(0.2) : Colors.amber.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.amber),
+                          border: Border.all(color: isChoiceSubmitted ? Colors.cyan : Colors.amber),
                         ),
-                        child: const Text(
-                          "Action Required",
-                          style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
+                        child: Text(
+                          isChoiceSubmitted ? "Choice Sent" : "Action Required",
+                          style: TextStyle(color: isChoiceSubmitted ? Colors.cyanAccent : Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -360,85 +384,116 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                             Text("LKR $formattedBudget", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                           ],
                         ),
-                        const Divider(color: Colors.white12, height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("Budget Difference:", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
-                            Text(
-                              "+LKR ${(proposal.estimatedTotalCost - proposal.budgetLimit).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
-                              style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
-                          ],
-                        ),
+                        if (proposal.estimatedTotalCost > proposal.budgetLimit) ...[
+                          const Divider(color: Colors.white12, height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Budget Difference:", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+                              Text(
+                                "+LKR ${(proposal.estimatedTotalCost - proposal.budgetLimit).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                                style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    "Please select how you would like to proceed:",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                  const SizedBox(height: 10),
 
-                  // Option A: Accept Overrun & Proceed
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        setState(() => _isLoading = true);
-                        final ok = await ApiService.acceptOverrunAndApprove(widget.eventId, proposal.estimatedTotalCost);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ok 
-                                  ? "✓ Premium package accepted! Please proceed to upload your payment deposit slip below." 
-                                  : "✓ Accept request submitted to manager."),
-                              backgroundColor: Colors.indigo,
-                            ),
-                          );
-                          _loadProposal();
-                        }
-                      },
-                      icon: const Icon(Icons.verified, size: 16, color: Colors.white),
-                      label: Text("💎 Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4F46E5),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  if (isChoiceSubmitted) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF818CF8)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.mark_email_read, color: Colors.cyanAccent, size: 28),
+                          const SizedBox(height: 6),
+                          const Text(
+                            "✓ Budget Choice Submitted to Manager",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "You selected package total LKR $formattedCost. The Hotel Operations Manager has been notified on the Web Portal to confirm and unlock your deposit payment slip.",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.3),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
+                  ] else ...[
+                    const Text(
+                      "Please select how you would like to proceed:",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                    const SizedBox(height: 10),
 
-                  // Option B: Request Auto-Fit to Budget
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        setState(() => _isLoading = true);
-                        final ok = await ApiService.requestBudgetAutoFit(widget.eventId);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ok
-                                  ? "⚡ Proposal auto-fitted to your LKR $formattedBudget budget! Optional packages adjusted."
-                                  : "⚡ Request submitted to manager for budget auto-fit."),
-                              backgroundColor: Colors.teal,
-                            ),
-                          );
-                          _loadProposal();
-                        }
-                      },
-                      icon: const Icon(Icons.bolt, size: 16, color: Colors.amberAccent),
-                      label: Text("⚡ Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.amberAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 11),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    // Option A: Accept Overrun & Proceed
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          setState(() => _isLoading = true);
+                          final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'AcceptedPremium', proposal.estimatedTotalCost);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok 
+                                    ? "✓ Choice submitted! Waiting for Manager's final confirmation on Web Dashboard." 
+                                    : "✓ Request submitted to manager."),
+                                backgroundColor: Colors.indigo,
+                              ),
+                            );
+                            _loadProposal();
+                          }
+                        },
+                        icon: const Icon(Icons.verified, size: 16, color: Colors.white),
+                        label: Text("💎 Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4F46E5),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+
+                    // Option B: Request Auto-Fit to Budget
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          setState(() => _isLoading = true);
+                          final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'RequestedBudgetFit', proposal.budgetLimit);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(ok
+                                    ? "⚡ Request submitted! Waiting for Manager's final confirmation on Web Dashboard."
+                                    : "⚡ Request submitted to manager."),
+                                backgroundColor: Colors.teal,
+                              ),
+                            );
+                            _loadProposal();
+                          }
+                        },
+                        icon: const Icon(Icons.bolt, size: 16, color: Colors.amberAccent),
+                        label: Text("⚡ Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.amberAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -912,25 +967,36 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               },
             ),
           ] else ...[
-            // Under Review Message
+            // Payment Slip Locked Message
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.withOpacity(0.4)),
               ),
-              child: const Column(
+              child: Column(
                 children: [
-                  Icon(Icons.hourglass_top, color: Colors.amber, size: 36),
-                  SizedBox(height: 8),
-                  Text("Awaiting Manager Approval", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 4),
+                  const Icon(Icons.lock_clock, color: Colors.amber, size: 32),
+                  const SizedBox(height: 8),
                   Text(
-                    "Our AI Multi-Agent system has crafted the preliminary plan. The Event Operations Manager is currently reviewing packages, vendor availability, and final pricing on the Web Portal. Please check back shortly!",
+                    isChoiceSubmitted
+                      ? "🔒 Bank Slip Upload Locked (Awaiting Manager Final Approval)"
+                      : isPendingBudgetApproval
+                      ? "🔒 Bank Slip Upload Locked (Awaiting Budget Choice)"
+                      : "🔒 Bank Slip Upload Locked (Awaiting Manager Review)",
+                    style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13.5),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isChoiceSubmitted
+                      ? "You submitted your budget choice. Once the Operations Manager gives final confirmation on the Web Dashboard, this payment deposit section will unlock automatically!"
+                      : isPendingBudgetApproval
+                      ? "Please review the Manager's recommendation card above and select your budget choice to proceed."
+                      : "Our AI Multi-Agent system has compiled your preliminary plan. The Event Manager is reviewing vendor packages and pricing on the Web Portal. Please check back shortly!",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.white70, fontSize: 12),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
@@ -938,6 +1004,27 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildStepItem(String label, bool isActive, bool isDone) {
+    return Row(
+      children: [
+        Icon(
+          isDone ? Icons.check_circle : (isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+          size: 14,
+          color: isDone ? Colors.greenAccent : (isActive ? Colors.cyanAccent : Colors.white38),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.normal,
+            color: isDone ? Colors.greenAccent : (isActive ? Colors.cyanAccent : Colors.white54),
+          ),
+        ),
+      ],
     );
   }
 

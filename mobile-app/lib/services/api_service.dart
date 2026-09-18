@@ -99,6 +99,19 @@ class ApiService {
     }
   }
 
+  // 2.03 Submit Client Budget Choice
+  static Future<bool> submitClientBudgetChoice(String eventId, String choice, double chosenTotal) async {
+    try {
+      final url = Uri.parse('$baseUrl/events/$eventId/submit-client-budget-choice?choice=$choice&chosenTotal=$chosenTotal');
+      final headers = await _getHeaders();
+      final response = await http.post(url, headers: headers).timeout(const Duration(seconds: 15));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint("API Error submitClientBudgetChoice: $e");
+      return false;
+    }
+  }
+
   // 2.1 Fetch Banquet Halls for Hotels
   static Future<List<BanquetHallItem>> getBanquetHalls({String? venueId, DateTime? date}) async {
     try {

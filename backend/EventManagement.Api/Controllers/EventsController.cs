@@ -268,9 +268,41 @@ public class EventsController : ControllerBase
             bookingRef = booking?.BookingReferenceCode,
             qrCodeData = booking?.EntryPass?.QrCodeData,
             isConfirmed = (ev.Status == "Confirmed" || (booking != null && booking.Status == "Confirmed")) && booking?.EntryPass != null,
+            isPaymentUnlocked = ev.Status == "ApprovedByManager" || ev.Status == "Confirmed",
             paymentStatus = payment?.Status,
             slipImageUrl = payment?.SlipImageUrl,
             invoiceNumber = invoice?.InvoiceNumber
+        });
+    }
+
+    // 2.2 POST: api/events/{id}/submit-client-budget-choice (Client Budget Response from Mobile)
+    [HttpPost("{id}/submit-client-budget-choice")]
+    public async Task<ActionResult> SubmitClientBudgetChoice(Guid id, [FromQuery] string choice, [FromQuery] decimal chosenTotal)
+    {
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+            return NotFound(new { message = "Event not found." });
+
+        ev.Status = "ClientChoiceSubmitted";
+
+        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        if (aiState != null)
+        {
+            aiState.ApprovalStatus = "ClientChoiceSubmitted";
+            if (chosenTotal > 0)
+            {
+                aiState.EstimatedTotalCost = chosenTotal;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Client choice submitted successfully. Manager has been notified for final approval.",
+            status = ev.Status,
+            choice = choice,
+            chosenTotal = aiState?.EstimatedTotalCost
         });
     }
 
