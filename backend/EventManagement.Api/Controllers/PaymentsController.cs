@@ -1,11 +1,13 @@
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventManagement.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class PaymentsController : ControllerBase
@@ -96,6 +98,7 @@ public class PaymentsController : ControllerBase
     }
 
     // 1.1 GET: api/payments (List all customer payment slips for Manager Verification Queue)
+    [Authorize(Roles = "Manager")]
     [HttpGet]
     public async Task<ActionResult> GetAllPayments()
     {
