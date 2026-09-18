@@ -1122,19 +1122,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // STEP 2: SERVICES & SPECIAL REQUESTS
+  // STEP 3: SERVICES, INSPIRATION PHOTOS & CLIENT VISION CHATBOX
   Widget _buildStep2Services() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Step 3: Services & Custom Add-ons', Icons.checklist),
+        _buildSectionHeader('Step 3: Services, Inspiration & Vision', Icons.checklist),
         const SizedBox(height: 4),
         const Text(
-          'Select production packages, cakes, transport, and special client requests.',
+          'Select production packages, attach moodboard photos, and describe your vision for our Operations Manager.',
           style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
         const SizedBox(height: 14),
 
+        // Service Selection Card
         _buildCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1152,112 +1153,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   _buildServiceFilterChip('Luxury Transport', Icons.directions_car),
                 ],
               ),
-              const Divider(color: Colors.white12, height: 26),
-
-              // Other requirements toggle
-              Row(
-                children: [
-                  Checkbox(
-                    value: _includeOtherServices,
-                    activeColor: const Color(0xFFD4AF37),
-                    checkColor: Colors.black,
-                    onChanged: (val) => setState(() => _includeOtherServices = val ?? false),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Other Custom Requirements / Add-ons',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                  ),
-                ],
-              ),
-              if (_includeOtherServices) ...[
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _customServiceNotesController,
-                  maxLines: 2,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration(
-                    'Describe Other Services Needed',
-                    hint: 'e.g. Traditional Dancers, Live Band, Poruwa Setup, Drone videography',
-                  ),
-                ),
-              ],
             ],
           ),
         ),
 
         const SizedBox(height: 16),
-
-        _buildCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.card_giftcard, color: Color(0xFFD4AF37), size: 18),
-                  SizedBox(width: 8),
-                  Text('Special Client Requests & Arrangements', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Personalized touches for your special day (e.g. surprise red rose bouquet, custom welcome gifts, etc.):',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _additionalDetailsController,
-                maxLines: 3,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration(
-                  'Special Requests & Arrangements',
-                  hint: 'e.g. Arrange surprise red rose flower bouquet on arrival, VIP welcome mocktails...',
-                  icon: Icons.local_florist,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4AF37).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.monetization_on_outlined, color: Color(0xFFD4AF37), size: 16),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'A coordination budget allocation of LKR 35,000 will be included in your proposal for these arrangements.',
-                        style: TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // STEP 3: PHOTOS & FINAL REVIEW
-  Widget _buildStep3ReviewAndPhotos() {
-    final curFormat = NumberFormat('#,##0', 'en_US');
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Step 4: Inspiration Photos & Final Review', Icons.verified_user),
-        const SizedBox(height: 4),
-        const Text(
-          'Upload inspiration photos and review your complete event parameters before AI compilation.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
-        ),
-        const SizedBox(height: 14),
 
         // Inspiration Photos Card
         _buildCard(
@@ -1346,6 +1246,56 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
         const SizedBox(height: 16),
 
+        // Client Vision & Requirements Chatbox Card
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.chat_bubble_outline, color: Color(0xFFD4AF37), size: 18),
+                  SizedBox(width: 8),
+                  Text('Client Vision & Special Notes Chatbox', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Type your custom vision, specific photo instructions, theme preferences, or special requests for our Operations Manager:',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _additionalDetailsController,
+                maxLines: 4,
+                style: const TextStyle(color: Colors.white),
+                decoration: _inputDecoration(
+                  'Client Vision & Special Notes',
+                  hint: 'e.g. I want a pastel floral theme on stage with warm fairy lights, like in photo 1. Please arrange VIP welcome mocktails on arrival...',
+                  icon: Icons.edit_note,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // STEP 4: FINAL REVIEW & SUBMISSION
+  Widget _buildStep3ReviewAndPhotos() {
+    final curFormat = NumberFormat('#,##0', 'en_US');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Step 4: Final Review & Submission', Icons.verified_user),
+        const SizedBox(height: 4),
+        const Text(
+          'Review your complete event parameters, attached photos, and client vision notes before AI compilation.',
+          style: TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+
         // AI Proposal Summary Card
         _buildCard(
           child: Column(
@@ -1388,8 +1338,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               if (_selectedServices.isNotEmpty)
                 _buildSummaryRow('Services (${_selectedServices.length}):', _selectedServices.join(' • ')),
 
+              if (_selectedImages.isNotEmpty)
+                _buildSummaryRow('Inspiration Photos:', '${_selectedImages.length} photo(s) attached'),
+
               if (_additionalDetailsController.text.trim().isNotEmpty)
-                _buildSummaryRow('Special Requests:', '${_additionalDetailsController.text.trim()} (+ LKR 35,000)'),
+                _buildSummaryRow('Client Vision Notes:', _additionalDetailsController.text.trim()),
 
               if (_locationMode == 'hotel' && _selectedHall != null) ...[
                 const Divider(color: Colors.white12, height: 18),
