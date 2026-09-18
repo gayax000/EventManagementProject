@@ -168,30 +168,35 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500 selection:text-white">
       
       {/* ========================================================================= */}
-      {/* 1. TOP AUTHENTICATION & ONBOARDING TAB / BAR                              */}
+      {/* 1. TOP AUTHENTICATION & ONBOARDING TAB / BAR (Fully Mobile-Responsive)     */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 sm:h-18 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
           
           {/* Left: Brand Identity */}
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-xl shadow-lg shadow-sky-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-center space-x-2.5 sm:space-x-3 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="p-2 sm:p-2.5 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-xl shadow-lg shadow-sky-500/20">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <div>
+                <span className="font-black text-lg sm:text-xl tracking-tight text-white">EventCraft<span className="text-sky-400">.AI</span></span>
+                <span className="ml-2 text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-sky-300 border border-slate-700 hidden xs:inline-block">
+                  Client & Supplier
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="font-black text-xl tracking-tight text-white">EventCraft<span className="text-sky-400">.AI</span></span>
-              <span className="ml-2.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-sky-300 border border-slate-700">
-                Client & Supplier Portal
-              </span>
-            </div>
+            <span className="text-[10px] text-slate-400 sm:hidden">
+              AI Event Platform
+            </span>
           </div>
 
           {/* Right: Auth Tabs (Log In & Don't have an acc? Sign Up / Register) */}
-          <div className="flex items-center space-x-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-950/80 p-1 sm:p-1.5 rounded-2xl border border-slate-800 w-full sm:w-auto justify-center">
             {/* Log In Tab */}
             <button
               onClick={() => { setActiveAuthTab('login'); setError(''); setSuccessMsg(''); }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              className={`flex items-center justify-center space-x-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all duration-200 flex-1 sm:flex-initial ${
                 activeAuthTab === 'login'
                   ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-850'
@@ -204,14 +209,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
             {/* Don't have an acc? Sign Up / Register Tab */}
             <button
               onClick={() => { setActiveAuthTab('register'); setError(''); setSuccessMsg(''); }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              className={`flex items-center justify-center space-x-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all duration-200 flex-1 sm:flex-initial ${
                 activeAuthTab === 'register'
                   ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md shadow-indigo-500/20'
                   : 'text-slate-400 hover:text-white hover:bg-slate-850'
               }`}
             >
               <UserPlus className="w-3.5 h-3.5 text-sky-400" />
-              <span>Don't have an account? Sign Up / Register</span>
+              <span className="hidden sm:inline">Don't have an account? </span>
+              <span>Sign Up / Register</span>
             </button>
           </div>
 
@@ -219,62 +225,62 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
       </header>
 
       {/* Main Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-10">
 
         {/* ========================================================================= */}
         {/* 2. WELCOME TO EVENTCRAFT — HERO & SYSTEM WORKFLOW EXPLANATION            */}
         {/* ========================================================================= */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-8 sm:p-12 shadow-2xl">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 p-5 sm:p-8 md:p-12 shadow-2xl">
           {/* Radiant Glow Accents */}
-          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 rounded-full bg-sky-500/15 blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-96 h-96 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-sky-500/15 blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 items-center">
             
             {/* Left Side: Welcome Description & Value Proposition (7 cols) */}
-            <div className="lg:col-span-7 space-y-5">
+            <div className="lg:col-span-7 space-y-3.5 sm:space-y-5 text-left">
               
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                <span>Premier AI-Powered Event Management Platform</span>
+              <div className="inline-flex items-center space-x-2 px-2.5 sm:px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] sm:text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+                <span>Premier AI-Powered Event Platform</span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
                 Welcome to <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">EventCraft</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-normal">
+              <p className="text-xs sm:text-sm md:text-base text-slate-300 leading-relaxed font-normal">
                 EventCraft is Sri Lanka's leading multi-agent AI event management system. We take the hassle, uncertainty, and endless back-and-forth out of event planning. By pairing certified 5-star hotel banquet halls with verified suppliers and real-time environmental weather contingency safeguards, EventCraft transforms your dream wedding, corporate gala, or milestone celebration into a flawlessly coordinated reality.
               </p>
 
-              {/* Highlights Metric Counter */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3.5">
-                  <div className="text-2xl font-black text-sky-400">100+</div>
-                  <div className="text-[11px] text-slate-400 font-medium mt-0.5">Certified 5-Star Venues</div>
+              {/* Highlights Metric Counter (Responsive 2x2 on mobile, 4-col on desktop) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
+                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-xl sm:rounded-2xl p-3 sm:p-3.5">
+                  <div className="text-xl sm:text-2xl font-black text-sky-400">100+</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">Certified 5-Star Venues</div>
                 </div>
-                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3.5">
-                  <div className="text-2xl font-black text-indigo-400">250+</div>
-                  <div className="text-[11px] text-slate-400 font-medium mt-0.5">Verified Elite Vendors</div>
+                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3 sm:p-3.5">
+                  <div className="text-xl sm:text-2xl font-black text-indigo-400">250+</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">Verified Elite Vendors</div>
                 </div>
-                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3.5">
-                  <div className="text-2xl font-black text-emerald-400">100%</div>
-                  <div className="text-[11px] text-slate-400 font-medium mt-0.5">Weather Contingency</div>
+                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3 sm:p-3.5">
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400">100%</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">Weather Shield</div>
                 </div>
-                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3.5">
-                  <div className="text-2xl font-black text-amber-400">4.9 / 5.0</div>
-                  <div className="text-[11px] text-slate-400 font-medium mt-0.5">Client Satisfaction</div>
+                <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/60 rounded-2xl p-3 sm:p-3.5">
+                  <div className="text-xl sm:text-2xl font-black text-amber-400">4.9 / 5.0</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-0.5">Client Rating</div>
                 </div>
               </div>
 
             </div>
 
             {/* Right Side: Authentication Box (5 cols) */}
-            <div className="lg:col-span-5">
-              <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl">
+            <div className="lg:col-span-5 w-full">
+              <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl">
                 
                 {/* Form Header Tabs */}
-                <div className="flex border-b border-slate-800 pb-3 mb-5">
+                <div className="flex border-b border-slate-800 pb-3 mb-4 sm:mb-5">
                   <button
                     type="button"
                     onClick={() => { setActiveAuthTab('login'); setError(''); setSuccessMsg(''); }}
@@ -314,7 +320,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
 
                 {/* Tab 1: Login Form */}
                 {activeAuthTab === 'login' ? (
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <form onSubmit={handleLoginSubmit} className="space-y-3.5 sm:space-y-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
                       <div className="relative">
@@ -442,7 +448,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
                               : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
                           }`}
                         >
-                          🎉 Client / Customer
+                          🎉 Client
                         </button>
                         <button
                           type="button"
@@ -453,7 +459,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
                               : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
                           }`}
                         >
-                          🏢 Vendor / Supplier
+                          🏢 Vendor
                         </button>
                       </div>
                     </div>
@@ -487,8 +493,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
 
           </div>
 
-          {/* "How Our Work Happens" 5-Step Process Breakdown */}
-          <div className="relative z-10 mt-12 pt-8 border-t border-slate-800/80">
+          {/* "How Our Work Happens" 5-Step Process Breakdown (Responsive Grid) */}
+          <div className="relative z-10 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-slate-800/80">
             <div className="flex items-center space-x-2 mb-4">
               <Layers className="w-4 h-4 text-sky-400" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-300">
@@ -496,7 +502,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
               
               <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 hover:border-sky-500/40 transition">
                 <div className="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 font-black text-xs flex items-center justify-center mb-2.5">
@@ -538,7 +544,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
                 </p>
               </div>
 
-              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 hover:border-emerald-500/40 transition">
+              <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 hover:border-emerald-500/40 transition sm:col-span-2 md:col-span-1">
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-xs flex items-center justify-center mb-2.5">
                   05
                 </div>
@@ -556,24 +562,24 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
         {/* ========================================================================= */}
         {/* 3. CURATED LUXURY EVENT PHOTOGRAPHY SHOWCASE ("Lassana Photos")          */}
         {/* ========================================================================= */}
-        <div className="bg-slate-900 rounded-3xl border border-slate-800 p-6 sm:p-8 shadow-xl">
+        <div className="bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-800 p-5 sm:p-8 shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-6 pb-4 border-b border-slate-800">
             <div>
               <div className="flex items-center space-x-2">
                 <ImageIcon className="w-5 h-5 text-sky-400" />
-                <h2 className="text-xl font-black text-white">Curated Luxury Celebrations & Aesthetic Inspirations</h2>
+                <h2 className="text-lg sm:text-xl font-black text-white">Curated Luxury Celebrations & Inspirations</h2>
               </div>
               <p className="text-xs text-slate-400 mt-1">
                 Explore signature event setups curated by EventCraft AI across premier Sri Lankan hotels and destinations.
               </p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
-              Click any image to view in HD
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+              Tap any image to view in HD
             </span>
           </div>
 
-          {/* 6 Curated High-Res Visual Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* 6 Curated High-Res Visual Cards (Responsive 1-col on phone, 2-col on tablet, 3-col on desktop) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {CURATED_SHOWCASE_PHOTOS.map((item) => (
               <div 
                 key={item.id}
@@ -627,19 +633,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
 
       </main>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal (Responsive for mobile screens) */}
       {previewImage && (
         <div 
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4" 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4" 
           onClick={() => setPreviewImage(null)}
         >
           <div 
-            className="relative max-w-5xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700" 
+            className="relative w-full max-w-5xl max-h-[90vh] bg-slate-900 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-700" 
             onClick={e => e.stopPropagation()}
           >
             <button 
               onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 p-2.5 bg-black/70 hover:bg-black text-white rounded-full transition z-20 shadow-lg border border-white/20"
+              className="absolute top-3 right-3 p-2 bg-black/70 hover:bg-black text-white rounded-full transition z-20 shadow-lg border border-white/20"
             >
               <X className="w-5 h-5" />
             </button>
@@ -653,7 +659,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onNavigateRegister
       )}
 
       {/* Footer */}
-      <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-900 bg-slate-950">
+      <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-900 bg-slate-950 px-4">
         SE3090 Software Engineering Frameworks • EventCraft AI Management Platform
       </footer>
 
