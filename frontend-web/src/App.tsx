@@ -8,42 +8,59 @@ import { PaymentsPage } from './pages/PaymentsPage';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { authService } from './services/authService';
-
 import { VendorPortal } from './pages/VendorPortal';
 
 function App() {
-  const [userRole, setUserRole] = useState<'Manager' | 'Vendor'>('Manager');
+  const [userRole, setUserRole] = useState<'Manager' | 'Vendor' | 'Customer' | 'Guest'>('Guest');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
+  const [authView, setAuthView] = useState<'none' | 'login' | 'register'>('none');
 
-  useEffect(() => {
+  const refreshAuth = () => {
     const loggedIn = authService.isLoggedIn();
     setIsAuthenticated(loggedIn);
     if (loggedIn) {
       const role = authService.getUserRole();
-      setUserRole(role === 'Vendor' ? 'Vendor' : 'Manager');
+      if (role === 'Vendor') setUserRole('Vendor');
+      else if (role === 'Customer') setUserRole('Customer');
+      else setUserRole('Manager');
+    } else {
+      setUserRole('Guest');
     }
+  };
+
+  useEffect(() => {
+    refreshAuth();
   }, []);
 
   const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
-    setShowRegister(false);
-    const role = authService.getUserRole();
-    setUserRole(role === 'Vendor' ? 'Vendor' : 'Manager');
+    refreshAuth();
+    setAuthView('none');
     setActiveTab('dashboard');
   };
 
   const handleLogout = () => {
     authService.logout();
-    setIsAuthenticated(false);
+    refreshAuth();
+    setActiveTab('dashboard');
   };
 
-  if (!isAuthenticated) {
-    if (showRegister) {
-      return <Register onNavigateLogin={() => setShowRegister(false)} />;
-    }
-    return <Login onLoginSuccess={handleLoginSuccess} onNavigateRegister={() => setShowRegister(true)} />;
+  // Full-screen auth view if explicitly navigated to login or register
+  if (authView === 'login') {
+    return (
+      <Login 
+        onLoginSuccess={handleLoginSuccess} 
+        onNavigateRegister={() => setAuthView('register')} 
+      />
+    );
+  }
+
+  if (authView === 'register') {
+    return (
+      <Register 
+        onNavigateLogin={() => setAuthView('login')} 
+      />
+    );
   }
 
   return (
@@ -53,19 +70,39 @@ function App() {
         onTabChange={setActiveTab} 
         userRole={userRole}
         onLogout={handleLogout}
+        onOpenLogin={() => setAuthView('login')}
+        onOpenRegister={() => setAuthView('register')}
       />
       
       <main className="flex-1">
-        {userRole === 'Manager' ? (
+        {userRole === 'Vendor' ? (
+          <VendorPortal />
+        ) : userRole === 'Manager' ? (
           <>
-            <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}><Dashboard /></div>
+            <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+              <Dashboard 
+                onAuthChange={refreshAuth}
+                onNavigateLogin={() => setAuthView('login')}
+                onNavigateRegister={() => setAuthView('register')}
+              />
+            </div>
             <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
             <div className={activeTab === 'vendors' ? 'block' : 'hidden'}><VendorsPage /></div>
             <div className={activeTab === 'resources' ? 'block' : 'hidden'}><ResourcesPage /></div>
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
           </>
         ) : (
-          <VendorPortal />
+          /* Customer / Guest Client View */
+          <>
+            <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+              <Dashboard 
+                onAuthChange={refreshAuth}
+                onNavigateLogin={() => setAuthView('login')}
+                onNavigateRegister={() => setAuthView('register')}
+              />
+            </div>
+            <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
+          </>
         )}
       </main>
 
