@@ -329,7 +329,7 @@ public class EventsController : ControllerBase
 
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
@@ -347,17 +347,41 @@ public class EventsController : ControllerBase
             }
             else
             {
-                // Dynamic baseline: (guests * 5000) + 300000 + (special requests: 35000) + (outdoor tent: 150000 if outdoor) - discount
+                // Dynamic baseline: (guests * 5000) + 300000 + (custom addon cost set by manager) + (outdoor tent: 150000 if outdoor) - discount
                 decimal baseSubtotal = (ev.GuestCount * 5000m) + 300000m;
-                if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+                if (customAddonCost.HasValue && customAddonCost.Value > 0)
                 {
-                    baseSubtotal += 35000m;
+                    baseSubtotal += customAddonCost.Value;
                 }
                 if (ev.IsOutdoor)
                 {
                     baseSubtotal += 150000m; // Only add marquee tent safeguard if outdoor
                 }
                 aiState.EstimatedTotalCost = Math.Max(0, baseSubtotal - discount);
+            }
+
+            if (customAddonCost.HasValue && customAddonCost.Value > 0 && !string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+            {
+                try
+                {
+                    var planItems = JsonSerializer.Deserialize<List<string>>(aiState.GeneratedPlanJson) ?? new List<string>();
+                    bool updated = false;
+                    for (int i = 0; i < planItems.Count; i++)
+                    {
+                        if (planItems[i].StartsWith("Special Client Request:"))
+                        {
+                            planItems[i] = $"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})";
+                            updated = true;
+                            break;
+                        }
+                    }
+                    if (!updated)
+                    {
+                        planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})");
+                    }
+                    aiState.GeneratedPlanJson = JsonSerializer.Serialize(planItems);
+                }
+                catch { }
             }
         }
 
