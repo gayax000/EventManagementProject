@@ -6,15 +6,13 @@ import { VendorsPage } from './pages/VendorsPage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { Login } from './pages/Login';
-import { Register } from './pages/Register';
 import { authService } from './services/authService';
 import { VendorPortal } from './pages/VendorPortal';
 
 function App() {
-  const [userRole, setUserRole] = useState<'Manager' | 'Vendor' | 'Customer' | 'Guest'>('Guest');
+  const [userRole, setUserRole] = useState<'Manager' | 'Vendor' | 'Customer'>('Manager');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authView, setAuthView] = useState<'none' | 'login' | 'register'>('none');
 
   const refreshAuth = () => {
     const loggedIn = authService.isLoggedIn();
@@ -24,8 +22,6 @@ function App() {
       if (role === 'Vendor') setUserRole('Vendor');
       else if (role === 'Customer') setUserRole('Customer');
       else setUserRole('Manager');
-    } else {
-      setUserRole('Guest');
     }
   };
 
@@ -35,7 +31,6 @@ function App() {
 
   const handleLoginSuccess = () => {
     refreshAuth();
-    setAuthView('none');
     setActiveTab('dashboard');
   };
 
@@ -45,22 +40,9 @@ function App() {
     setActiveTab('dashboard');
   };
 
-  // Full-screen auth view if explicitly navigated to login or register
-  if (authView === 'login') {
-    return (
-      <Login 
-        onLoginSuccess={handleLoginSuccess} 
-        onNavigateRegister={() => setAuthView('register')} 
-      />
-    );
-  }
-
-  if (authView === 'register') {
-    return (
-      <Register 
-        onNavigateLogin={() => setAuthView('login')} 
-      />
-    );
+  // If not logged in, render the luxury Login Dashboard
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
@@ -70,8 +52,6 @@ function App() {
         onTabChange={setActiveTab} 
         userRole={userRole}
         onLogout={handleLogout}
-        onOpenLogin={() => setAuthView('login')}
-        onOpenRegister={() => setAuthView('register')}
       />
       
       <main className="flex-1">
@@ -80,11 +60,7 @@ function App() {
         ) : userRole === 'Manager' ? (
           <>
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
-              <Dashboard 
-                onAuthChange={refreshAuth}
-                onNavigateLogin={() => setAuthView('login')}
-                onNavigateRegister={() => setAuthView('register')}
-              />
+              <Dashboard onAuthChange={refreshAuth} />
             </div>
             <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
             <div className={activeTab === 'vendors' ? 'block' : 'hidden'}><VendorsPage /></div>
@@ -92,14 +68,10 @@ function App() {
             <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
           </>
         ) : (
-          /* Customer / Guest Client View */
+          /* Customer / Client Logged-in View */
           <>
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
-              <Dashboard 
-                onAuthChange={refreshAuth}
-                onNavigateLogin={() => setAuthView('login')}
-                onNavigateRegister={() => setAuthView('register')}
-              />
+              <Dashboard onAuthChange={refreshAuth} />
             </div>
             <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
           </>
