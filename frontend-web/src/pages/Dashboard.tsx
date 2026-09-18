@@ -572,10 +572,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   if (onNavigateRegister) onNavigateRegister();
                   else setAuthModalTab('register');
                 }}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-500/20"
+                className="flex items-center space-x-1.5 px-3 sm:px-4 py-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-500/20"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>Don't have an account? Sign Up / Register</span>
+                <span className="hidden sm:inline">Don't have an account? </span>
+                <span>Sign Up / Register</span>
               </button>
             </>
           ) : (
