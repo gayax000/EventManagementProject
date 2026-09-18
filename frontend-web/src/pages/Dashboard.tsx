@@ -129,6 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
   const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
+  const [specialAllocation, setSpecialAllocation] = useState<number>(35000);
 
   // Authentication State & Modal
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(authService.isLoggedIn());
@@ -180,6 +181,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (selectedEvent?.eventId) {
       setIsBudgetAutoFitted(false);
       setClientApprovalRequested(false);
+      setSpecialAllocation(35000);
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
           if (p) {
@@ -290,7 +292,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Smart AI Tiered Resource Allocation Engine (Budget & Event-Type Context Aware)
-  const getAllocations = (ev: EventItem | null, forceAutoFit: boolean = false) => {
+  const getAllocations = (ev: EventItem | null, forceAutoFit: boolean = false, customSpecialAllocation?: number) => {
     if (!ev) {
       return {
         hasSounds: false, soundsCost: 0, soundsName: '',
@@ -451,7 +453,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
+<<<<<<< HEAD
     const otherCost = hasSpecialRequests ? (customAddonCost > 0 ? customAddonCost : 0) : 0;
+=======
+    const otherCost = hasSpecialRequests ? (customSpecialAllocation !== undefined ? customSpecialAllocation : specialAllocation) : 0;
+>>>>>>> 1ff98b2 (feat(web): add manager special request pricing and proposal budget increase trigger)
 
     return {
       hasSounds, soundsCost, soundsName,
@@ -902,28 +908,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           Special Client Custom Requests
                         </h4>
                       </div>
-                      <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200">
-                        {customAddonCost > 0 ? `Allocated: Rs. ${customAddonCost.toLocaleString()}` : 'Priced by Manager'}
+                      <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
+                        Allocated: Rs. {alloc.otherCost.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6">
+                    <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">
                       "{selectedEvent.additionalDetails}"
                     </p>
-                    {!isApproved && (
-                      <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between text-xs">
-                        <span className="font-semibold text-rose-900">Set Manager Allocation (LKR):</span>
+
+                    {!isApproved && selectedEvent.status !== 'PendingClientBudgetApproval' && selectedEvent.status !== 'ClientChoiceSubmitted' ? (
+                      <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between text-xs">
+                        <label className="font-bold text-rose-900">Set Manager Allocation (LKR):</label>
                         <div className="flex items-center space-x-1">
-                          <span className="text-slate-400 font-medium">Rs.</span>
+                          <span className="font-semibold text-rose-700">Rs.</span>
                           <input
                             type="number"
-                            value={customAddonCost || ''}
-                            placeholder="e.g. 5000"
-                            onChange={(e) => setCustomAddonCost(Number(e.target.value))}
-                            className="w-32 px-2 py-1 bg-white border border-rose-300 rounded text-right text-xs font-bold text-slate-800 shadow-xs focus:ring-1 focus:ring-rose-500"
+                            value={specialAllocation}
+                            onChange={(e) => setSpecialAllocation(Number(e.target.value))}
+                            className="w-28 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
                           />
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
@@ -1238,10 +1244,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div className="space-y-2">
                   <button 
                     onClick={handleApprove}
-                    disabled={isApproved}
+                    disabled={isApproved || selectedEvent.status === 'PendingClientBudgetApproval'}
                     className={`w-full py-2.5 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50 ${
-                      clientApprovalRequested
-                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                      selectedEvent.status === 'ClientChoiceSubmitted'
+                        ? 'bg-emerald-600 hover:bg-emerald-700 font-bold'
+                        : clientApprovalRequested
+                        ? 'bg-indigo-600 hover:bg-indigo-700 font-bold'
                         : isBudgetAutoFitted
                         ? 'bg-emerald-600 hover:bg-emerald-700'
                         : 'bg-emerald-600 hover:bg-emerald-700'
@@ -1251,6 +1259,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span>
                       {isApproved 
                         ? 'Approved & Ready for Signing' 
+                        : selectedEvent.status === 'PendingClientBudgetApproval'
+                        ? '⏳ Proposal Sent to Client (Awaiting Response)'
                         : selectedEvent.status === 'ClientChoiceSubmitted'
                         ? 'Approve Finalized Proposal (Unlock Client Deposit)'
                         : clientApprovalRequested 
