@@ -1,104 +1,180 @@
 import React from 'react';
-import { Sparkles, ShieldCheck, CreditCard, LayoutDashboard, Package, Bell, User } from 'lucide-react';
+import { Sparkles, ShieldCheck, CreditCard, LayoutDashboard, Package, Building2, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { authService } from '../services/authService';
 
 interface NavbarProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
+  userRole: 'Manager' | 'Vendor' | 'Customer' | 'Guest';
+  onLogout: () => void;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  currentTab, 
+  onTabChange,
+  userRole,
+  onLogout,
+  onOpenLogin,
+  onOpenRegister
+}) => {
+  const userName = authService.getUserName();
+  const isLoggedIn = authService.isLoggedIn();
+
+  const getPortalBadge = () => {
+    switch (userRole) {
+      case 'Manager':
+        return { label: 'Operations Manager Portal', bg: 'bg-slate-800 text-sky-300 border-slate-700' };
+      case 'Vendor':
+        return { label: 'Supplier & Vendor Portal', bg: 'bg-indigo-950 text-indigo-300 border-indigo-800' };
+      case 'Customer':
+        return { label: 'Client Experience Portal', bg: 'bg-sky-950 text-sky-300 border-sky-800' };
+      default:
+        return { label: 'Client & Visitor Portal', bg: 'bg-slate-800 text-slate-300 border-slate-700' };
+    }
+  };
+
+  const badge = getPortalBadge();
+
   return (
-    <nav className="bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 text-white sticky top-0 z-50 shadow-xl">
+    <nav className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => onTabChange('dashboard')}>
-            <div className="p-2.5 bg-gradient-to-tr from-sky-400 via-cyan-500 to-indigo-600 rounded-xl shadow-lg shadow-sky-500/25 group-hover:scale-105 transition duration-200">
+          {/* Logo & Portal Branding */}
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onTabChange('dashboard')}>
+            <div className="p-2 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-lg shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="font-extrabold text-lg tracking-tight text-white">EventCraft</span>
-                <span className="text-xs font-black px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-400/30 tracking-wide">
-                  AI
-                </span>
-              </div>
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest -mt-0.5">
-                Operations Platform
-              </p>
+              <span className="font-bold text-lg tracking-tight text-white">EventCraft<span className="text-sky-400">.AI</span></span>
+              <span className={`ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${badge.bg}`}>
+                {badge.label}
+              </span>
             </div>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="hidden md:flex items-center space-x-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-            <button 
-              onClick={() => onTabChange('dashboard')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition duration-200 ${
-                currentTab === 'dashboard' 
-                  ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-400 border border-sky-500/40 shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>AI Dashboard</span>
-            </button>
+          {userRole === 'Manager' ? (
+            <div className="hidden lg:flex items-center space-x-1">
+              <button 
+                onClick={() => onTabChange('dashboard')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'dashboard' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Dashboard</span>
+              </button>
 
-            <button 
-              onClick={() => onTabChange('venues')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition duration-200 ${
-                currentTab === 'venues' 
-                  ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-400 border border-sky-500/40 shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Venues & Vendors</span>
-            </button>
+              <button 
+                onClick={() => onTabChange('venues')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'venues' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Venues</span>
+              </button>
 
-            <button 
-              onClick={() => onTabChange('resources')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition duration-200 ${
-                currentTab === 'resources' 
-                  ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-400 border border-sky-500/40 shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Resources & Rules</span>
-            </button>
+              <button 
+                onClick={() => onTabChange('vendors')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'vendors' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Vendors</span>
+              </button>
 
-            <button 
-              onClick={() => onTabChange('payments')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition duration-200 ${
-                currentTab === 'payments' 
-                  ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/20 text-sky-400 border border-sky-500/40 shadow-sm' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Payments & Analytics</span>
-            </button>
-          </div>
+              <button 
+                onClick={() => onTabChange('resources')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'resources' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Package className="w-4 h-4" />
+                <span>Resources & AI Rules</span>
+              </button>
 
-          {/* User Profile & Notifications */}
+              <button 
+                onClick={() => onTabChange('payments')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition ${
+                  currentTab === 'payments' ? 'bg-slate-800 text-sky-400 shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Payments & Analytics</span>
+              </button>
+            </div>
+          ) : userRole === 'Vendor' ? (
+            <div className="hidden md:flex items-center space-x-2 text-xs text-indigo-300 bg-indigo-950/60 px-3.5 py-1.5 rounded-xl border border-indigo-800/60">
+              <Building2 className="w-4 h-4 text-indigo-400" />
+              <span>Dedicated Supplier View • Business Registration & Audit Tracking</span>
+            </div>
+          ) : (
+            <div className="hidden md:flex items-center space-x-2">
+              <button 
+                onClick={() => onTabChange('dashboard')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  currentTab === 'dashboard' ? 'bg-slate-800 text-sky-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Client Dashboard</span>
+              </button>
+              <button 
+                onClick={() => onTabChange('venues')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  currentTab === 'venues' ? 'bg-slate-800 text-sky-400' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>Browse Venues</span>
+              </button>
+            </div>
+          )}
+
+          {/* Right Side: Logged-in Persona or Sign In buttons */}
           <div className="flex items-center space-x-3">
-            {/* Notification Bell with 3 Pending Badge */}
-            <div className="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white cursor-pointer transition">
-              <Bell className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] flex items-center justify-center">
-                3
-              </span>
-            </div>
+            {isLoggedIn ? (
+              <>
+                <div className="flex items-center space-x-2 text-xs text-slate-300 bg-slate-800/60 px-3 py-1.5 rounded-lg border border-slate-700/60">
+                  <span className={`w-2 h-2 rounded-full ${
+                    userRole === 'Manager' ? 'bg-emerald-500 animate-pulse' : 'bg-sky-400'
+                  }`}></span>
+                  <span className="font-medium text-slate-200">{userName}</span>
+                  <span className="text-slate-500 font-normal">({userRole})</span>
+                </div>
 
-            {/* Profile pill */}
-            <div className="flex items-center space-x-2.5 px-3 py-1.5 bg-slate-900 rounded-xl border border-slate-800">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-bold text-slate-200 leading-tight">Kasun</p>
-                <p className="text-[10px] text-sky-400 font-medium leading-tight">Manager Portal</p>
+                <button 
+                  onClick={onLogout}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/30 rounded-lg transition"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={onOpenLogin}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Log In</span>
+                </button>
+                <button
+                  onClick={onOpenRegister}
+                  className="flex items-center space-x-1 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 rounded-lg shadow-sm hover:from-sky-400 hover:to-indigo-500 transition"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Sign Up</span>
+                </button>
               </div>
-            </div>
+            )}
           </div>
 
         </div>
