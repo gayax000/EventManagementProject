@@ -213,9 +213,18 @@ export const VendorPortal: React.FC = () => {
   const selectedCategoryConfig = VENDOR_SERVICE_CONFIG[category] || getCategoryInfo(category);
 
   // Current Logged-in Vendor Identity
-  const userName = authService.getUserName();
-  const userEmail = authService.getUserEmail();
+  const [userName, setUserName] = useState(authService.getUserName());
+  const [userEmail, setUserEmail] = useState(authService.getUserEmail());
   const userKey = (userEmail || userName || 'vendor').toLowerCase().trim();
+
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      setUserName(authService.getUserName());
+      setUserEmail(authService.getUserEmail());
+    };
+    window.addEventListener('user_profile_updated', handleProfileUpdate);
+    return () => window.removeEventListener('user_profile_updated', handleProfileUpdate);
+  }, []);
 
   // Active vendor strictly tied to the logged-in user
   const [currentVendor, setCurrentVendor] = useState<VendorItem | null>(() => {

@@ -52,7 +52,18 @@ export const authService = {
     return localStorage.getItem('user_role') || 'Customer';
   },
 
+  getUserPhone: () => {
+    return localStorage.getItem('user_phone') || '';
+  },
+
   isLoggedIn: () => {
     return !!localStorage.getItem('jwt_token');
+  },
+
+  updateProfile: (fullName: string, email: string, phone?: string) => {
+    if (fullName) localStorage.setItem('user_name', fullName);
+    if (email) localStorage.setItem('user_email', email);
+    if (phone !== undefined) localStorage.setItem('user_phone', phone);
+    window.dispatchEvent(new CustomEvent('user_profile_updated', { detail: { fullName, email, phone } }));
   }
 };
