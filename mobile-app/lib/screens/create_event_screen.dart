@@ -1342,7 +1342,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 _buildSummaryRow('Inspiration Photos:', '${_selectedImages.length} photo(s) attached'),
 
               if (_additionalDetailsController.text.trim().isNotEmpty)
-                _buildSummaryRow('Client Vision Notes:', _additionalDetailsController.text.trim()),
+                _buildSummaryRow('Client Vision Notes:', '${_additionalDetailsController.text.trim()} (Priced by Manager upon Review)'),
 
               if (_locationMode == 'hotel' && _selectedHall != null) ...[
                 const Divider(color: Colors.white12, height: 18),
