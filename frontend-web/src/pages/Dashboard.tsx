@@ -120,6 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
+  const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
@@ -450,7 +451,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
-    const otherCost = hasSpecialRequests ? 35000 : 0;
+    const otherCost = hasSpecialRequests ? (customAddonCost > 0 ? customAddonCost : 0) : 0;
 
     return {
       hasSounds, soundsCost, soundsName,
@@ -482,7 +483,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
 
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, undefined, customAddonCost > 0 ? customAddonCost : undefined);
       setActionSuccess("Proposal approved successfully! Synchronized in PostgreSQL Database.");
       setSelectedEvent(prev => prev ? { ...prev, status: 'ApprovedByManager', estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
@@ -847,8 +848,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Special Requests */}
                 {selectedEvent.additionalDetails && (
-                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
+                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <span className="text-base">💐</span>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
@@ -856,12 +857,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </h4>
                       </div>
                       <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200">
-                        Allocated: Rs. 35,000
+                        {customAddonCost > 0 ? `Allocated: Rs. ${customAddonCost.toLocaleString()}` : 'Priced by Manager'}
                       </span>
                     </div>
                     <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6">
                       "{selectedEvent.additionalDetails}"
                     </p>
+                    {!isApproved && (
+                      <div className="pt-2 border-t border-rose-200/60 flex items-center justify-between text-xs">
+                        <span className="font-semibold text-rose-900">Set Manager Allocation (LKR):</span>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-slate-400 font-medium">Rs.</span>
+                          <input
+                            type="number"
+                            value={customAddonCost || ''}
+                            placeholder="e.g. 5000"
+                            onChange={(e) => setCustomAddonCost(Number(e.target.value))}
+                            className="w-32 px-2 py-1 bg-white border border-rose-300 rounded text-right text-xs font-bold text-slate-800 shadow-xs focus:ring-1 focus:ring-rose-500"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
