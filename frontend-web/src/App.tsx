@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './pages/Dashboard';
 import { VenuesPage } from './pages/VenuesPage';
 import { VendorsPage } from './pages/VendorsPage';
@@ -57,23 +58,48 @@ function App() {
       <main className="flex-1">
         {userRole === 'Vendor' ? (
           <VendorPortal />
-        ) : userRole === 'Manager' ? (
-          <>
-            <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
-              <Dashboard onAuthChange={refreshAuth} />
-            </div>
-            <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
-            <div className={activeTab === 'vendors' ? 'block' : 'hidden'}><VendorsPage /></div>
-            <div className={activeTab === 'resources' ? 'block' : 'hidden'}><ResourcesPage /></div>
-            <div className={activeTab === 'payments' ? 'block' : 'hidden'}><PaymentsPage /></div>
-          </>
         ) : (
-          /* Customer / Client Logged-in View */
           <>
             <div className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
               <Dashboard onAuthChange={refreshAuth} />
             </div>
-            <div className={activeTab === 'venues' ? 'block' : 'hidden'}><VenuesPage /></div>
+            
+            <div className={activeTab === 'venues' ? 'block' : 'hidden'}>
+              <VenuesPage />
+            </div>
+            
+            <div className={activeTab === 'vendors' ? 'block' : 'hidden'}>
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={setActiveTab}
+              >
+                <VendorsPage />
+              </ProtectedRoute>
+            </div>
+            
+            <div className={activeTab === 'resources' ? 'block' : 'hidden'}>
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={setActiveTab}
+              >
+                <ResourcesPage />
+              </ProtectedRoute>
+            </div>
+            
+            <div className={activeTab === 'payments' ? 'block' : 'hidden'}>
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={setActiveTab}
+              >
+                <PaymentsPage />
+              </ProtectedRoute>
+            </div>
           </>
         )}
       </main>
