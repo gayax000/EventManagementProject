@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Package, CloudRain, Cpu, Plus, Check, Search } from 'lucide-react';
+import { Package, CloudRain, Cpu, Plus, Check, Search, ShieldCheck } from 'lucide-react';
+import { vendorService } from '../services/api';
 
 export interface ResourceItem {
   id: string;
   name: string;
   type: string;
   unitPrice: number;
-  available: number;
+  available: number | string;
+  isPartnerVendor?: boolean;
+  vendorName?: string;
+  contactNumber?: string;
 }
 
 const DEFAULT_RESOURCES: ResourceItem[] = [
@@ -77,6 +81,48 @@ export const ResourcesPage: React.FC = () => {
     }
   });
 
+  const [partnerVendors, setPartnerVendors] = useState<ResourceItem[]>([]);
+
+  const fetchVerifiedPartnerVendors = async () => {
+    try {
+      const vendorData = await vendorService.getVendors();
+      if (Array.isArray(vendorData)) {
+        const verified = vendorData.filter(v => (v.verificationStatus || v.status) === 'Verified');
+        const mappedVendors: ResourceItem[] = verified.map(v => {
+          const category = v.category || 'General';
+          const name = v.businessName || v.name;
+          const remarks = v.adminRemarks ? ` - ${v.adminRemarks}` : '';
+          return {
+            id: `v-res-${v.vendorId || v.id}`,
+            name: `${name}${remarks}`,
+            type: category.includes('Catering') ? 'CateringPackage' : category,
+            unitPrice: category.includes('Sound') ? 120000 
+                     : category.includes('Decor') ? 130000 
+                     : category.includes('Photo') ? 150000 
+                     : category.includes('Cake') ? 45000 
+                     : category.includes('Transport') ? 65000 
+                     : category.includes('Cater') ? 5500 
+                     : category.includes('Tent') ? 150000 
+                     : 90000,
+            available: 'Active Partner',
+            isPartnerVendor: true,
+            vendorName: name,
+            contactNumber: v.contactNumber || v.contact
+          };
+        });
+        setPartnerVendors(mappedVendors);
+      }
+    } catch (err) {
+      console.error("Failed to fetch partner vendors for resources catalog", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchVerifiedPartnerVendors();
+    const interval = setInterval(fetchVerifiedPartnerVendors, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     try {
       localStorage.setItem('eventcraft_resources_v2', JSON.stringify(resources));
@@ -120,10 +166,31 @@ export const ResourcesPage: React.FC = () => {
     { label: '⚡ Power Backup', value: 'PowerBackup' },
   ];
 
-  const filteredResources = resources.filter(res => {
-    const matchesCategory = selectedCategory === 'All' || res.type === selectedCategory;
+  const allCombinedResources = [
+    ...resources.map(r => ({ ...r, isPartnerVendor: false })),
+    ...partnerVendors
+  ];
+
+  const filteredResources = allCombinedResources.filter(res => {
+    const resCatLower = (res.type || '').toLowerCase();
+    const selectedLower = selectedCategory.toLowerCase();
+    
+    let matchesCategory = selectedCategory === 'All';
+    if (!matchesCategory) {
+      if (selectedLower.includes('cater')) matchesCategory = resCatLower.includes('cater');
+      else if (selectedLower.includes('sound') || selectedLower.includes('light')) matchesCategory = resCatLower.includes('sound') || resCatLower.includes('light');
+      else if (selectedLower.includes('decor')) matchesCategory = resCatLower.includes('decor');
+      else if (selectedLower.includes('photo')) matchesCategory = resCatLower.includes('photo');
+      else if (selectedLower.includes('cake')) matchesCategory = resCatLower.includes('cake');
+      else if (selectedLower.includes('transport')) matchesCategory = resCatLower.includes('transport');
+      else if (selectedLower.includes('tent')) matchesCategory = resCatLower.includes('tent');
+      else if (selectedLower.includes('power')) matchesCategory = resCatLower.includes('power');
+      else matchesCategory = resCatLower === selectedLower;
+    }
+
     const matchesSearch = res.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          res.type.toLowerCase().includes(searchQuery.toLowerCase());
+                          res.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (res.vendorName || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -192,7 +259,7 @@ export const ResourcesPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Unit Price (LKR)</label>
                 <input 
-                    type="number" 
+                  type="number" 
                   value={newItemPrice} 
                   onChange={e => setNewItemPrice(Number(e.target.value))}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
@@ -245,9 +312,12 @@ export const ResourcesPage: React.FC = () => {
               className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
             />
           </div>
-          <span className="text-xs font-semibold text-slate-500">
-            Showing {filteredResources.length} of {resources.length} in-house catalog items
-          </span>
+          <div className="flex items-center space-x-2 text-xs font-semibold text-slate-500">
+            <span>Showing {filteredResources.length} of {allCombinedResources.length} catalog items</span>
+            <span className="text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200 font-bold">
+              ({partnerVendors.length} Partner Vendors Sync)
+            </span>
+          </div>
         </div>
 
         {/* Category Pills */}
@@ -278,27 +348,52 @@ export const ResourcesPage: React.FC = () => {
         <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
             <tr>
-              <th className="px-6 py-3">Resource Name</th>
+              <th className="px-6 py-3">Resource / Service Name</th>
               <th className="px-6 py-3">Type</th>
               <th className="px-6 py-3">Unit Price</th>
               <th className="px-6 py-3">Available Units</th>
-              <th className="px-6 py-3">Status</th>
+              <th className="px-6 py-3">Source & Status</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 text-slate-700">
             {filteredResources.map(res => (
-              <tr key={res.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-semibold text-slate-900 flex items-center">
-                  <Package className="w-4 h-4 mr-2 text-indigo-500 flex-shrink-0" />
-                  {res.name}
+              <tr key={res.id} className={`hover:bg-slate-50/80 transition ${res.isPartnerVendor ? 'bg-purple-50/20' : ''}`}>
+                <td className="px-6 py-4">
+                  {res.isPartnerVendor ? (
+                    <div className="flex flex-col">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-bold text-slate-900">{res.name}</span>
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200 rounded-md flex items-center shadow-xs">
+                          🤝 Certified Partner Vendor
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 mt-0.5 flex items-center">
+                        Provider: <strong className="text-purple-700 ml-1 font-semibold">{res.vendorName}</strong> {res.contactNumber ? `(${res.contactNumber})` : ''}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Package className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                      <span className="font-semibold text-slate-900">{res.name}</span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 rounded-md flex items-center">
+                        🏠 In-House Catalog
+                      </span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4"><span className="text-xs font-medium px-2.5 py-1 bg-slate-100 rounded-md text-slate-700">{res.type}</span></td>
                 <td className="px-6 py-4 font-bold text-slate-900">Rs. {res.unitPrice.toLocaleString()}</td>
-                <td className="px-6 py-4">{res.available} Units</td>
+                <td className="px-6 py-4 font-medium">{typeof res.available === 'number' ? `${res.available} Units` : res.available}</td>
                 <td className="px-6 py-4">
-                  <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full font-medium flex items-center w-max">
-                    <Check className="w-3 h-3 mr-1" /> In Stock
-                  </span>
+                  {res.isPartnerVendor ? (
+                    <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full font-semibold flex items-center w-max">
+                      <ShieldCheck className="w-3.5 h-3.5 mr-1 text-purple-600" /> Certified Partner
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium flex items-center w-max">
+                      <Check className="w-3 h-3 mr-1 text-emerald-600" /> In Stock
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
