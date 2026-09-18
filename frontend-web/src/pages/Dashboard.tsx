@@ -31,7 +31,8 @@ import {
   Lock,
   Mail,
   User,
-  Phone
+  Phone,
+  AlertTriangle
 } from 'lucide-react';
 import { eventService, type EventItem } from '../services/api';
 import { authService } from '../services/authService';
@@ -124,6 +125,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState('');
 
+  // Budget Guardrails & Human-in-the-Loop Management State
+  const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
+  const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
+
   // Authentication State & Modal
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(authService.isLoggedIn());
   const [currentUserName, setCurrentUserName] = useState<string>(authService.getUserName());
@@ -172,6 +177,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Fetch proposal details to synchronize real database pricing and inspiration photos
   useEffect(() => {
     if (selectedEvent?.eventId) {
+      setIsBudgetAutoFitted(false);
+      setClientApprovalRequested(false);
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
           if (p) {
@@ -282,7 +289,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Smart AI Tiered Resource Allocation Engine (Budget & Event-Type Context Aware)
-  const getAllocations = (ev: EventItem | null) => {
+  const getAllocations = (ev: EventItem | null, forceAutoFit: boolean = false) => {
     if (!ev) {
       return {
         hasSounds: false, soundsCost: 0, soundsName: '',
@@ -303,7 +310,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let soundsCost = 0;
     let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
     if (hasSounds) {
-      if (budget >= 2000000) {
+      if (forceAutoFit) {
+        soundsCost = 120000;
+        soundsName = 'Standard Stage Audio + Ambient Warm LED PAR Cans (Budget Auto-Fit)';
+      } else if (budget >= 2000000) {
         soundsCost = 250000;
         soundsName = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';
       } else if (budget >= 1200000) {
@@ -323,7 +333,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let decoCost = 0;
     let decoName = 'Floral Stage & Tablescape Theme Decoration';
     if (hasDeco) {
-      if (budget >= 2000000) {
+      if (forceAutoFit) {
+        decoCost = 50000;
+        decoName = 'Standard Floral Arch & Fairy-Light Backdrop (Budget Auto-Fit)';
+      } else if (budget >= 2000000) {
         decoCost = 200000;
         decoName = 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor';
       } else if (budget >= 1200000) {
@@ -343,7 +356,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let photoCost = 0;
     let photoName = 'Professional Event Coverage';
     if (hasPhoto) {
-      if (budget >= 2000000) {
+      if (forceAutoFit) {
+        photoCost = 60000;
+        photoName = 'Essential Event Photography (1 Senior Photographer + Digital Deliverables - Budget Auto-Fit)';
+      } else if (budget >= 2000000) {
         photoCost = 250000;
         photoName = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
       } else if (budget >= 1200000) {
@@ -502,7 +518,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const perPlate = selectedEvent?.perPlatePrice || 5000;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
   const hallRental = selectedEvent?.hallRentalPrice || 350000;
-  const alloc = getAllocations(selectedEvent);
+  const alloc = getAllocations(selectedEvent, isBudgetAutoFitted);
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
   const weatherData = selectedEvent?.weatherAssessment;
@@ -516,6 +532,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     : 0;
 
   const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
+  const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
+  const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
   const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
     ? selectedEvent.estimatedTotalCost
     : Math.max(0, currentSubtotal - specialDiscount);
@@ -1013,6 +1031,86 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div>
                   <h4 className="text-base font-bold text-slate-900 mb-4">Pricing Summary & Actions</h4>
                   
+                  {/* Smart Budget Overrun Guardrail Box */}
+                  {overrunAmount > 0 && !isApproved && (
+                    <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
+                      <div className="flex items-start space-x-2.5">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                            ⚠️ Budget Overrun Triggered
+                          </h5>
+                          <p className="text-xs text-amber-900 mt-1">
+                            Compiled subtotal (<strong>Rs. {currentSubtotal.toLocaleString()}</strong>) exceeds client limit (<strong>Rs. {clientBudgetLimit.toLocaleString()}</strong>) by <strong className="text-rose-700">Rs. {overrunAmount.toLocaleString()}</strong>.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Manager Guardrail Actions */}
+                      <div className="pt-2 border-t border-amber-200/80 space-y-2">
+                        <p className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
+                          Human-in-the-Loop Manager Guardrails:
+                        </p>
+
+                        {/* Action 1: Auto-Fit Packages */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsBudgetAutoFitted(!isBudgetAutoFitted);
+                            setClientApprovalRequested(false);
+                            setSpecialDiscount(0);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                            isBudgetAutoFitted
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                              : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                          }`}
+                        >
+                          <span>⚡ {isBudgetAutoFitted ? '✓ Packages Auto-Adjusted to Fit Budget' : '1. Auto-Fit Packages to Budget'}</span>
+                          <span className="text-[10px] opacity-90 font-mono">{isBudgetAutoFitted ? 'Active' : '<= Rs. 1.5M'}</span>
+                        </button>
+
+                        {/* Action 2: Request Client Budget Expansion */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClientApprovalRequested(!clientApprovalRequested);
+                            setIsBudgetAutoFitted(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                            clientApprovalRequested
+                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                              : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                          }`}
+                        >
+                          <span>📩 {clientApprovalRequested ? '✓ Flagged: Awaiting Client Budget Increase' : '2. Keep Quality & Request Client Budget Increase'}</span>
+                          <span className="text-[10px] opacity-90">{clientApprovalRequested ? 'Active' : 'Notify Client'}</span>
+                        </button>
+
+                        {/* Action 3: Manager Discount with Cap Rule */}
+                        {overrunAmount <= 50000 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSpecialDiscount(overrunAmount);
+                              setIsBudgetAutoFitted(false);
+                              setClientApprovalRequested(false);
+                            }}
+                            className="w-full text-left px-3 py-2 bg-white hover:bg-amber-100/50 text-slate-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-between transition"
+                          >
+                            <span>🎁 3. Apply Match Discount (Rs. {overrunAmount.toLocaleString()})</span>
+                            <span className="text-[10px] text-emerald-700 font-bold">Within Cap (≤ 50k)</span>
+                          </button>
+                        ) : (
+                          <div className="p-2 bg-rose-50 rounded-lg border border-rose-200 text-[11px] text-rose-900 flex items-center justify-between">
+                            <span className="font-medium">⛔ Discount Cap Exceeded (Max Rs. 50,000)</span>
+                            <span className="font-mono text-[10px] text-rose-700 font-bold">Over: Rs. {overrunAmount.toLocaleString()}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-sm text-slate-600">
                       <span>Subtotal:</span>
@@ -1047,10 +1145,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <button 
                     onClick={handleApprove}
                     disabled={isApproved}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                    className={`w-full py-2.5 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50 ${
+                      clientApprovalRequested
+                        ? 'bg-indigo-600 hover:bg-indigo-700'
+                        : isBudgetAutoFitted
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    <span>{isApproved ? 'Approved & Ready for Signing' : 'Approve Proposal'}</span>
+                    <span>
+                      {isApproved 
+                        ? 'Approved & Ready for Signing' 
+                        : clientApprovalRequested 
+                        ? 'Send Proposal with Client Budget Increase Request' 
+                        : isBudgetAutoFitted 
+                        ? 'Approve Auto-Fitted Proposal' 
+                        : 'Approve Proposal'}
+                    </span>
                   </button>
                 </div>
 
