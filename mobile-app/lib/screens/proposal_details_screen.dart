@@ -218,7 +218,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
     final isChoiceSubmitted = proposal.status == 'ClientChoiceSubmitted';
-    final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval' || (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed && !isApproved && !isChoiceSubmitted);
+    final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -725,42 +725,87 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     }
                   },
                 ),
-                if (proposal.selectedServices.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  const Text("📦 Selected Packages & Services:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                  const SizedBox(height: 4),
+                if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty)) ...[
+                  const SizedBox(height: 10),
+                  const Text("📦 Itemized Package Breakdown:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                  const SizedBox(height: 6),
+                  
+                  // Venue Rental Item
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text("🏛️ ${proposal.banquetHallName ?? proposal.venueName} Rental", style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                        ),
+                        Text("LKR ${(proposal.hallRentalPrice ?? 350000).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                      ],
+                    ),
+                  ),
+
+                  // Catering Item
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text("🍽️ Hotel Dinner Buffet (${proposal.guestCount} Guests)", style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
+                        ),
+                        Text("LKR ${((proposal.perPlatePrice ?? 5200) * proposal.guestCount).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                      ],
+                    ),
+                  ),
+
                   ...proposal.selectedServices.map((s) {
-                    IconData ic = Icons.check_circle_outline;
                     String desc = s;
+                    double cost = 100000;
                     if (s.toLowerCase().contains('photo')) {
-                      ic = Icons.camera_alt_rounded;
-                      desc = "In-House Photography & Cinematography Coverage";
+                      desc = "📸 Photography & 4K Video";
+                      cost = 160000;
                     } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-                      ic = Icons.speaker_rounded;
-                      desc = "Concert Line-Array Sound & Intelligent Lighting Rig";
+                      desc = "🔊 Sound & Intelligent Lighting";
+                      cost = 180000;
                     } else if (s.toLowerCase().contains('deco')) {
-                      ic = Icons.park_rounded;
-                      desc = "Floral Stage Styling & Theme Decoration";
+                      desc = "🌸 Stage Styling & Theme Decor";
+                      cost = 130000;
                     } else if (s.toLowerCase().contains('cake')) {
-                      ic = Icons.cake_rounded;
-                      desc = "$s (Handcrafted Celebration Tier)";
+                      desc = "🎂 Luxury Celebration Cake";
+                      cost = 45000;
                     } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-                      ic = Icons.directions_car_rounded;
-                      desc = "Luxury Chauffeur-Driven Bridal Car / VIP Transport";
+                      desc = "🚗 Chauffeur VIP Transport";
+                      cost = 65000;
                     }
+                    final costStr = cost.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 3),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(ic, size: 13, color: const Color(0xFFD4AF37)),
-                          const SizedBox(width: 6),
                           Expanded(
-                            child: Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
                           ),
+                          Text("LKR $costStr", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
                         ],
                       ),
                     );
                   }),
+
+                  if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text("💐 Special Request (${proposal.additionalDetails})", style: const TextStyle(color: Colors.pinkAccent, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                          ),
+                          const Text("Priced by Manager", style: TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
                 const Divider(color: Colors.white12, height: 22),
                 Row(
