@@ -79,11 +79,14 @@ export const eventService = {
     return response.data;
   },
 
-  // Manager Approve Proposal with exact finalTotal
-  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number) => {
+  // Manager Approve Proposal with exact finalTotal and optional status
+  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string) => {
     let url = `/events/${eventId}/approve-proposal?discount=${discount}`;
     if (finalTotal !== undefined) {
       url += `&finalTotal=${finalTotal}`;
+    }
+    if (status !== undefined) {
+      url += `&status=${encodeURIComponent(status)}`;
     }
     const response = await apiClient.post(url);
     return response.data;

@@ -536,6 +536,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
   const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
     ? selectedEvent.estimatedTotalCost
+    : isBudgetAutoFitted
+    ? Math.min(currentSubtotal, clientBudgetLimit)
     : Math.max(0, currentSubtotal - specialDiscount);
 
   return (
@@ -1032,7 +1034,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <h4 className="text-base font-bold text-slate-900 mb-4">Pricing Summary & Actions</h4>
                   
                   {/* Smart Budget Overrun Guardrail Box */}
-                  {overrunAmount > 0 && !isApproved && (
+                  {isBudgetAutoFitted && !isApproved ? (
+                    <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
+                      <div className="flex items-start space-x-2.5">
+                        <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                            ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
+                          </h5>
+                          <p className="text-xs text-emerald-900 mt-1">
+                            Optional services (Decor, Photography, Sound, Transport) scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
+                          </p>
+                          {weatherTentCost > 0 && (
+                            <p className="text-[11px] text-amber-900 bg-amber-100/80 p-2 rounded-lg border border-amber-200 mt-2 font-medium">
+                              💡 Weather Safeguard Active: Outdoor Rain Tent (+Rs. 150,000) added. Switch to Indoor Setting to save Rs. 150,000!
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
+                        <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
+                        <button
+                          type="button"
+                          onClick={() => setIsBudgetAutoFitted(false)}
+                          className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
+                        >
+                          🔄 Reset Packages
+                        </button>
+                      </div>
+                    </div>
+                  ) : overrunAmount > 0 && !isApproved && (
                     <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
                       <div className="flex items-start space-x-2.5">
                         <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -1056,7 +1088,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setIsBudgetAutoFitted(!isBudgetAutoFitted);
+                            setIsBudgetAutoFitted(true);
                             setClientApprovalRequested(false);
                             setSpecialDiscount(0);
                           }}
@@ -1066,8 +1098,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
                           }`}
                         >
-                          <span>⚡ {isBudgetAutoFitted ? '✓ Packages Auto-Adjusted to Fit Budget' : '1. Auto-Fit Packages to Budget'}</span>
-                          <span className="text-[10px] opacity-90 font-mono">{isBudgetAutoFitted ? 'Active' : '<= Rs. 1.5M'}</span>
+                          <span>⚡ 1. Auto-Fit Packages to Budget</span>
+                          <span className="text-[10px] opacity-90 font-mono">&lt;= Rs. 1.5M</span>
                         </button>
 
                         {/* Action 2: Request Client Budget Expansion */}

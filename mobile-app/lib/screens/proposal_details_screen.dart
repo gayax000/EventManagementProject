@@ -217,6 +217,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
+    final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval' || (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed && !isApproved);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -226,6 +227,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // 1. Status Header
           if (isConfirmed)
             _buildBadge("✅ STATUS: BOOKING CONFIRMED & PASS ISSUED", Colors.green, Colors.greenAccent)
+          else if (isPendingBudgetApproval)
+            _buildBadge("🟣 STATUS: MANAGER RECOMMENDATION (BUDGET OVERRUN)", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
           else if (isApproved) ...[
             if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
               _buildBadge("🟢 PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", Colors.green, Colors.greenAccent)
@@ -382,13 +385,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("✓ Premium package accepted! Please proceed to upload your payment deposit slip below."),
-                            backgroundColor: Colors.indigo,
-                          ),
-                        );
+                      onPressed: () async {
+                        setState(() => _isLoading = true);
+                        final ok = await ApiService.acceptOverrunAndApprove(widget.eventId, proposal.estimatedTotalCost);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ok 
+                                  ? "✓ Premium package accepted! Please proceed to upload your payment deposit slip below." 
+                                  : "✓ Accept request submitted to manager."),
+                              backgroundColor: Colors.indigo,
+                            ),
+                          );
+                          _loadProposal();
+                        }
                       },
                       icon: const Icon(Icons.verified, size: 16, color: Colors.white),
                       label: Text("💎 Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),

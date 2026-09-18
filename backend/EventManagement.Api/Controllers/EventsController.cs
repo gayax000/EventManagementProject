@@ -329,18 +329,18 @@ public class EventsController : ControllerBase
 
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = "Event not found in database." });
 
-        ev.Status = "ApprovedByManager";
+        ev.Status = !string.IsNullOrWhiteSpace(status) ? status : "ApprovedByManager";
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
         if (aiState != null)
         {
-            aiState.ApprovalStatus = "ApprovedByManager";
+            aiState.ApprovalStatus = ev.Status;
             if (finalTotal.HasValue && finalTotal.Value > 0)
             {
                 aiState.EstimatedTotalCost = finalTotal.Value;
@@ -365,7 +365,7 @@ public class EventsController : ControllerBase
 
         return Ok(new 
         { 
-            message = "Proposal approved successfully by Manager.", 
+            message = "Proposal decision processed successfully.", 
             status = ev.Status, 
             finalTotal = aiState?.EstimatedTotalCost 
         });
