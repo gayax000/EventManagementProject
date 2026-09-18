@@ -22,7 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _regEmailController = TextEditingController();
   final _regPhoneController = TextEditingController();
   final _regPasswordController = TextEditingController();
-  String _regRole = 'Customer';
   bool _regLoading = false;
 
   @override
@@ -54,6 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
     else setState(() => _isLoading = false);
 
     if (result.success) {
+      // Check if user is a Vendor -> strictly restrict access to Clients only
+      final role = await AuthService.getUserRole();
+      if (role == 'Vendor') {
+        await AuthService.logout();
+        if (mounted) {
+          _showSnackBar('Access Restricted: This dashboard is exclusively for Clients. Suppliers & Vendors please use the Supplier Web Portal.', isError: true);
+        }
+        return;
+      }
+
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // close modal if open
         Navigator.of(context).pushReplacement(
@@ -79,7 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setModalState(() => _regLoading = true);
-    final result = await AuthService.register(name, email, password, phone, role: _regRole);
+    // Strictly register as Client/Customer
+    final result = await AuthService.register(name, email, password, phone, role: 'Customer');
     setModalState(() => _regLoading = false);
 
     if (result.success) {
@@ -92,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         _showAuthBottomSheet(isRegister: false);
-        _showSnackBar('Account created! Please sign in with your password.', isError: false);
+        _showSnackBar('Client account created! Please sign in with your password.', isError: false);
       }
     } else {
       if (mounted) {
@@ -112,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Modern Auth Bottom Sheet
+  // Modern Client Auth Bottom Sheet
   void _showAuthBottomSheet({required bool isRegister}) {
     showModalBottomSheet(
       context: context,
@@ -155,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          inRegisterMode ? "Create Account" : "Sign In to EventCraft",
+                          inRegisterMode ? "Client Registration" : "Client Sign In",
                           style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         GestureDetector(
@@ -167,8 +177,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 4),
                     Text(
                       inRegisterMode 
-                        ? "Join as a client or verified supplier."
-                        : "Access your AI event proposals and live statuses.",
+                        ? "Create your client account to explore venues & plan events."
+                        : "Access your personalized AI proposals and live event statuses.",
                       style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                     ),
                     const SizedBox(height: 18),
@@ -178,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _emailController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: _buildInputDecoration("Email Address", Icons.email_outlined),
+                        decoration: _buildInputDecoration("Client Email Address", Icons.email_outlined),
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 12),
@@ -198,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: _isLoading
                             ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Sign In", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            : const Text("Sign In as Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                       ),
                       const SizedBox(height: 14),
                       Center(
@@ -209,14 +219,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: "Don't have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Sign Up", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign Up as Client", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
                         ),
                       ),
                     ] else ...[
-                      // Register Fields
+                      // Register Fields (Strictly for Clients)
                       TextField(
                         controller: _regNameController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -243,42 +253,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _buildInputDecoration("Password", Icons.lock_outline),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setModalState(() => _regRole = 'Customer'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: _regRole == 'Customer' ? Colors.cyan.withOpacity(0.2) : const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: _regRole == 'Customer' ? Colors.cyanAccent : Colors.white12),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text("Client / User", style: TextStyle(color: _regRole == 'Customer' ? Colors.cyanAccent : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setModalState(() => _regRole = 'Vendor'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: _regRole == 'Vendor' ? Colors.indigo.withOpacity(0.2) : const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: _regRole == 'Vendor' ? Colors.indigoAccent : Colors.white12),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text("Supplier / Vendor", style: TextStyle(color: _regRole == 'Vendor' ? Colors.indigoAccent : Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _regLoading ? null : () => _handleRegister(setModalState),
@@ -289,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: _regLoading
                             ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Create Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            : const Text("Create Client Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                       ),
                       const SizedBox(height: 14),
                       Center(
@@ -300,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: "Already have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Log In", style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign In", style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -373,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
 
-                  // Right: Log In and Sign Up buttons
+                  // Right: Log In and Sign Up buttons (Strictly Client Access)
                   Row(
                     children: [
                       TextButton(
@@ -404,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const Divider(color: Colors.white10, height: 1),
 
             // =======================================================
-            // 2. MIDDLE CONTENT & SINGLE FULL-SIZE PHOTO
+            // 2. MIDDLE CONTENT & SINGLE FULL-SIZE LUXURY PHOTO
             // =======================================================
             Expanded(
               child: SingleChildScrollView(
@@ -427,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 12),
                           SizedBox(width: 4),
-                          Text("Smart AI Event Orchestration", style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text("Client Experience Portal", style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -445,22 +419,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 10),
 
                     Text(
-                      "EventCraft is Sri Lanka's leading AI event management platform. We pair 5-star hotel banquet halls with verified suppliers, catering, and real-time environmental weather contingency safeguards for unforgettable weddings, galas, and celebrations.",
+                      "EventCraft is Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time environmental weather contingency safeguards for unforgettable weddings, galas, and celebrations.",
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey.shade300, fontSize: 13, height: 1.45),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Quick Action Button
-                    ElevatedButton.icon(
-                      onPressed: () => _showAuthBottomSheet(isRegister: true),
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
-                      label: const Text("Get Started — Sign Up Free", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyan.shade600,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
                     ),
                     const SizedBox(height: 20),
 
