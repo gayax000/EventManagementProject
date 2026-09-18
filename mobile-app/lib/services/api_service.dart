@@ -73,6 +73,19 @@ class ApiService {
     }
   }
 
+  // 2.01 Request Budget Auto-Fit
+  static Future<bool> requestBudgetAutoFit(String eventId) async {
+    try {
+      final url = Uri.parse('$baseUrl/events/$eventId/approve-proposal?finalTotal=1500000');
+      final headers = await _getHeaders();
+      final response = await http.post(url, headers: headers).timeout(const Duration(seconds: 15));
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint("API Error requestBudgetAutoFit: $e");
+      return false;
+    }
+  }
+
   // 2.1 Fetch Banquet Halls for Hotels
   static Future<List<BanquetHallItem>> getBanquetHalls({String? venueId, DateTime? date}) async {
     try {

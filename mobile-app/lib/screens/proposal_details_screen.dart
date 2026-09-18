@@ -282,6 +282,159 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ),
           const SizedBox(height: 14),
 
+          // Manager Recommendation & Budget Overrun Review Card
+          if (proposal.estimatedTotalCost > proposal.budgetLimit && !isConfirmed) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [const Color(0xFF312E81).withOpacity(0.95), const Color(0xFF1E1B4B)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF818CF8)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.indigo.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.psychology, color: Color(0xFFA5B4FC), size: 22),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          "👔 HOTEL MANAGER'S RECOMMENDATION",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.amber),
+                        ),
+                        child: const Text(
+                          "Action Required",
+                          style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "We compiled your ${proposal.title} with premium 4K Video Coverage & Fresh Floral Tunnel Arch to match your venue luxury.",
+                    style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Recommended Package Total:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text("LKR $formattedCost", style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Your Stated Budget Limit:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text("LKR $formattedBudget", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                        const Divider(color: Colors.white12, height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Budget Difference:", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text(
+                              "+LKR ${(proposal.estimatedTotalCost - proposal.budgetLimit).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                              style: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    "Please select how you would like to proceed:",
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Option A: Accept Overrun & Proceed
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("✓ Premium package accepted! Please proceed to upload your payment deposit slip below."),
+                            backgroundColor: Colors.indigo,
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.verified, size: 16, color: Colors.white),
+                      label: Text("💎 Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Option B: Request Auto-Fit to Budget
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        setState(() => _isLoading = true);
+                        final ok = await ApiService.requestBudgetAutoFit(widget.eventId);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(ok
+                                  ? "⚡ Proposal auto-fitted to your LKR $formattedBudget budget! Optional packages adjusted."
+                                  : "⚡ Request submitted to manager for budget auto-fit."),
+                              backgroundColor: Colors.teal,
+                            ),
+                          );
+                          _loadProposal();
+                        }
+                      },
+                      icon: const Icon(Icons.bolt, size: 16, color: Colors.amberAccent),
+                      label: Text("⚡ Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.amberAccent),
+                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
           // Special Client Requests (Flower Bouquet / Add-ons)
           if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) ...[
             Container(
