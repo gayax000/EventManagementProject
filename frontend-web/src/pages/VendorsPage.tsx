@@ -14,40 +14,6 @@ const VENDOR_CATEGORIES = [
   { id: 'PowerBackup', label: 'Power Backup', icon: '⚡' },
 ];
 
-const DEFAULT_SYSTEM_VENDORS = [
-  // 1. Sound & Lighting
-  { id: 'v-snd-1', name: 'Lumina Pro Audio & Stage Lighting', category: 'SoundLighting', contactNumber: '+94 77 123 4567', status: 'Verified', adminRemarks: 'Concert Line-Array Rig + 16 Moving Heads' },
-  { id: 'v-snd-2', name: 'AcousticWave Pro Sound Systems', category: 'SoundLighting', contactNumber: '+94 71 889 9001', status: 'Pending', adminRemarks: 'Standard Stage Audio + Warm LED PAR Cans' },
-  
-  // 2. Decor & Stage
-  { id: 'v-dec-1', name: 'Royal Blooms Floral & Stage Design', category: 'Decor', contactNumber: '+94 77 234 5678', status: 'Verified', adminRemarks: 'Royal Fresh Flower Ceiling Drapes & Grand Stage' },
-  { id: 'v-dec-2', name: 'Elegance Wedding & Theme Styling', category: 'Decor', contactNumber: '+94 76 554 3210', status: 'Pending', adminRemarks: 'Thematic Floral Stage + Entrance Tunnel Arch' },
-  
-  // 3. Photography & Media
-  { id: 'v-pht-1', name: 'Studio Lumiere Wedding & Event Photography', category: 'Photography', contactNumber: '+94 77 345 6789', status: 'Verified', adminRemarks: 'Master Wedding Photography + 4K Highlights Video + Album' },
-  { id: 'v-pht-2', name: 'LensCraft 4K Drone & Cinematic Media', category: 'Photography', contactNumber: '+94 70 332 1144', status: 'Pending', adminRemarks: 'Professional Event Coverage (2 Photographers + Unlimited Soft Copies)' },
-  
-  // 4. Cakes & Celebration Desserts
-  { id: 'v-cak-1', name: 'Velvet Crumb Artisan Cake Studio', category: 'Cake', contactNumber: '+94 77 456 7890', status: 'Verified', adminRemarks: '5-Tier Royal Handcrafted Fondant Wedding Cake' },
-  { id: 'v-cak-2', name: 'Sweet Elegance Designer Cake House', category: 'Cake', contactNumber: '+94 72 667 8899', status: 'Pending', adminRemarks: '3-Tier Luxury Floral Wedding Cake' },
-  
-  // 5. VIP & Luxury Transport
-  { id: 'v-trp-1', name: 'Royal Crown VIP & Bridal Chauffeurs', category: 'Transport', contactNumber: '+94 77 567 8901', status: 'Verified', adminRemarks: 'Classic Vintage Rolls Royce / Jaguar Bridal Car' },
-  { id: 'v-trp-2', name: 'Prestige Executive Mercedes Fleet', category: 'Transport', contactNumber: '+94 75 998 8776', status: 'Pending', adminRemarks: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan' },
-  
-  // 6. Catering Buffets
-  { id: 'v-cat-1', name: 'Ceylon Grand Banquet Caterers', category: 'Catering', contactNumber: '+94 77 678 9012', status: 'Verified', adminRemarks: 'Royal 7-Course International Gala Buffet' },
-  { id: 'v-cat-2', name: 'Imperial Gourmet Catering Services', category: 'Catering', contactNumber: '+94 71 445 5667', status: 'Pending', adminRemarks: 'Executive Dinner Buffet (3 Meats + Action Station)' },
-  
-  // 7. Tents & Weather Safeguards
-  { id: 'v-tnt-1', name: 'Ceylon WeatherShield Marquee Tents', category: 'MarqueeTent', contactNumber: '+94 77 789 0123', status: 'Verified', adminRemarks: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)' },
-  { id: 'v-tnt-2', name: 'Apex Weatherproof Structure Hire', category: 'MarqueeTent', contactNumber: '+94 78 112 2334', status: 'Pending', adminRemarks: 'Waterproof Pagoda Canopy Tent (15x15 ft)' },
-  
-  // 8. Power Backup & Generators
-  { id: 'v-pwr-1', name: 'VoltMax Heavy Power & Generator Hire', category: 'PowerBackup', contactNumber: '+94 77 890 1234', status: 'Verified', adminRemarks: 'Backup Diesel Silent Generator (60 kVA Heavy Duty)' },
-  { id: 'v-pwr-2', name: 'PowerGuard Silent Diesel Solutions', category: 'PowerBackup', contactNumber: '+94 76 887 6655', status: 'Pending', adminRemarks: 'Industrial 100 kVA Synchronized Silent Dual Generator' },
-];
-
 const matchesCategoryFilter = (vendorCat?: string, filterId: string = 'All') => {
   if (!filterId || filterId === 'All') return true;
   if (!vendorCat) return false;
@@ -84,9 +50,9 @@ export const VendorsPage: React.FC = () => {
   const [vendors, setVendors] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('eventcraft_system_vendors_v2');
-      return saved ? JSON.parse(saved) : DEFAULT_SYSTEM_VENDORS;
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return DEFAULT_SYSTEM_VENDORS;
+      return [];
     }
   });
   const [loading, setLoading] = useState(false);
@@ -103,24 +69,19 @@ export const VendorsPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await vendorService.getVendors();
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         const mapped = data.map(v => ({
           ...v,
           id: v.vendorId || v.id,
           name: v.businessName || v.name,
           contactNumber: v.contactNumber || v.contact,
-          status: v.verificationStatus || v.status
+          status: v.verificationStatus || v.status,
+          category: v.category,
+          adminRemarks: v.adminRemarks
         }));
         
-        // Merge backend vendors with default system vendors (avoid duplicates)
-        const combined = [...mapped];
-        DEFAULT_SYSTEM_VENDORS.forEach(def => {
-          if (!combined.some(c => (c.name || '').toLowerCase() === def.name.toLowerCase())) {
-            combined.push(def);
-          }
-        });
-        setVendors(combined);
-        localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(combined));
+        setVendors(mapped);
+        localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(mapped));
       }
     } catch (err) {
       console.error("Failed to fetch vendors from API, using cached state", err);
@@ -141,6 +102,7 @@ export const VendorsPage: React.FC = () => {
     try {
       localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(updated));
       await vendorService.verifyVendor(id, newStatus);
+      await fetchVendors();
     } catch (e) {
       console.warn("Backend verifyVendor call warning", e);
     }
