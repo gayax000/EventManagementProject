@@ -3,11 +3,13 @@ using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
 using EventManagement.Infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventManagement.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class EventsController : ControllerBase
@@ -360,6 +362,7 @@ public class EventsController : ControllerBase
     }
 
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
+    [Authorize(Roles = "Manager")]
     [HttpPost("{id}/approve-proposal")]
     public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null)
     {
