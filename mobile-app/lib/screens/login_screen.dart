@@ -163,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(color: Colors.white, fontSize: 13)),
-        backgroundColor: isError ? Colors.redAccent.shade700 : Colors.emerald.shade700,
+        backgroundColor: isError ? Colors.redAccent.shade700 : Colors.green.shade700,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -283,7 +283,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(colors: [Colors.skyBlue, Colors.indigoAccent]),
+                                gradient: const LinearGradient(colors: [Colors.lightBlue, Colors.indigoAccent]),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
@@ -443,7 +443,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(child: _buildMetricCard("100%", "Weather Shield", Colors.emeraldAccent)),
+                          Expanded(child: _buildMetricCard("100%", "Weather Shield", Colors.greenAccent)),
                           const SizedBox(width: 8),
                           Expanded(child: _buildMetricCard("4.9 ★", "Satisfaction", Colors.amberAccent)),
                         ],
@@ -493,7 +493,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _buildProcessStep("02", "AI Curation", "Autonomous matching of halls & buffet pricing.", Colors.indigoAccent),
                     _buildProcessStep("03", "Weather Safeguard", "Real-time rain forecast with marquee tents.", Colors.amberAccent),
                     _buildProcessStep("04", "Verified Vendors", "Concert sound, floral decor, cakes & 4K media.", Colors.pinkAccent),
-                    _buildProcessStep("05", "Live Dashboard", "Itemized breakdown & instant booking.", Colors.emeraldAccent),
+                    _buildProcessStep("05", "Live Dashboard", "Itemized breakdown & instant booking.", Colors.greenAccent),
                   ],
                 ),
               ),
