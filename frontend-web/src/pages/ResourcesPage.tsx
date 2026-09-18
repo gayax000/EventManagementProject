@@ -357,41 +357,29 @@ export const ResourcesPage: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-slate-200 text-slate-700">
             {filteredResources.map(res => (
-              <tr key={res.id} className={`hover:bg-slate-50/80 transition ${res.isPartnerVendor ? 'bg-purple-50/20' : ''}`}>
-                <td className="px-6 py-4">
-                  {res.isPartnerVendor ? (
-                    <div className="flex flex-col">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-900">{res.name}</span>
-                        <span className="px-2 py-0.5 text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200 rounded-md flex items-center shadow-xs">
-                          🤝 Certified Partner Vendor
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-500 mt-0.5 flex items-center">
-                        Provider: <strong className="text-purple-700 ml-1 font-semibold">{res.vendorName}</strong> {res.contactNumber ? `(${res.contactNumber})` : ''}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Package className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                      <span className="font-semibold text-slate-900">{res.name}</span>
-                      <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 rounded-md flex items-center">
-                        🏠 In-House Catalog
-                      </span>
-                    </div>
-                  )}
+              <tr key={res.id} className={`hover:bg-slate-50/80 transition ${res.isPartnerVendor ? 'bg-purple-50/10' : ''}`}>
+                <td className="px-6 py-4 font-semibold text-slate-900">
+                  <div className="flex items-center space-x-2.5">
+                    <Package className={`w-4 h-4 flex-shrink-0 ${res.isPartnerVendor ? 'text-purple-600' : 'text-indigo-500'}`} />
+                    <span className="text-sm font-semibold text-slate-900">{res.name}</span>
+                  </div>
                 </td>
                 <td className="px-6 py-4"><span className="text-xs font-medium px-2.5 py-1 bg-slate-100 rounded-md text-slate-700">{res.type}</span></td>
                 <td className="px-6 py-4 font-bold text-slate-900">Rs. {res.unitPrice.toLocaleString()}</td>
                 <td className="px-6 py-4 font-medium">{typeof res.available === 'number' ? `${res.available} Units` : res.available}</td>
                 <td className="px-6 py-4">
                   {res.isPartnerVendor ? (
-                    <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full font-semibold flex items-center w-max">
-                      <ShieldCheck className="w-3.5 h-3.5 mr-1 text-purple-600" /> Certified Partner
-                    </span>
+                    <div className="flex flex-col space-y-0.5">
+                      <span className="text-xs px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full font-semibold flex items-center w-max shadow-2xs">
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1 text-purple-600" /> Certified Partner
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium pt-0.5">
+                        Provider: <strong className="text-purple-700 font-semibold">{res.vendorName}</strong> {res.contactNumber ? `(${res.contactNumber})` : ''}
+                      </span>
+                    </div>
                   ) : (
                     <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium flex items-center w-max">
-                      <Check className="w-3 h-3 mr-1 text-emerald-600" /> In Stock
+                      <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" /> In Stock (In-House)
                     </span>
                   )}
                 </td>
