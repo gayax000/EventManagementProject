@@ -5,7 +5,6 @@ import '../services/auth_service.dart';
 import 'create_event_screen.dart';
 import 'proposal_details_screen.dart';
 import 'login_screen.dart';
-import 'qr_scanner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -78,8 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildQuickActionCard(),
-                          const SizedBox(height: 14),
-                          _buildScannerActionCard(),
                           const SizedBox(height: 32),
                           const Text(
                             "ACTIVE EVENT REQUESTS", 
