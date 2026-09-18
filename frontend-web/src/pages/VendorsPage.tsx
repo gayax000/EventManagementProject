@@ -326,9 +326,9 @@ export const VendorsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-6 gap-4 bg-slate-50/50">
+        <div className="divide-y divide-slate-200">
           {confirmedVendors.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-slate-500 text-sm">
+            <div className="p-8 text-center text-slate-500 text-sm">
               {confirmedSearch || confirmedCategory !== 'All' 
                 ? 'No confirmed vendors match your filter.' 
                 : 'No confirmed vendors yet.'}
@@ -337,42 +337,45 @@ export const VendorsPage: React.FC = () => {
             confirmedVendors.map(vendor => {
               const badge = getCategoryBadge(vendor.category);
               return (
-                <div key={vendor.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition hover:border-indigo-200 flex flex-col justify-between">
+                <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                   <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl">{badge.icon}</span>
-                        <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{vendor.name}</h4>
-                      </div>
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full flex-shrink-0">
-                        Verified
-                      </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">{badge.icon}</span>
+                      <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                     </div>
                     {vendor.adminRemarks && (
-                      <p className="text-xs text-slate-600 mb-3 bg-slate-50 p-2 rounded-lg border border-slate-100 font-medium">
-                        {vendor.adminRemarks}
+                      <p className="text-xs text-slate-600 mt-1 font-medium">
+                        Package: <span className="text-indigo-600 font-semibold">{vendor.adminRemarks}</span>
                       </p>
                     )}
-                  </div>
-                  <div>
-                    <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                      <p className="flex items-center"><Tag className="w-3.5 h-3.5 mr-2 text-indigo-500" /> <span className="font-medium">{badge.label}</span></p>
-                      <p className="flex items-center"><Phone className="w-3.5 h-3.5 mr-2 text-indigo-500" /> {vendor.contactNumber || vendor.contact}</p>
+                    <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
+                      <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
+                        <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
+                      </span>
+                      <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
                     </div>
-                    
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between mt-3">
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Verified
+                    </span>
+
+                    <div className="flex items-center space-x-2">
                       <button 
                         onClick={() => setSelectedVendorForView(vendor)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        title="View Details"
                       >
-                        <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                        <Eye className="w-4 h-4 text-indigo-600" />
                         <span>View Details</span>
                       </button>
                       <button 
                         onClick={() => handleDeleteVendor(vendor.id, vendor.name)}
-                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-lg text-xs font-medium flex items-center space-x-1 transition"
+                        title="Delete Vendor"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         <span>Delete</span>
                       </button>
                     </div>
