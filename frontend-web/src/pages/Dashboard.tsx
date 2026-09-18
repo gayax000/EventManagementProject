@@ -230,6 +230,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const success = await authService.login(loginEmail, loginPassword);
     setAuthLoading(false);
     if (success) {
+      const role = authService.getUserRole();
+      if (role === 'Customer') {
+        authService.logout();
+        setAuthError('Access Restricted: This web portal is exclusively for Vendors, Suppliers, and Administrators. Clients please use the Client Mobile App.');
+        return;
+      }
       refreshAuthStatus();
       setAuthModalTab(null);
       setActionSuccess(`Welcome back, ${authService.getUserName()}!`);
@@ -248,7 +254,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     setAuthLoading(true);
     setAuthError(null);
-    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, regRole);
+    // Strictly register as 'Vendor'
+    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
     setAuthLoading(false);
     if (success) {
       // Auto-login or navigate to login tab
@@ -260,8 +267,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         loadEvents();
         if (onAuthChange) onAuthChange();
       } else {
-        setAuthModalTab('login');
-        setActionSuccess('Account created successfully! Please sign in with your password.');
+        setActionSuccess('Vendor account created successfully! Please sign in with your credentials.');
       }
     } else {
       setAuthError('Registration failed. The email address might already be registered.');
@@ -1390,29 +1396,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <X className="w-5 h-5" />
             </button>
 
-            {/* Modal Tabs */}
-            <div className="flex border-b border-slate-800 mb-6">
-              <button
-                onClick={() => { setAuthModalTab('login'); setAuthError(null); }}
-                className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition ${
-                  authModalTab === 'login' 
-                    ? 'border-sky-400 text-sky-400' 
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Log In
-              </button>
-              <button
-                onClick={() => { setAuthModalTab('register'); setAuthError(null); }}
-                className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition ${
-                  authModalTab === 'register' 
-                    ? 'border-indigo-400 text-indigo-400' 
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                Sign Up / Register
-              </button>
-            </div>
+            {/* Dedicated Modal Header (No Tab Switching) */}
+            {authModalTab === 'login' ? (
+              <div className="border-b border-slate-800 pb-4 mb-5">
+                <div className="flex items-center space-x-2 text-sky-400 mb-1">
+                  <LogIn className="w-5 h-5" />
+                  <h3 className="text-base font-bold text-white">Vendor & Admin Sign In</h3>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Access your vendor workspace or administrative controls.
+                </p>
+              </div>
+            ) : (
+              <div className="border-b border-slate-800 pb-4 mb-5">
+                <div className="flex items-center space-x-2 text-indigo-400 mb-1">
+                  <Building2 className="w-5 h-5" />
+                  <h3 className="text-base font-bold text-white">Vendor & Supplier Registration</h3>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Register your business as an official event vendor or service partner.
+                </p>
+              </div>
+            )}
 
             {/* Error Message */}
             {authError && (
@@ -1459,27 +1464,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   disabled={authLoading}
                   className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-500/20 transition disabled:opacity-50 mt-2"
                 >
-                  {authLoading ? 'Signing in...' : 'Sign In to Client Portal'}
+                  <LogIn className="w-4 h-4 inline-block mr-1.5" />
+                  <span>{authLoading ? 'Signing in...' : 'Sign In'}</span>
                 </button>
-
-                <p className="text-center text-xs text-slate-400 pt-3">
-                  Don't have an account?{' '}
-                  <button 
-                    type="button" 
-                    onClick={() => { setAuthModalTab('register'); setAuthError(null); }}
-                    className="text-sky-400 hover:underline font-semibold"
-                  >
-                    Sign Up / Register
-                  </button>
-                </p>
               </form>
             )}
 
             {/* Sign Up Form */}
             {authModalTab === 'register' && (
               <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                <div className="p-2.5 bg-indigo-950/40 border border-indigo-800/50 rounded-xl flex items-center space-x-2 text-indigo-300 text-xs">
+                  <Building2 className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+                  <span>Account Type: <strong>Vendor / Supplier Partner</strong></span>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Full Name</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
@@ -1487,7 +1487,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       required
                       value={regFullName}
                       onChange={e => setRegFullName(e.target.value)}
-                      placeholder="e.g. Kasun Perera"
+                      placeholder="e.g. Royal Blooms Floral Decor"
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
@@ -1502,7 +1502,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       required
                       value={regEmail}
                       onChange={e => setRegEmail(e.target.value)}
-                      placeholder="kasun@example.com"
+                      placeholder="contact@royalblooms.lk"
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
@@ -1538,52 +1538,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Account Role</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('Customer')}
-                      className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition ${
-                        regRole === 'Customer'
-                          ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      🎉 Client / Customer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRegRole('Vendor')}
-                      className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition ${
-                        regRole === 'Vendor'
-                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      🏢 Vendor / Supplier
-                    </button>
-                  </div>
-                </div>
-
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 mt-2"
+                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 mt-3"
                 >
-                  {authLoading ? 'Creating Account...' : 'Create My Account'}
+                  <UserPlus className="w-4 h-4 inline-block mr-1.5" />
+                  <span>{authLoading ? 'Registering Vendor...' : 'Register as Vendor'}</span>
                 </button>
-
-                <p className="text-center text-xs text-slate-400 pt-2">
-                  Already have an account?{' '}
-                  <button 
-                    type="button" 
-                    onClick={() => { setAuthModalTab('login'); setAuthError(null); }}
-                    className="text-indigo-400 hover:underline font-semibold"
-                  >
-                    Log In
-                  </button>
-                </p>
               </form>
             )}
 
