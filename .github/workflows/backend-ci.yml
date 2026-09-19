@@ -27,6 +27,4 @@ jobs:
       run: dotnet build backend/EventManagement.sln --configuration Release --no-restore
 
     - name: Run automated test suite
-      run: |
-        echo "Build verification passed. Automated test runner ready."
-        # Optional test runner step: dotnet test backend/EventManagement.sln --no-build --verbosity normal
+      run: dotnet test backend/EventManagement.sln --configuration Release --no-build --verbosity normal

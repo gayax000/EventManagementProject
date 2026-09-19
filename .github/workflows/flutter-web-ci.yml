@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -52,6 +53,7 @@ jobs:
           sed -i 's/serviceWorkerSettings: {[^}]*}/serviceWorkerSettings: null/g' mobile-web/flutter_bootstrap.js
 
       - name: Commit and Push changes
+        continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -62,5 +64,6 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "chore: auto-build flutter web [skip ci]"
-            git push
+            git pull --rebase origin main || true
+            git push || true
           fi

@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Core", "Eve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Infrastructure", "EventManagement.Infrastructure\EventManagement.Infrastructure.csproj", "{B968190B-A526-4BDB-AC61-86AFCA8627F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventManagement.Tests", "EventManagement.Tests\EventManagement.Tests.csproj", "{4461808B-F435-4B0A-81D7-235970FDD473}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{B968190B-A526-4BDB-AC61-86AFCA8627F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B968190B-A526-4BDB-AC61-86AFCA8627F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B968190B-A526-4BDB-AC61-86AFCA8627F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4461808B-F435-4B0A-81D7-235970FDD473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4461808B-F435-4B0A-81D7-235970FDD473}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4461808B-F435-4B0A-81D7-235970FDD473}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4461808B-F435-4B0A-81D7-235970FDD473}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
