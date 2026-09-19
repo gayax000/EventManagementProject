@@ -185,6 +185,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
           if (p) {
+            if (p.specialRequestAllocation && p.specialRequestAllocation > 0) {
+              setSpecialAllocation(p.specialRequestAllocation);
+            }
             let parsedImages: string[] = [];
             if (Array.isArray(p.inspirationImages) && p.inspirationImages.length > 0) {
               parsedImages = p.inspirationImages;
@@ -471,7 +474,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const perPlate = selectedEvent.perPlatePrice || 5000;
     const cateringCost = selectedEvent.guestCount * perPlate;
     const hallRental = selectedEvent.hallRentalPrice || 350000;
-    const alloc = getAllocations(selectedEvent, isBudgetAutoFitted);
+    const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
     const weatherData = selectedEvent.weatherAssessment;
@@ -497,7 +500,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, customAddonCost > 0 ? customAddonCost : undefined);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation);
       setActionSuccess(
         clientApprovalRequested
           ? "Proposal flagged & sent to client for budget increase request!"
@@ -537,7 +540,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const perPlate = selectedEvent?.perPlatePrice || 5000;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
   const hallRental = selectedEvent?.hallRentalPrice || 350000;
-  const alloc = getAllocations(selectedEvent, isBudgetAutoFitted);
+  const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
   const weatherData = selectedEvent?.weatherAssessment;

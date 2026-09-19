@@ -76,6 +76,7 @@ class EventProposalDetail {
   final String? paymentStatus;
   final String? slipImageUrl;
   final String? invoiceNumber;
+  final double? specialRequestAllocation;
 
   EventProposalDetail({
     required this.eventId,
@@ -103,6 +104,7 @@ class EventProposalDetail {
     this.paymentStatus,
     this.slipImageUrl,
     this.invoiceNumber,
+    this.specialRequestAllocation,
   });
 
   factory EventProposalDetail.fromJson(Map<String, dynamic> json) {
@@ -155,6 +157,7 @@ class EventProposalDetail {
       paymentStatus: json['paymentStatus']?.toString(),
       slipImageUrl: json['slipImageUrl']?.toString(),
       invoiceNumber: json['invoiceNumber']?.toString(),
+      specialRequestAllocation: (json['specialRequestAllocation'] as num?)?.toDouble(),
     );
   }
 }

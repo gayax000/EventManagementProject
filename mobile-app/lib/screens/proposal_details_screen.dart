@@ -513,19 +513,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Text('💐', style: TextStyle(fontSize: 16)),
-                      SizedBox(width: 8),
-                      Expanded(
+                      const Text('💐', style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                      const Expanded(
                         child: Text(
                           'SPECIAL CLIENT REQUESTS & ADD-ONS',
                           style: TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                       Text(
-                        'Priced by Manager',
-                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
+                          ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
+                          : 'Priced by Manager',
+                        style: const TextStyle(color: Colors.pinkAccent, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -801,7 +803,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           Expanded(
                             child: Text("💐 Special Request (${proposal.additionalDetails})", style: const TextStyle(color: Colors.pinkAccent, fontSize: 11.5, fontWeight: FontWeight.w600)),
                           ),
-                          const Text("Priced by Manager", style: TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 11.5)),
+                          Text(
+                            proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
+                              ? "LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}"
+                              : "Priced by Manager",
+                            style: const TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 11.5),
+                          ),
                         ],
                       ),
                     ),

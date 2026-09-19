@@ -245,6 +245,16 @@ public class EventsController : ControllerBase
 
         var inspirationImages = ParseInspirationImages(ev.InspirationImageUrl);
 
+        decimal? specialRequestAlloc = null;
+        if (aiState != null && !string.IsNullOrEmpty(aiState.GeneratedPlanJson))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(aiState.GeneratedPlanJson, @"Manager Allocated:\s*Rs\.\s*([\d,]+)");
+            if (match.Success && decimal.TryParse(match.Groups[1].Value.Replace(",", ""), out var parsedAlloc))
+            {
+                specialRequestAlloc = parsedAlloc;
+            }
+        }
+
         return Ok(new
         {
             eventId = ev.EventId,
@@ -255,6 +265,7 @@ public class EventsController : ControllerBase
             budgetLimit = ev.BudgetLimit,
             isOutdoor = ev.IsOutdoor,
             additionalDetails = ev.AdditionalDetails,
+            specialRequestAllocation = specialRequestAlloc,
             status = ev.Status,
             venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
             banquetHallName = ev.BanquetHall?.HallName,
