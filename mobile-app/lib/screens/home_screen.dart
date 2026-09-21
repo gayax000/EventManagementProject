@@ -50,31 +50,35 @@ class _HomeScreenState extends State<HomeScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF131C31),
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         title: const Row(
           children: [
             Icon(Icons.logout_rounded, color: Color(0xFFEF4444)),
             SizedBox(width: 10),
-            Text('Sign Out', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Sign Out',
+              style: TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: const Text(
           'Are you sure you want to log out of your EventCraft account?',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               foregroundColor: Colors.white,
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
@@ -105,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
@@ -113,8 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadUserAndEvents,
-                color: const Color(0xFFD4AF37),
-                backgroundColor: const Color(0xFF131C31),
+                color: const Color(0xFF2563EB),
+                backgroundColor: Colors.white,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final bool isWide = constraints.maxWidth > 750;
@@ -127,15 +131,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 1. Executive Metrics Row
+                          // 1. Executive Metrics Row (Matching Web Dashboard)
                           _buildMetricsRow(),
                           const SizedBox(height: 20),
 
-                          // 2. Hero Action Card
+                          // 2. Hero Action Card (Matching Web Operational Bar)
                           _buildHeroActionCard(),
                           const SizedBox(height: 28),
 
-                          // 3. Quick Inspiration Carousel
+                          // 3. Quick Inspiration Carousel (Zero Emojis, Pure Vector Icons)
                           _buildInspirationSection(),
                           const SizedBox(height: 28),
 
@@ -149,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 4,
                                     height: 18,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFD4AF37),
+                                      color: const Color(0xFF2563EB),
                                       borderRadius: BorderRadius.circular(2),
                                     ),
                                   ),
@@ -157,9 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Text(
                                     "ACTIVE EVENT REQUESTS",
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      letterSpacing: 1.2,
+                                      color: Color(0xFF0F172A),
+                                      fontSize: 13,
+                                      letterSpacing: 1.1,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -168,14 +172,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                                  color: const Color(0xFFEFF6FF),
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                                  border: Border.all(color: const Color(0xFFBFDBFE)),
                                 ),
                                 child: Text(
-                                  "${_events.length} ${(_events.length == 1) ? 'Event' : 'Events'}",
+                                  "${_events.length} ${_events.length == 1 ? 'Event' : 'Events'}",
                                   style: const TextStyle(
-                                    color: Color(0xFFD4AF37),
+                                    color: Color(0xFF2563EB),
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -202,49 +206,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- TOP EXECUTIVE APP BAR ---
+  // --- TOP EXECUTIVE APP BAR (MATCHING WEB NAVBAR) ---
   Widget _buildExecutiveAppBar() {
     final initials = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'C';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
-        border: const Border(bottom: BorderSide(color: Colors.white10)),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F172A),
+        border: Border(bottom: BorderSide(color: Color(0xFF1E293B))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Color(0x1A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           )
         ],
       ),
       child: Row(
         children: [
-          // VIP User Avatar
+          // User Avatar
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: const Color(0xFF1E293B),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(color: const Color(0xFF2563EB), width: 1.5),
             ),
             child: Center(
               child: Text(
                 initials,
                 style: const TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -253,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(width: 14),
 
-          // User Info & Status
+          // User Info & VIP Status Pill
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 0.3,
+                    letterSpacing: 0.2,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -282,13 +276,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'EventCraft VIP Client',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFFD4AF37),
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0EA5E9).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.3)),
+                      ),
+                      child: const Text(
+                        'EventCraft VIP Client',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF38BDF8),
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                   ],
@@ -297,15 +299,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Action Buttons
+          // Actions
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
+              color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: const Color(0xFF334155)),
             ),
             child: IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white70, size: 20),
+              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF94A3B8), size: 20),
               tooltip: 'Refresh Events',
               onPressed: _loadUserAndEvents,
             ),
@@ -328,60 +330,77 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- EXECUTIVE METRICS ROW ---
+  // --- EXECUTIVE METRICS ROW (MATCHING MANAGER WEB DASHBOARD) ---
   Widget _buildMetricsRow() {
-    final activeCount = _events.where((e) => e.status != 'Confirmed').length;
+    final pendingCount = _events.where((e) => e.status != 'Confirmed').length;
     final confirmedCount = _events.where((e) => e.status == 'Confirmed').length;
 
-    return Row(
-      children: [
-        Expanded(
-          child: _buildMetricCard(
-            label: "Total Events",
-            value: "${_events.length}",
-            icon: Icons.celebration_rounded,
-            color: const Color(0xFFD4AF37),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildMetricCard(
-            label: "AI Proposals",
-            value: "$activeCount",
-            icon: Icons.auto_awesome_rounded,
-            color: const Color(0xFF06B6D4),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _buildMetricCard(
-            label: "Confirmed",
-            value: "$confirmedCount",
-            icon: Icons.verified_rounded,
-            color: const Color(0xFF10B981),
-          ),
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 360;
+        return Row(
+          children: [
+            Expanded(
+              child: _buildKpiCard(
+                label: "ACTIVE INQUIRIES",
+                value: "${_events.length}",
+                icon: Icons.calendar_today_rounded,
+                iconColor: const Color(0xFF0284C7), // Sky Blue
+                iconBg: const Color(0xFFF0F9FF),
+                valueColor: const Color(0xFF0F172A),
+                isNarrow: isNarrow,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                label: "PENDING REVIEW",
+                value: "$pendingCount",
+                icon: Icons.access_time_rounded,
+                iconColor: const Color(0xFFD97706), // Amber
+                iconBg: const Color(0xFFFFFBEB),
+                valueColor: const Color(0xFFD97706),
+                isNarrow: isNarrow,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildKpiCard(
+                label: "APPROVED & READY",
+                value: "$confirmedCount",
+                icon: Icons.check_circle_outline_rounded,
+                iconColor: const Color(0xFF059669), // Emerald
+                iconBg: const Color(0xFFECFDF5),
+                valueColor: const Color(0xFF059669),
+                isNarrow: isNarrow,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildMetricCard({
+  Widget _buildKpiCard({
     required String label,
     required String value,
     required IconData icon,
-    required Color color,
+    required Color iconColor,
+    required Color iconBg,
+    required Color valueColor,
+    required bool isNarrow,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
-        boxShadow: [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Color(0x080F172A),
+            blurRadius: 8,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -391,24 +410,34 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: color, size: 18),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: iconColor, size: 16),
+              ),
               Text(
                 value,
                 style: TextStyle(
-                  color: color,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  color: valueColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white60,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+              color: Color(0xFF64748B),
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -416,86 +445,96 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- HERO CELEBRATION ACTION BANNER ---
+  // --- HERO CELEBRATION ACTION BANNER (MATCHING WEB OPERATIONAL BAR) ---
   Widget _buildHeroActionCard() {
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A2644), Color(0xFF0F1A30)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4), width: 1.2),
-        boxShadow: [
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF1E293B)),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFFD4AF37).withOpacity(0.15),
+            color: Color(0x1F0F172A),
             blurRadius: 16,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           onTap: () => _navigateToCreateEvent(),
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFD4AF37).withOpacity(0.4),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0EA5E9).withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.35)),
                       ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.add_rounded, color: Colors.black, size: 30),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Plan New Event Request",
+                      child: const Text(
+                        "CLIENT EVENT PROPOSALS & AI BUDGETS",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF7DD3FC),
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                          letterSpacing: 0.3,
+                          letterSpacing: 0.8,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Orchestrate 5-star banquet halls, decor, cakes & weather protection with AI agents.",
-                        style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.35),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFD4AF37), size: 14),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Plan New Event Request",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Review live hotel catering, hall rentals, audio/visual gear, and autonomous weather safeguards.",
+                            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2563EB).withOpacity(0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -505,31 +544,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- CURATED INSPIRATION / QUICK STARTERS ---
+  // --- CURATED INSPIRATION / QUICK STARTERS (ZERO EMOJIS, CLEAN VECTOR ICONS) ---
   Widget _buildInspirationSection() {
     final items = [
       {
         'title': 'Royal Wedding',
         'desc': '5-Star Halls & Floral Stages',
-        'icon': '💍',
+        'icon': Icons.favorite_border_rounded,
+        'iconBg': const Color(0xFFEEF2FF),
+        'iconColor': const Color(0xFF4F46E5),
         'type': 'Wedding',
       },
       {
         'title': 'Milestone Birthday',
         'desc': 'Theme Decor & Bespoke Cakes',
-        'icon': '🎂',
+        'icon': Icons.cake_outlined,
+        'iconBg': const Color(0xFFFFFBEB),
+        'iconColor': const Color(0xFFD97706),
         'type': 'Birthday Party',
       },
       {
         'title': 'Corporate Gala',
         'desc': 'Concert Sound & Intelligent Rig',
-        'icon': '🏢',
+        'icon': Icons.business_center_outlined,
+        'iconBg': const Color(0xFFF0F9FF),
+        'iconColor': const Color(0xFF0284C7),
         'type': 'Dinner/Gala',
       },
       {
         'title': 'Scenic Lawn Party',
         'desc': 'Open-Air with Rain Safeguards',
-        'icon': '🌴',
+        'icon': Icons.park_outlined,
+        'iconBg': const Color(0xFFECFDF5),
+        'iconColor': const Color(0xFF059669),
         'type': 'Family Gathering',
       },
     ];
@@ -537,24 +584,24 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            Icon(Icons.stars_rounded, color: Color(0xFFD4AF37), size: 16),
+        Row(
+          children: const [
+            Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 16),
             SizedBox(width: 6),
             Text(
               "CURATED CELEBRATION INSPIRATION",
               style: TextStyle(
-                color: Color(0xFFD4AF37),
+                color: Color(0xFF0F172A),
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                letterSpacing: 1.0,
+                letterSpacing: 0.8,
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 90,
+          height: 94,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: items.length,
@@ -562,19 +609,33 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context, index) {
               final it = items[index];
               return InkWell(
-                onTap: () => _navigateToCreateEvent(it['type']),
-                borderRadius: BorderRadius.circular(14),
+                onTap: () => _navigateToCreateEvent(it['type'] as String),
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  width: 200,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  width: 220,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF131C31),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x060F172A),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
-                      Text(it['icon']!, style: const TextStyle(fontSize: 26)),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: it['iconBg'] as Color,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(it['icon'] as IconData, color: it['iconColor'] as Color, size: 20),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -582,21 +643,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              it['title']!,
+                              it['title'] as String,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Colors.white,
+                                color: Color(0xFF0F172A),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              it['desc']!,
+                              it['desc'] as String,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Colors.white54, fontSize: 10, height: 1.2),
+                              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, height: 1.25),
                             ),
                           ],
                         ),
@@ -616,16 +677,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContent(bool isWide) {
     if (_isLoading) {
       return Container(
-        height: 220,
+        height: 200,
         alignment: Alignment.center,
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFFD4AF37)),
+            CircularProgressIndicator(color: Color(0xFF2563EB)),
             SizedBox(height: 14),
             Text(
               "Retrieving Your Event Proposals...",
-              style: TextStyle(color: Colors.white60, fontSize: 13),
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
             ),
           ],
         ),
@@ -637,38 +698,45 @@ class _HomeScreenState extends State<HomeScreen> {
         width: double.infinity,
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: const Color(0xFF131C31),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white12),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x060F172A),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xFFD4AF37).withOpacity(0.1),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.celebration_rounded, color: Color(0xFFD4AF37), size: 48),
+              child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF64748B), size: 38),
             ),
             const SizedBox(height: 16),
             const Text(
               "No Active Celebrations Yet",
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             const Text(
-              "Ready to organize your next milestone? Create your first event request above to trigger automated AI multi-agent orchestration.",
+              "Submit a new celebration inquiry through the mobile app to trigger automated AI multi-agent orchestration.",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5),
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 13, height: 1.45),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD4AF37),
-                foregroundColor: Colors.black,
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               onPressed: () => _navigateToCreateEvent(),
@@ -687,12 +755,12 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _events.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 18),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) => _buildEventCard(_events[index]),
     );
   }
 
-  // --- LUXURY EVENT CARD ---
+  // --- EXECUTIVE EVENT CARD (MATCHING WEB DESIGN SYSTEM) ---
   Widget _buildEventCard(EventSummary event) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final m = event.targetDate.month >= 1 && event.targetDate.month <= 12 ? months[event.targetDate.month - 1] : '';
@@ -708,35 +776,35 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isConfirmed
-              ? const Color(0xFF10B981).withOpacity(0.6)
+              ? const Color(0xFF10B981)
               : isApproved
-                  ? const Color(0xFFD4AF37).withOpacity(0.6)
-                  : Colors.white12,
-          width: 1.2,
+                  ? const Color(0xFFD97706)
+                  : const Color(0xFFE2E8F0),
+          width: 1,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Color(0x0A0F172A),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 3),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Top Ribbon & Status
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                border: const Border(bottom: BorderSide(color: Colors.white10)),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
+                border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
               ),
               child: Row(
                 children: [
@@ -744,18 +812,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: isConfirmed
-                          ? const Color(0xFF10B981).withOpacity(0.15)
+                          ? const Color(0xFFECFDF5)
                           : isApproved
-                              ? const Color(0xFFD4AF37).withOpacity(0.15)
-                              : Colors.amber.withOpacity(0.15),
+                              ? const Color(0xFFFFFBEB)
+                              : const Color(0xFFF0F9FF),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isConfirmed
-                            ? const Color(0xFF10B981)
+                            ? const Color(0xFFA7F3D0)
                             : isApproved
-                                ? const Color(0xFFD4AF37)
-                                : Colors.amber,
-                        width: 1,
+                                ? const Color(0xFFFDE68A)
+                                : const Color(0xFFBAE6FD),
                       ),
                     ),
                     child: Row(
@@ -769,10 +836,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : Icons.hourglass_top_rounded,
                           size: 13,
                           color: isConfirmed
-                              ? const Color(0xFF10B981)
+                              ? const Color(0xFF059669)
                               : isApproved
-                                  ? const Color(0xFFD4AF37)
-                                  : Colors.amber,
+                                  ? const Color(0xFFD97706)
+                                  : const Color(0xFF0284C7),
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -783,10 +850,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   : "UNDER MANAGER REVIEW",
                           style: TextStyle(
                             color: isConfirmed
-                                ? const Color(0xFF10B981)
+                                ? const Color(0xFF059669)
                                 : isApproved
-                                    ? const Color(0xFFD4AF37)
-                                    : Colors.amber,
+                                    ? const Color(0xFFD97706)
+                                    : const Color(0xFF0284C7),
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.4,
@@ -800,12 +867,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.05),
+                        color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         daysUntil == 0 ? "Today!" : "In $daysUntil Days",
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
                 ],
@@ -821,10 +888,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(
                     event.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF0F172A),
                       fontWeight: FontWeight.bold,
                       fontSize: 17,
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.2,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -836,7 +903,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: _buildMetaPill(Icons.people_alt_rounded, "Guests", "${event.guestCount}")),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildMetaPill(Icons.account_balance_wallet_rounded, "Budget", "LKR $formattedBudget")),
+                      Expanded(child: _buildMetaPill(Icons.payments_outlined, "Budget", "LKR $formattedBudget")),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -846,20 +913,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0A0F1D),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.auto_awesome_rounded, color: Color(0xFF06B6D4), size: 14),
+                        Row(
+                          children: const [
+                            Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 14),
                             SizedBox(width: 6),
                             Text(
                               "AI Multi-Agent Coordination:",
-                              style: TextStyle(color: Color(0xFF06B6D4), fontWeight: FontWeight.bold, fontSize: 11),
+                              style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 11),
                             ),
                           ],
                         ),
@@ -867,6 +934,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildAiDetailRow(
                           Icons.location_on_rounded,
                           "Venue: ${event.venueName ?? 'Luxury Sri Lankan Hotel Package'}",
+                          color: const Color(0xFF475569),
                         ),
                         const SizedBox(height: 4),
                         _buildAiDetailRow(
@@ -874,7 +942,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           event.isOutdoor
                               ? "Weather Safeguard: Outdoor rain risk monitored"
                               : "Weather Safeguard: Indoor Venue (0% Rain Risk)",
-                          color: event.isOutdoor ? Colors.white70 : const Color(0xFF10B981),
+                          color: event.isOutdoor ? const Color(0xFFD97706) : const Color(0xFF059669),
                         ),
                       ],
                     ),
@@ -889,14 +957,14 @@ class _HomeScreenState extends State<HomeScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isConfirmed
-                      ? const Color(0xFF10B981)
+                      ? const Color(0xFF059669)
                       : isApproved
-                          ? const Color(0xFFD4AF37)
-                          : const Color(0xFF06B6D4),
-                  foregroundColor: (isConfirmed || !isApproved) ? Colors.white : Colors.black,
+                          ? const Color(0xFFD97706)
+                          : const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () async {
                   final refresh = await Navigator.push<bool>(
@@ -925,7 +993,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           : isApproved
                               ? "Review & Sign Digital Contract"
                               : "View Live AI Proposal Status",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.2),
                     ),
                   ],
                 ),
@@ -941,18 +1009,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A0F1D),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: Colors.white38, size: 12),
+              Icon(icon, color: const Color(0xFF64748B), size: 12),
               const SizedBox(width: 4),
-              Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+              Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10)),
             ],
           ),
           const SizedBox(height: 3),
@@ -960,14 +1028,14 @@ class _HomeScreenState extends State<HomeScreen> {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 11, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAiDetailRow(IconData icon, String text, {Color color = Colors.white70}) {
+  Widget _buildAiDetailRow(IconData icon, String text, {required Color color}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -983,17 +1051,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- FLOATING MODERN BOTTOM NAVIGATION BAR ---
+  // --- MODERN EXECUTIVE BOTTOM NAVIGATION BAR ---
   Widget _buildBottomNav() {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
-        border: const Border(top: BorderSide(color: Colors.white10)),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Color(0x0A0F172A),
             blurRadius: 10,
-            offset: const Offset(0, -3),
+            offset: Offset(0, -3),
           ),
         ],
       ),
@@ -1014,7 +1082,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text("No confirmed events with QR Passes yet."),
-                  backgroundColor: Color(0xFF131C31),
+                  backgroundColor: Color(0xFF0F172A),
                 ),
               );
             }
@@ -1025,29 +1093,29 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFD4AF37),
-        unselectedItemColor: Colors.white38,
+        selectedItemColor: const Color(0xFF2563EB),
+        unselectedItemColor: const Color(0xFF94A3B8),
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
         unselectedLabelStyle: const TextStyle(fontSize: 10),
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_rounded),
-            activeIcon: Icon(Icons.dashboard_rounded, color: Color(0xFFD4AF37)),
+            activeIcon: Icon(Icons.dashboard_rounded, color: Color(0xFF2563EB)),
             label: 'Home',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline_rounded),
-            activeIcon: Icon(Icons.add_circle_rounded, color: Color(0xFFD4AF37)),
+            activeIcon: Icon(Icons.add_circle_rounded, color: Color(0xFF2563EB)),
             label: 'Plan Event',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.qr_code_2_rounded),
-            activeIcon: Icon(Icons.qr_code_2_rounded, color: Color(0xFFD4AF37)),
+            activeIcon: Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
             label: 'QR Passes',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.logout_rounded),
-            activeIcon: Icon(Icons.logout_rounded, color: Color(0xFFD4AF37)),
+            activeIcon: Icon(Icons.logout_rounded, color: Color(0xFF2563EB)),
             label: 'Sign Out',
           ),
         ],
