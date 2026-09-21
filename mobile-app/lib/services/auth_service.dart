@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,6 +26,12 @@ class AuthService {
   static const String _tokenKey = 'jwt_token';
   static const String _userRoleKey = 'user_role';
   static const String _userNameKey = 'user_name';
+  static const String _userIdKey = 'user_id';
+  static const String _userEmailKey = 'user_email';
+
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   static Future<AuthResult> login(String email, String password) async {
     try {
@@ -95,48 +102,84 @@ class AuthService {
     }
   }
 
-  static const String _userIdKey = 'user_id';
-  static const String _userEmailKey = 'user_email';
-
   static Future<void> saveToken(String token, String role, String name, {String? userId, String? email}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-    await prefs.setString(_userRoleKey, role);
-    await prefs.setString(_userNameKey, name);
-    if (userId != null && userId.isNotEmpty) {
-      await prefs.setString(_userIdKey, userId);
-    }
-    if (email != null && email.isNotEmpty) {
-      await prefs.setString(_userEmailKey, email);
+    try {
+      await _secureStorage.write(key: _tokenKey, value: token);
+      await _secureStorage.write(key: _userRoleKey, value: role);
+      await _secureStorage.write(key: _userNameKey, value: name);
+      if (userId != null && userId.isNotEmpty) {
+        await _secureStorage.write(key: _userIdKey, value: userId);
+      }
+      if (email != null && email.isNotEmpty) {
+        await _secureStorage.write(key: _userEmailKey, value: email);
+      }
+    } catch (_) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+      await prefs.setString(_userRoleKey, role);
+      await prefs.setString(_userNameKey, name);
+      if (userId != null && userId.isNotEmpty) {
+        await prefs.setString(_userIdKey, userId);
+      }
+      if (email != null && email.isNotEmpty) {
+        await prefs.setString(_userEmailKey, email);
+      }
     }
   }
 
   static Future<String?> getToken() async {
+    try {
+      final val = await _secureStorage.read(key: _tokenKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
   }
 
   static Future<String?> getUserId() async {
+    try {
+      final val = await _secureStorage.read(key: _userIdKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userIdKey);
   }
 
   static Future<String?> getUserEmail() async {
+    try {
+      final val = await _secureStorage.read(key: _userEmailKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userEmailKey);
   }
 
   static Future<String?> getUserName() async {
+    try {
+      final val = await _secureStorage.read(key: _userNameKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userNameKey) ?? 'Customer';
   }
 
   static Future<String?> getUserRole() async {
+    try {
+      final val = await _secureStorage.read(key: _userRoleKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_userRoleKey);
   }
 
   static Future<void> logout() async {
+    try {
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _userRoleKey);
+      await _secureStorage.delete(key: _userNameKey);
+      await _secureStorage.delete(key: _userIdKey);
+      await _secureStorage.delete(key: _userEmailKey);
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userRoleKey);
