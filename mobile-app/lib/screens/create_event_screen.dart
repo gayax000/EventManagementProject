@@ -38,7 +38,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _customEventTypeController = TextEditingController();
 
   // Smart Indoor / Outdoor Selection
-  // Inherently indoor for: Product Launch, Dinner/Gala, Award Ceremony
   bool _isOutdoor = false;
 
   // Basic Details
@@ -49,61 +48,50 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // Dynamic Services Selection
   final Set<String> _selectedServices = {'Photography', 'Decorations'};
-  bool _includeOtherServices = false;
   final _customServiceNotesController = TextEditingController();
 
-  // Special Client Requests & Additional Details (e.g. Flower Bouquet)
+  // Special Client Requests & Additional Details
   final _additionalDetailsController = TextEditingController();
 
   // Location / Venue Selection
-  // Modes: 'hotel' (Luxury Hotels & Halls), 'district' (Districts of SL), 'custom' (Private / Home Venue)
   String _locationMode = 'hotel';
 
-  // Banquet Halls from Backend
+  // Mode 1: Hotel & Banquet Hall Dropdowns
   List<BanquetHallItem> _allHalls = [];
   bool _isLoadingHalls = false;
   String? _selectedHotelName;
   BanquetHallItem? _selectedHall;
 
-  // District Mode State
-  final List<String> _sriLankaDistricts = [
-    'Colombo',
-    'Gampaha',
-    'Kalutara',
-    'Kandy',
-    'Galle',
-    'Matara',
-    'Hambantota',
-    'Kurunegala',
-    'Nuwara Eliya',
-    'Ratnapura',
-    'Badulla',
-    'Anuradhapura',
-    'Polonnaruwa',
-    'Trincomalee',
-    'Batticaloa',
-    'Jaffna'
-  ];
+  // Mode 2: District Selection
   String _selectedDistrict = 'Colombo';
   final _districtVenueNameController = TextEditingController();
 
-  // Custom / Private Venue State
+  // Mode 3: Custom / Private Venue
   final _customAddressController = TextEditingController();
 
-  // Multi-Image Inspiration Photos
+  // Photo / Moodboard upload (up to 5 images)
   final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   bool _isSubmitting = false;
+
+  final List<String> _sriLankaDistricts = [
+    'Colombo', 'Gampaha', 'Kalutara', 'Kandy', 'Matale', 'Nuwara Eliya',
+    'Galle', 'Matara', 'Hambantota', 'Jaffna', 'Kilinochchi', 'Mannar',
+    'Vavuniya', 'Mullaitivu', 'Batticaloa', 'Ampara', 'Trincomalee',
+    'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
+    'Monaragala', 'Ratnapura', 'Kegalle'
+  ];
 
   @override
   void initState() {
     super.initState();
     if (widget.initialEventType != null && _eventTypes.contains(widget.initialEventType)) {
       _selectedEventType = widget.initialEventType!;
-      _onEventTypeChanged(_selectedEventType);
+      _titleController.text = '$_selectedEventType Celebration';
     }
-    _loadBanquetHalls();
+    _applyOccasionDefaults();
+    _fetchHalls();
   }
 
   @override
@@ -119,24 +107,92 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     super.dispose();
   }
 
-  bool get _isInherentlyIndoor {
-    final lower = _selectedEventType.toLowerCase();
-    return lower == 'product launch' || lower == 'dinner/gala' || lower.contains('award');
+  void _applyOccasionDefaults() {
+    switch (_selectedEventType) {
+      case 'Wedding':
+        _guestController.text = '250';
+        _budgetController.text = '2500000';
+        _selectedServices.addAll({'Photography', 'Decorations', 'Live Band / DJ', 'Wedding Cake Tier'});
+        _isOutdoor = false;
+        break;
+      case 'Birthday Party':
+        _guestController.text = '80';
+        _budgetController.text = '600000';
+        _selectedServices.addAll({'Photography', 'Decorations', 'Birthday Cake'});
+        _isOutdoor = false;
+        break;
+      case 'Engagement Party':
+        _guestController.text = '120';
+        _budgetController.text = '1200000';
+        _selectedServices.addAll({'Photography', 'Decorations', 'Live Band / DJ'});
+        _isOutdoor = false;
+        break;
+      case 'Dinner/Gala':
+      case 'Award Ceremony':
+      case 'Product Launch':
+        _guestController.text = '300';
+        _budgetController.text = '3500000';
+        _selectedServices.addAll({'Photography', 'Sound and Lighting', 'Decorations', 'Luxury Transport'});
+        _isOutdoor = false;
+        break;
+      case 'Family Gathering':
+        _guestController.text = '150';
+        _budgetController.text = '900000';
+        _selectedServices.addAll({'Photography', 'Decorations'});
+        _isOutdoor = true;
+        break;
+      default:
+        break;
+    }
   }
 
-  String get _dynamicCakeLabel {
-    if (_selectedEventType == 'Wedding') return 'Wedding Cake';
-    if (_selectedEventType == 'Birthday Party') return 'Birthday Cake';
-    if (_selectedEventType == 'Engagement Party' || _selectedEventType == 'Anniversary') {
-      return 'Anniversary / Engagement Cake';
+  bool get _isInherentlyIndoor {
+    return _selectedEventType == 'Product Launch' ||
+        _selectedEventType == 'Dinner/Gala' ||
+        _selectedEventType == 'Award Ceremony';
+  }
+
+  void _onEventTypeChanged(String? newType) {
+    if (newType == null) return;
+    setState(() {
+      _selectedEventType = newType;
+      if (_titleController.text.isEmpty ||
+          _titleController.text.endsWith('Celebration') ||
+          _titleController.text.endsWith('Party') ||
+          _titleController.text.endsWith('Event')) {
+        _titleController.text = '$_selectedEventType Celebration';
+      }
+      _applyOccasionDefaults();
+    });
+  }
+
+  Future<void> _fetchHalls() async {
+    setState(() => _isLoadingHalls = true);
+    try {
+      final halls = await ApiService.getBanquetHalls();
+      if (mounted) {
+        setState(() {
+          _allHalls = halls;
+          _isLoadingHalls = false;
+          if (_hotelNames.isNotEmpty && _selectedHotelName == null) {
+            _selectedHotelName = _hotelNames.first;
+            final available = _hallsForSelectedHotel;
+            if (available.isNotEmpty) {
+              _selectedHall = available.firstWhere(
+                (h) => h.isAvailable,
+                orElse: () => available.first,
+              );
+            }
+          }
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingHalls = false);
     }
-    return 'Celebration Cake';
   }
 
   List<String> get _hotelNames {
-    final names = _allHalls.map((h) => h.venueName).toSet().toList();
-    names.sort();
-    return names;
+    return _allHalls.map((h) => h.venueName).toSet().toList();
   }
 
   List<BanquetHallItem> get _hallsForSelectedHotel {
@@ -144,87 +200,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return _allHalls.where((h) => h.venueName == _selectedHotelName).toList();
   }
 
-  void _onEventTypeChanged(String? newType) {
-    if (newType == null) return;
-    setState(() {
-      _selectedEventType = newType;
-      if (_isInherentlyIndoor) {
-        _isOutdoor = false;
-      }
-      // Auto suggest title
-      if (_selectedEventType == 'Wedding') {
-        _titleController.text = 'Grand Wedding Celebration';
-      } else if (_selectedEventType == 'Birthday Party') {
-        _titleController.text = 'Birthday Celebration Party';
-      } else if (_selectedEventType == 'Engagement Party') {
-        _titleController.text = 'Romantic Engagement Party';
-      } else if (_selectedEventType == 'Anniversary') {
-        _titleController.text = 'Silver Anniversary Celebration';
-      } else if (_selectedEventType == 'Award Ceremony') {
-        _titleController.text = 'Annual Corporate Awards Night';
-      } else if (_selectedEventType == 'Dinner/Gala') {
-        _titleController.text = 'Grand Gala Dinner';
-      } else if (_selectedEventType == 'Product Launch') {
-        _titleController.text = 'Tech Product Launch Event';
-      } else if (_selectedEventType == 'Family Gathering') {
-        _titleController.text = 'Family Reunion & Dinner';
-      } else if (_selectedEventType == 'Private Party') {
-        _titleController.text = 'Exclusive Private Party';
-      }
-    });
+  double get _calculatedVenueTotal {
+    if (_selectedHall == null) return 0;
+    final guests = double.tryParse(_guestController.text) ?? 100;
+    return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
   }
 
-  Future<void> _loadBanquetHalls() async {
-    setState(() => _isLoadingHalls = true);
-    try {
-      final halls = await ApiService.getBanquetHalls(date: _selectedDate);
-      setState(() {
-        _allHalls = halls;
-        if (_allHalls.isNotEmpty) {
-          if (_selectedHotelName == null || !_hotelNames.contains(_selectedHotelName)) {
-            _selectedHotelName = _hotelNames.first;
-          }
-          final availableHalls = _hallsForSelectedHotel;
-          if (availableHalls.isNotEmpty) {
-            _selectedHall = availableHalls.firstWhere(
-              (h) => h.isAvailable,
-              orElse: () => availableHalls.first,
-            );
-          }
-        }
-      });
-    } catch (e) {
-      debugPrint('Error loading banquet halls: $e');
-    } finally {
-      if (mounted) setState(() => _isLoadingHalls = false);
-    }
-  }
-
-  Future<void> _pickImages() async {
-    try {
-      final List<XFile> images = await _picker.pickMultiImage(
-        imageQuality: 65,
-        maxWidth: 800,
-        maxHeight: 800,
-      );
-      if (images.isNotEmpty) {
-        setState(() {
-          _selectedImages.addAll(images);
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick images: $e')),
-        );
-      }
-    }
-  }
-
-  void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
+  String get _dynamicCakeLabel {
+    if (_selectedEventType == 'Wedding') return 'Wedding Cake Tier';
+    if (_selectedEventType == 'Birthday Party') return 'Birthday Cake';
+    if (_selectedEventType == 'Anniversary') return 'Anniversary Cake';
+    return 'Custom Celebration Cake';
   }
 
   Future<void> _selectDate() async {
@@ -236,78 +222,63 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Color(0xFFD4AF37),
-              onPrimary: Colors.black,
-              surface: Color(0xFF1E293B),
-              onSurface: Colors.white,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2563EB),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF0F172A),
             ),
           ),
           child: child!,
         );
       },
     );
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null) {
       setState(() => _selectedDate = picked);
-      _loadBanquetHalls();
     }
   }
 
-  double get _calculatedVenueTotal {
-    if (_locationMode != 'hotel' || _selectedHall == null) return 0.0;
-    final guests = int.tryParse(_guestController.text) ?? 100;
-    return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
+  Future<void> _pickImages() async {
+    if (_selectedImages.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum 5 inspiration moodboard photos allowed.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+    final picked = await _picker.pickMultiImage();
+    if (picked.isNotEmpty) {
+      setState(() {
+        for (var img in picked) {
+          if (_selectedImages.length < 5) {
+            _selectedImages.add(img);
+          }
+        }
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
   }
 
   void _nextStep() {
     if (_currentStep == 0) {
-      if (_titleController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter an event title.')),
-        );
-        return;
-      }
-      final g = int.tryParse(_guestController.text);
-      if (g == null || g <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a valid guest count.')),
-        );
-        return;
-      }
-      final b = double.tryParse(_budgetController.text);
-      if (b == null || b <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a valid budget limit.')),
-        );
-        return;
-      }
-    } else if (_currentStep == 1) {
-      if (_locationMode == 'hotel') {
-        if (_selectedHall == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a banquet hall.')),
-          );
-          return;
-        }
-        if (!_selectedHall!.isAvailable) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${_selectedHall!.hallName} is already booked. Please choose an available hall or date.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          return;
-        }
-      } else if (_locationMode == 'custom') {
-        if (_customAddressController.text.trim().isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please enter your venue address.')),
-          );
-          return;
-        }
-      }
+      if (!_formKey.currentState!.validate()) return;
     }
-
+    if (_currentStep == 1 && _locationMode == 'hotel' && _selectedHall == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an available banquet hall for your hotel venue.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
     if (_currentStep < 3) {
       setState(() => _currentStep++);
     }
@@ -320,145 +291,110 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _submitEvent() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      setState(() => _currentStep = 0);
+      return;
+    }
 
-    if (_locationMode == 'hotel') {
-      if (_selectedHall == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a luxury hotel and banquet hall.')),
-        );
-        return;
-      }
-      if (!_selectedHall!.isAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${_selectedHall!.hallName} is already booked on ${DateFormat.yMMMd().format(_selectedDate)}. Please choose another date or hall.',
-            ),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        return;
-      }
+    final double budget = double.tryParse(_budgetController.text) ?? 0;
+    final int guests = int.tryParse(_guestController.text) ?? 100;
+
+    if (budget <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid target budget'), backgroundColor: Color(0xFFEF4444)),
+      );
+      setState(() => _currentStep = 0);
+      return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
-      // 1. Convert selected images to Base64 data URLs
-      List<String> base64Images = [];
+      final List<String> base64Images = [];
       for (var img in _selectedImages) {
         final bytes = await img.readAsBytes();
-        final base64String = base64Encode(bytes);
-        base64Images.add('data:image/jpeg;base64,$base64String');
+        final b64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        base64Images.add(b64);
       }
 
-      // 2. Prepare location details
       String? venueId;
       String? banquetHallId;
-      String? preferredLocation;
-
+      String? venueLocationStr;
       if (_locationMode == 'hotel') {
         venueId = _selectedHall?.venueId;
         banquetHallId = _selectedHall?.banquetHallId;
-        preferredLocation = '${_selectedHall?.venueName} - ${_selectedHall?.hallName}';
+        venueLocationStr = '${_selectedHall?.venueName} - ${_selectedHall?.hallName}';
       } else if (_locationMode == 'district') {
         final detail = _districtVenueNameController.text.trim();
-        preferredLocation = detail.isNotEmpty ? '$_selectedDistrict District ($detail)' : '$_selectedDistrict District';
+        venueLocationStr = detail.isNotEmpty ? '$_selectedDistrict District ($detail)' : '$_selectedDistrict District';
       } else {
-        preferredLocation = _customAddressController.text.trim().isNotEmpty
+        venueLocationStr = _customAddressController.text.trim().isNotEmpty
             ? _customAddressController.text.trim()
             : 'Private Venue / Home';
       }
 
-      // 3. Compile selected services
-      final servicesList = _selectedServices.toList();
-      final customNotes = _includeOtherServices ? _customServiceNotesController.text.trim() : null;
+      final customNotes = _customServiceNotesController.text.trim();
       final additionalDetails = _additionalDetailsController.text.trim();
-
-      final guestCount = int.tryParse(_guestController.text) ?? 100;
-      final budget = double.tryParse(_budgetController.text) ?? 1000000.0;
 
       final createdEvent = await ApiService.createEvent(
         title: _titleController.text.trim(),
         eventType: _selectedEventType,
         customEventType: _selectedEventType == 'Other' ? _customEventTypeController.text.trim() : null,
         targetDate: _selectedDate,
-        guestCount: guestCount,
+        guestCount: guests,
         budgetLimit: budget,
         isOutdoor: _isInherentlyIndoor ? false : _isOutdoor,
         additionalDetails: additionalDetails.isNotEmpty ? additionalDetails : null,
         venueId: venueId,
         banquetHallId: banquetHallId,
-        preferredLocation: preferredLocation,
-        selectedServices: servicesList,
-        customServiceNotes: customNotes,
+        preferredLocation: venueLocationStr,
+        selectedServices: _selectedServices.toList(),
+        customServiceNotes: customNotes.isNotEmpty ? customNotes : null,
         inspirationImages: base64Images.isNotEmpty ? base64Images : null,
       );
 
-      if (createdEvent != null && mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: const Color(0xFF1E293B),
-            title: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-                SizedBox(width: 10),
-                Text('Request Submitted!', style: TextStyle(color: Colors.white)),
-              ],
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        if (createdEvent != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Celebration Inquiry Created! AI agents are generating your proposal.'),
+              backgroundColor: Color(0xFF059669),
             ),
-            content: Text(
-              'Your event request for "${_titleController.text.trim()}" has been submitted successfully.\n\nOur AI planning agents and Operations Manager will prepare a customized proposal with your requested arrangements.',
-              style: const TextStyle(color: Colors.white70),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create event inquiry. Please check details and retry.'),
+              backgroundColor: Color(0xFFEF4444),
             ),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
-                  foregroundColor: Colors.black,
-                ),
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop(true);
-                },
-                child: const Text('Go to Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to submit event request. Please try again.'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Submission error: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(content: Text('Submission error: $e'), backgroundColor: const Color(0xFFEF4444)),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
           'Plan New Event • Step ${_currentStep + 1} of 4',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16, letterSpacing: 0.3),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16, letterSpacing: 0.2),
         ),
-        backgroundColor: const Color(0xFF131C31),
+        backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        surfaceTintColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
       ),
       bottomNavigationBar: _isSubmitting ? null : _buildBottomBar(),
       body: _isSubmitting
@@ -466,16 +402,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                  CircularProgressIndicator(color: Color(0xFF2563EB)),
                   SizedBox(height: 20),
                   Text(
                     'Generating AI Proposal & Securing Hall...',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 6),
                   Text(
                     'Coordinating multi-agent workflows and vendor allocations',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
                   ),
                 ],
               ),
@@ -484,10 +420,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Step Indicator Header
                   _buildStepperHeader(),
-
-                  // Wizard Step Content
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -503,7 +436,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   // 1. Top Stepper Header Bar
   Widget _buildStepperHeader() {
     final steps = [
-      {'title': 'Basics', 'subtitle': 'Scale & Date', 'icon': Icons.celebration_rounded},
+      {'title': 'Basics', 'subtitle': 'Scale & Date', 'icon': Icons.tune_rounded},
       {'title': 'Venue', 'subtitle': 'Hall & Catering', 'icon': Icons.location_city_rounded},
       {'title': 'Services', 'subtitle': 'Decor & Vision', 'icon': Icons.room_service_rounded},
       {'title': 'Review', 'subtitle': 'AI Quotation', 'icon': Icons.verified_user_rounded},
@@ -512,8 +445,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        color: Color(0xFF131C31),
-        border: Border(bottom: BorderSide(color: Colors.white10)),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: List.generate(4, (index) {
@@ -536,28 +469,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            gradient: isActive
-                                ? const LinearGradient(
-                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
                             color: isActive
-                                ? null
-                                : (isDone ? const Color(0xFF10B981) : const Color(0xFF0A0F1D)),
+                                ? const Color(0xFF2563EB)
+                                : (isDone ? const Color(0xFF059669) : const Color(0xFFF1F5F9)),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isActive
-                                  ? const Color(0xFFD4AF37)
-                                  : (isDone ? const Color(0xFF10B981) : Colors.white24),
+                                  ? const Color(0xFF2563EB)
+                                  : (isDone ? const Color(0xFF059669) : const Color(0xFFE2E8F0)),
                               width: isActive ? 2 : 1,
                             ),
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: const Color(0xFFD4AF37).withOpacity(0.4),
-                                      blurRadius: 10,
+                                      color: const Color(0xFF2563EB).withOpacity(0.3),
+                                      blurRadius: 8,
                                       spreadRadius: 1,
                                     )
                                   ]
@@ -569,7 +495,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                 : Icon(
                                     item['icon'] as IconData,
                                     size: 17,
-                                    color: isActive ? Colors.black : Colors.white54,
+                                    color: isActive ? Colors.white : const Color(0xFF64748B),
                                   ),
                           ),
                         ),
@@ -582,8 +508,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             fontSize: 11,
                             fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
                             color: isActive
-                                ? const Color(0xFFD4AF37)
-                                : (isDone ? Colors.white70 : Colors.white38),
+                                ? const Color(0xFF2563EB)
+                                : (isDone ? const Color(0xFF0F172A) : const Color(0xFF94A3B8)),
                           ),
                         ),
                       ],
@@ -595,7 +521,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       height: 2,
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: isDone ? const Color(0xFF10B981) : Colors.white12,
+                        color: isDone ? const Color(0xFF059669) : const Color(0xFFE2E8F0),
                         borderRadius: BorderRadius.circular(1),
                       ),
                     ),
@@ -608,7 +534,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // 2. Dynamic Step View Switcher
+  // 2. Wizard Current Step Switcher
   Widget _buildCurrentStepView() {
     switch (_currentStep) {
       case 0:
@@ -624,19 +550,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  // STEP 0: BASICS (Event Type, Title, Date, Guests & Budget)
+  // STEP 0: BASICS (Event Type, Title, Date, Guests & Budget) - ZERO EMOJIS
   Widget _buildStep0Basics() {
     final eventCards = [
-      {'name': 'Wedding', 'icon': '💍'},
-      {'name': 'Birthday Party', 'icon': '🎂'},
-      {'name': 'Dinner/Gala', 'icon': '🏢'},
-      {'name': 'Engagement Party', 'icon': '🥂'},
-      {'name': 'Anniversary', 'icon': '✨'},
-      {'name': 'Award Ceremony', 'icon': '🏆'},
-      {'name': 'Product Launch', 'icon': '🚀'},
-      {'name': 'Family Gathering', 'icon': '🌴'},
-      {'name': 'Private Party', 'icon': '🎉'},
-      {'name': 'Other', 'icon': '🪄'},
+      {'name': 'Wedding', 'icon': Icons.favorite_border_rounded},
+      {'name': 'Birthday Party', 'icon': Icons.cake_outlined},
+      {'name': 'Dinner/Gala', 'icon': Icons.business_center_outlined},
+      {'name': 'Engagement Party', 'icon': Icons.wine_bar_outlined},
+      {'name': 'Anniversary', 'icon': Icons.auto_awesome_outlined},
+      {'name': 'Award Ceremony', 'icon': Icons.emoji_events_outlined},
+      {'name': 'Product Launch', 'icon': Icons.rocket_launch_outlined},
+      {'name': 'Family Gathering', 'icon': Icons.groups_outlined},
+      {'name': 'Private Party', 'icon': Icons.celebration_outlined},
+      {'name': 'Other', 'icon': Icons.more_horiz_rounded},
     ];
 
     return Column(
@@ -646,7 +572,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         const SizedBox(height: 4),
         const Text(
           'Select your celebration occasion and scale for AI multi-agent orchestration.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
         const SizedBox(height: 16),
 
@@ -656,35 +582,33 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [
               const Text(
                 'Select Occasion & Event Theme',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: 10),
 
-              // Visual Celebration Grid / Chips
+              // Visual Celebration Grid / Chips (Zero Emojis)
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: eventCards.map((ec) {
                   final isSel = _selectedEventType == ec['name'];
                   return InkWell(
-                    onTap: () => _onEventTypeChanged(ec['name']),
+                    onTap: () => _onEventTypeChanged(ec['name'] as String),
                     borderRadius: BorderRadius.circular(12),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: isSel
-                            ? const Color(0xFFD4AF37).withOpacity(0.18)
-                            : const Color(0xFF0A0F1D),
+                        color: isSel ? const Color(0xFFEFF6FF) : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSel ? const Color(0xFFD4AF37) : Colors.white12,
+                          color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
                           width: isSel ? 1.5 : 1,
                         ),
                         boxShadow: isSel
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFD4AF37).withOpacity(0.2),
+                                  color: const Color(0xFF2563EB).withOpacity(0.15),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -694,12 +618,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(ec['icon']!, style: const TextStyle(fontSize: 16)),
+                          Icon(
+                            ec['icon'] as IconData,
+                            size: 16,
+                            color: isSel ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                          ),
                           const SizedBox(width: 8),
                           Text(
-                            ec['name']!,
+                            ec['name'] as String,
                             style: TextStyle(
-                              color: isSel ? const Color(0xFFD4AF37) : Colors.white,
+                              color: isSel ? const Color(0xFF2563EB) : const Color(0xFF334155),
                               fontSize: 12,
                               fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                             ),
@@ -715,7 +643,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _customEventTypeController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color(0xFF0F172A)),
                   decoration: _inputDecoration('Specify Your Event Occasion', hint: 'e.g. Graduation Ball, Fashion Runway'),
                   validator: (v) => _selectedEventType == 'Other' && (v == null || v.trim().isEmpty)
                       ? 'Please specify your event type'
@@ -724,35 +652,35 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ],
 
               const SizedBox(height: 18),
-              const Text('Event Title', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Event Title', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color(0xFF0F172A)),
                 decoration: _inputDecoration('Event Title', icon: Icons.title_rounded, hint: 'e.g. Royal Wedding Celebration'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
               ),
 
               const SizedBox(height: 18),
-              const Text('Event Setting (Indoor vs Outdoor)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Event Setting (Indoor vs Outdoor)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
 
               if (_isInherentlyIndoor) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF06B6D4).withOpacity(0.1),
+                    color: const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
+                    border: Border.all(color: const Color(0xFFBAE6FD)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline_rounded, color: Color(0xFF06B6D4), size: 18),
+                      const Icon(Icons.info_outline_rounded, color: Color(0xFF0284C7), size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue with optimal acoustic controls.',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: const TextStyle(color: Color(0xFF0369A1), fontSize: 12),
                         ),
                       ),
                     ],
@@ -767,28 +695,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                           decoration: BoxDecoration(
-                            gradient: !_isOutdoor
-                                ? const LinearGradient(
-                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
-                            color: !_isOutdoor ? null : const Color(0xFF0A0F1D),
+                            color: !_isOutdoor ? const Color(0xFFEFF6FF) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                              color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
                               width: !_isOutdoor ? 1.5 : 1,
                             ),
                           ),
                           child: Column(
                             children: [
-                              const Text('🏛️', style: TextStyle(fontSize: 20)),
+                              Icon(
+                                Icons.apartment_rounded,
+                                size: 22,
+                                color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 'Indoor (AC Hall)',
                                 style: TextStyle(
-                                  color: !_isOutdoor ? Colors.black : Colors.white,
+                                  color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
                                   fontSize: 12,
                                   fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
                                 ),
@@ -797,7 +722,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               Text(
                                 '0% Rain Risk • Guaranteed AC',
                                 style: TextStyle(
-                                  color: !_isOutdoor ? Colors.black87 : Colors.white38,
+                                  color: !_isOutdoor ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
                                   fontSize: 9,
                                 ),
                               ),
@@ -813,28 +738,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                           decoration: BoxDecoration(
-                            gradient: _isOutdoor
-                                ? const LinearGradient(
-                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
-                            color: _isOutdoor ? null : const Color(0xFF0A0F1D),
+                            color: _isOutdoor ? const Color(0xFFEFF6FF) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                              color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
                               width: _isOutdoor ? 1.5 : 1,
                             ),
                           ),
                           child: Column(
                             children: [
-                              const Text('🌳', style: TextStyle(fontSize: 20)),
+                              Icon(
+                                Icons.park_outlined,
+                                size: 22,
+                                color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 'Outdoor (Lawn/Garden)',
                                 style: TextStyle(
-                                  color: _isOutdoor ? Colors.black : Colors.white,
+                                  color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
                                   fontSize: 12,
                                   fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
                                 ),
@@ -843,7 +765,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               Text(
                                 'Scenic Lawns • Rain Shield',
                                 style: TextStyle(
-                                  color: _isOutdoor ? Colors.black87 : Colors.white38,
+                                  color: _isOutdoor ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
                                   fontSize: 9,
                                 ),
                               ),
@@ -859,18 +781,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF06B6D4).withOpacity(0.1),
+                      color: const Color(0xFFF0F9FF),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFFBAE6FD)),
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.cloud_sync_rounded, color: Color(0xFF06B6D4), size: 16),
+                        Icon(Icons.cloud_sync_rounded, color: Color(0xFF0284C7), size: 16),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "AI Weather Agent will compute monsoonal probability and provide canopy quotation.",
-                            style: TextStyle(color: Color(0xFF06B6D4), fontSize: 11),
+                            style: TextStyle(color: Color(0xFF0369A1), fontSize: 11),
                           ),
                         ),
                       ],
@@ -889,7 +811,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Target Date, Guests & Budget', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Target Date, Guests & Budget', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 12),
 
               // Date Picker Card
@@ -899,29 +821,29 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0A0F1D),
+                    color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37).withOpacity(0.15),
+                          color: const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.calendar_month_rounded, color: Color(0xFFD4AF37), size: 20),
+                        child: const Icon(Icons.calendar_month_rounded, color: Color(0xFF2563EB), size: 20),
                       ),
                       const SizedBox(width: 14),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('TARGET EVENT DATE', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 0.8)),
+                          const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8)),
                           const SizedBox(height: 2),
                           Text(
                             DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
                       ),
@@ -929,10 +851,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37).withOpacity(0.15),
+                          color: const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: const Text('Change', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ],
                   ),
@@ -948,18 +870,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Guest Count', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const Text('Guest Count', style: TextStyle(color: Color(0xFF475569), fontSize: 12)),
                         const SizedBox(height: 6),
                         Container(
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0A0F1D),
+                            color: const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
                           ),
                           child: Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.remove_rounded, color: Color(0xFFD4AF37), size: 18),
+                                icon: const Icon(Icons.remove_rounded, color: Color(0xFF2563EB), size: 18),
                                 onPressed: () {
                                   final n = int.tryParse(_guestController.text) ?? 100;
                                   if (n > 25) {
@@ -972,7 +894,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                   controller: _guestController,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
                                   decoration: const InputDecoration(
                                     border: InputBorder.none,
                                     isDense: true,
@@ -982,7 +904,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.add_rounded, color: Color(0xFFD4AF37), size: 18),
+                                icon: const Icon(Icons.add_rounded, color: Color(0xFF2563EB), size: 18),
                                 onPressed: () {
                                   final n = int.tryParse(_guestController.text) ?? 100;
                                   setState(() => _guestController.text = '${n + 25}');
@@ -999,13 +921,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Budget Limit (LKR)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const Text('Budget Limit (LKR)', style: TextStyle(color: Color(0xFF475569), fontSize: 12)),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _budgetController,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          decoration: _inputDecoration('Budget (LKR)', icon: Icons.account_balance_wallet_rounded),
+                          style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
+                          decoration: _inputDecoration('Budget (LKR)', icon: Icons.payments_outlined),
                           onChanged: (_) => setState(() {}),
                         ),
                       ],
@@ -1020,7 +942,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // STEP 1: VENUE & LOCATION SELECTION
+  // STEP 1: VENUE & LOCATION SELECTION (ZERO EMOJIS)
   Widget _buildStep1Venue() {
     final curFormat = NumberFormat('#,##0', 'en_US');
 
@@ -1031,7 +953,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         const SizedBox(height: 4),
         const Text(
           'Select your preferred luxury hotel, banquet hall, or private location.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
         const SizedBox(height: 14),
 
@@ -1039,17 +961,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Mode Selector Tabs
+              // Mode Selector Tabs (Zero Emojis)
               Row(
                 children: [
-                  _buildModeChip('hotel', '🏨 Luxury Hotels'),
+                  _buildModeChip('hotel', 'Luxury Hotels', Icons.apartment_rounded),
                   const SizedBox(width: 8),
-                  _buildModeChip('district', '🗺️ Districts'),
+                  _buildModeChip('district', 'Districts', Icons.map_outlined),
                   const SizedBox(width: 8),
-                  _buildModeChip('custom', '✏️ Private Venue'),
+                  _buildModeChip('custom', 'Private Venue', Icons.edit_location_alt_outlined),
                 ],
               ),
-              const Divider(color: Colors.white12, height: 26),
+              const Divider(color: Color(0xFFE2E8F0), height: 26),
 
               // MODE 1: HOTEL & BANQUET HALL
               if (_locationMode == 'hotel') ...[
@@ -1057,27 +979,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
-                      child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                      child: CircularProgressIndicator(color: Color(0xFF2563EB)),
                     ),
                   )
                 else if (_hotelNames.isEmpty)
-                  const Text('No hotel halls found.', style: TextStyle(color: Colors.white54))
+                  const Text('No hotel halls found.', style: TextStyle(color: Color(0xFF64748B)))
                 else ...[
-                  const Text('Select Luxury Hotel / Resort', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Select Luxury Hotel / Resort', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white24),
+                      border: Border.all(color: const Color(0xFFCBD5E1)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedHotelName,
                         isExpanded: true,
-                        dropdownColor: const Color(0xFF1E293B),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        dropdownColor: Colors.white,
+                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
                         items: _hotelNames.map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
                         onChanged: (name) {
                           if (name != null) {
@@ -1100,14 +1022,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  const Text('Available Banquet Halls & In-House Catering', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text('Available Banquet Halls & In-House Catering', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                   const SizedBox(height: 8),
 
                   if (_hallsForSelectedHotel.isEmpty)
-                    const Text('No halls found for this hotel.', style: TextStyle(color: Colors.white54))
+                    const Text('No halls found for this hotel.', style: TextStyle(color: Color(0xFF64748B)))
                   else ...[
                     Column(
-                      children: _hallsForSelectedHotel.map((hall) {
+                      children: _hallsForSelectedHotel.map<Widget>((hall) {
                         final isSelected = _selectedHall?.banquetHallId == hall.banquetHallId;
                         final isAvail = hall.isAvailable;
                         final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
@@ -1115,20 +1037,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFFD4AF37).withOpacity(0.15)
-                                : const Color(0xFF0A0F1D),
+                            color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
-                                  ? const Color(0xFFD4AF37)
-                                  : (isAvail ? Colors.white12 : const Color(0xFFEF4444).withOpacity(0.4)),
-                              width: isSelected ? 1.8 : 1,
+                                  ? const Color(0xFF2563EB)
+                                  : (isAvail ? const Color(0xFFE2E8F0) : const Color(0xFFEF4444).withOpacity(0.3)),
+                              width: isSelected ? 1.5 : 1,
                             ),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: const Color(0xFFD4AF37).withOpacity(0.25),
+                                      color: const Color(0xFF2563EB).withOpacity(0.12),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     )
@@ -1156,7 +1076,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     children: [
                                       Icon(
                                         isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                                        color: isSelected ? const Color(0xFFD4AF37) : Colors.white38,
+                                        color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
                                         size: 20,
                                       ),
                                       const SizedBox(width: 10),
@@ -1164,7 +1084,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                         child: Text(
                                           hall.hallName,
                                           style: TextStyle(
-                                            color: isAvail ? Colors.white : Colors.white38,
+                                            color: isAvail ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 15,
                                           ),
@@ -1175,26 +1095,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                           margin: const EdgeInsets.only(right: 6),
                                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: Colors.teal.withOpacity(0.2),
+                                            color: const Color(0xFFECFDF5),
                                             borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.teal.withOpacity(0.4)),
+                                            border: Border.all(color: const Color(0xFFA7F3D0)),
                                           ),
                                           child: Text(
-                                            matchesSetting ? '🌳 OUTDOOR' : 'OUTDOOR',
-                                            style: const TextStyle(color: Colors.tealAccent, fontSize: 9, fontWeight: FontWeight.bold),
+                                            matchesSetting ? 'OUTDOOR' : 'OUTDOOR',
+                                            style: const TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: isAvail ? const Color(0xFF10B981).withOpacity(0.2) : const Color(0xFFEF4444).withOpacity(0.2),
+                                          color: isAvail ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
                                           borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: isAvail ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
+                                          border: Border.all(color: isAvail ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA)),
                                         ),
                                         child: Text(
                                           isAvail ? 'AVAILABLE' : 'BOOKED',
                                           style: TextStyle(
-                                            color: isAvail ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                            color: isAvail ? const Color(0xFF059669) : const Color(0xFFDC2626),
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -1208,14 +1128,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          const Icon(Icons.people_alt_rounded, color: Colors.white54, size: 14),
+                                          const Icon(Icons.people_alt_rounded, color: Color(0xFF64748B), size: 14),
                                           const SizedBox(width: 4),
                                           Text('Capacity: up to ${hall.maxCapacity} guests',
-                                              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                              style: const TextStyle(color: Color(0xFF475569), fontSize: 12)),
                                         ],
                                       ),
                                       Text('Hall: LKR ${curFormat.format(hall.hallRentalPrice)}',
-                                          style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold)),
+                                          style: const TextStyle(color: Color(0xFF2563EB), fontSize: 13, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
@@ -1224,14 +1144,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          const Icon(Icons.restaurant_rounded, color: Colors.white54, size: 14),
+                                          const Icon(Icons.restaurant_rounded, color: Color(0xFF64748B), size: 14),
                                           const SizedBox(width: 4),
                                           const Text('In-House Buffet Catering:',
-                                              style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                              style: TextStyle(color: Color(0xFF475569), fontSize: 12)),
                                         ],
                                       ),
                                       Text('LKR ${curFormat.format(hall.perPlatePrice)} / plate',
-                                          style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
+                                          style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ],
@@ -1246,32 +1166,32 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0A0F1D),
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
-                            children: [
-                              Icon(Icons.restaurant_menu_rounded, color: Color(0xFFD4AF37), size: 16),
+                          Row(
+                            children: const [
+                              Icon(Icons.restaurant_menu_rounded, color: Color(0xFF2563EB), size: 16),
                               SizedBox(width: 8),
-                              Text('In-House Hotel Catering Policy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              Text('In-House Hotel Catering Policy', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Hotels provide full in-house gourmet banquet buffet at LKR ${curFormat.format(_selectedHall?.perPlatePrice ?? 0)}/plate.',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
                           ),
                           if (_selectedHall != null) ...[
-                            const Divider(color: Colors.white12, height: 14),
+                            const Divider(color: Color(0xFFE2E8F0), height: 14),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Venue + Food Subtotal (${_guestController.text} guests):', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                Text('LKR ${curFormat.format(_calculatedVenueTotal)}', style: const TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text('Venue + Food Subtotal (${_guestController.text} guests):', style: const TextStyle(color: Color(0xFF475569), fontSize: 12)),
+                                Text('LKR ${curFormat.format(_calculatedVenueTotal)}', style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 13)),
                               ],
                             ),
                           ],
@@ -1284,21 +1204,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
               // MODE 2: DISTRICT SELECTION
               if (_locationMode == 'district') ...[
-                const Text('Select Sri Lankan District', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Select Sri Lankan District', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedDistrict,
                       isExpanded: true,
-                      dropdownColor: const Color(0xFF1E293B),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
                       items: _sriLankaDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
                       onChanged: (d) => setState(() => _selectedDistrict = d ?? _selectedDistrict),
                     ),
@@ -1307,19 +1227,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _districtVenueNameController,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color(0xFF0F172A)),
                   decoration: _inputDecoration('Specific Venue / Area (Optional)', hint: 'e.g. Waters Edge, Mount Lavinia'),
                 ),
               ],
 
               // MODE 3: CUSTOM / PRIVATE VENUE
               if (_locationMode == 'custom') ...[
-                const Text('Private Venue / Residence Address', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Private Venue / Residence Address', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _customAddressController,
                   maxLines: 2,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Color(0xFF0F172A)),
                   decoration: _inputDecoration(
                     'Enter Address / Location Details',
                     hint: 'e.g. No. 45, Flower Road, Colombo 07 (Private Residence Lawn)',
@@ -1336,16 +1256,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // STEP 3: SERVICES, INSPIRATION PHOTOS & CLIENT VISION CHATBOX
+  // STEP 2: SERVICES, INSPIRATION PHOTOS & CLIENT VISION CHATBOX
   Widget _buildStep2Services() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Step 3: Services, Inspiration & Vision', Icons.checklist),
+        _buildSectionHeader('Step 3: Services, Inspiration & Vision', Icons.checklist_rounded),
         const SizedBox(height: 4),
         const Text(
           'Select production packages, attach moodboard photos, and describe your vision for our Operations Manager.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
         const SizedBox(height: 14),
 
@@ -1354,17 +1274,17 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tailored Event Services', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Tailored Event Services', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildServiceFilterChip('Photography', Icons.camera_alt),
-                  _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
-                  _buildServiceFilterChip('Decorations', Icons.park),
-                  _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
-                  _buildServiceFilterChip('Luxury Transport', Icons.directions_car),
+                  _buildServiceFilterChip('Photography', Icons.camera_alt_outlined),
+                  _buildServiceFilterChip('Sound and Lighting', Icons.speaker_outlined),
+                  _buildServiceFilterChip('Decorations', Icons.park_outlined),
+                  _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake_outlined),
+                  _buildServiceFilterChip('Luxury Transport', Icons.directions_car_outlined),
                 ],
               ),
             ],
@@ -1378,35 +1298,35 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.photo_library, color: Color(0xFFD4AF37), size: 18),
+              Row(
+                children: const [
+                  Icon(Icons.photo_library_outlined, color: Color(0xFF2563EB), size: 18),
                   SizedBox(width: 8),
-                  Text('Inspiration & Moodboard Photos', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('Inspiration & Moodboard Photos', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 ],
               ),
               const SizedBox(height: 6),
               const Text(
                 'Upload cake tiers, stage decor ideas, or bridal car styles for our planners & vendors:',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: _pickImages,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFD4AF37),
-                  side: const BorderSide(color: Color(0xFFD4AF37)),
+                  foregroundColor: const Color(0xFF2563EB),
+                  side: const BorderSide(color: Color(0xFF2563EB)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.add_photo_alternate, size: 18),
+                icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
                 label: const Text('Pick Photos from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               ),
               if (_selectedImages.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
                   '${_selectedImages.length} photo(s) attached:',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -1421,7 +1341,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white24),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Stack(
                           fit: StackFit.expand,
@@ -1465,27 +1385,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.chat_bubble_outline, color: Color(0xFFD4AF37), size: 18),
+              Row(
+                children: const [
+                  Icon(Icons.chat_bubble_outline_rounded, color: Color(0xFF2563EB), size: 18),
                   SizedBox(width: 8),
-                  Text('Client Vision & Special Notes Chatbox', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('Client Vision & Special Notes Chatbox', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 ],
               ),
               const SizedBox(height: 6),
               const Text(
                 'Type your custom vision, specific photo instructions, theme preferences, or special requests for our Operations Manager:',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _additionalDetailsController,
                 maxLines: 4,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Color(0xFF0F172A)),
                 decoration: _inputDecoration(
                   'Client Vision & Special Notes',
                   hint: 'e.g. I want a pastel floral theme on stage with warm fairy lights, like in photo 1. Please arrange VIP welcome mocktails on arrival...',
-                  icon: Icons.edit_note,
+                  icon: Icons.edit_note_rounded,
                 ),
               ),
             ],
@@ -1495,18 +1415,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  // STEP 4: FINAL REVIEW & SUBMISSION
+  // STEP 3: FINAL REVIEW & SUBMISSION (ZERO EMOJIS)
   Widget _buildStep3ReviewAndPhotos() {
     final curFormat = NumberFormat('#,##0', 'en_US');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Step 4: Final Review & Submission', Icons.verified_user),
+        _buildSectionHeader('Step 4: Final Review & Submission', Icons.verified_user_outlined),
         const SizedBox(height: 4),
         const Text(
           'Review your complete event parameters, attached photos, and client vision notes before AI compilation.',
-          style: TextStyle(color: Colors.white54, fontSize: 12),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
         ),
         const SizedBox(height: 14),
 
@@ -1517,29 +1437,29 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, color: Color(0xFFD4AF37), size: 18),
+                  const Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 18),
                   const SizedBox(width: 8),
-                  const Text('AI Proposal Summary Preview', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  const Text('AI Proposal Summary Preview', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 14)),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFD4AF37)),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
                     child: Text(
                       _selectedEventType,
-                      style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: Color(0xFF2563EB), fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
               ),
-              const Divider(color: Colors.white12, height: 20),
+              const Divider(color: Color(0xFFE2E8F0), height: 20),
 
               _buildSummaryRow('Event Title:', _titleController.text.trim()),
               _buildSummaryRow('Target Date:', DateFormat('EEEE, MMM d, yyyy').format(_selectedDate)),
-              _buildSummaryRow('Setting:', _isInherentlyIndoor ? '🏛️ Indoor (AC Hall)' : (_isOutdoor ? '🌳 Outdoor Lawn' : '🏛️ Indoor AC Hall')),
+              _buildSummaryRow('Setting:', _isInherentlyIndoor ? 'Indoor (AC Hall)' : (_isOutdoor ? 'Outdoor Lawn' : 'Indoor AC Hall')),
               _buildSummaryRow('Guests / Budget:', '${_guestController.text} guests  •  LKR ${curFormat.format(double.tryParse(_budgetController.text) ?? 0)}'),
 
               if (_locationMode == 'hotel')
@@ -1559,14 +1479,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 _buildSummaryRow('Client Vision Notes:', '${_additionalDetailsController.text.trim()} (Priced by Manager upon Review)'),
 
               if (_locationMode == 'hotel' && _selectedHall != null) ...[
-                const Divider(color: Colors.white12, height: 18),
+                const Divider(color: Color(0xFFE2E8F0), height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Estimated Venue & Catering:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const Text('Estimated Venue & Catering:', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
                     Text(
                       'LKR ${curFormat.format(_calculatedVenueTotal)}',
-                      style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
@@ -1581,18 +1501,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF06B6D4).withOpacity(0.1),
+            color: const Color(0xFFF0F9FF),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
+            border: Border.all(color: const Color(0xFFBAE6FD)),
           ),
-          child: const Row(
-            children: [
-              Icon(Icons.psychology, color: Color(0xFF38BDF8), size: 22),
+          child: Row(
+            children: const [
+              Icon(Icons.psychology_outlined, color: Color(0xFF0284C7), size: 22),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'When submitted, the Multi-Agent AI system will calculate monsoonal weather risks, allocate vendor packages, and submit for Operations Manager review.',
-                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                  style: TextStyle(color: Color(0xFF0369A1), fontSize: 11),
                 ),
               ),
             ],
@@ -1608,14 +1528,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
-        border: const Border(top: BorderSide(color: Colors.white10)),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Color(0x0A0F172A),
             blurRadius: 10,
-            offset: const Offset(0, -4),
+            offset: Offset(0, -4),
           ),
         ],
       ),
@@ -1626,20 +1546,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               OutlinedButton.icon(
                 onPressed: _prevStep,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.white24),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.arrow_back_rounded, size: 16, color: Colors.white70),
-                label: const Text('Back', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF475569)),
+                label: const Text('Back', style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.bold)),
               ),
             if (_currentStep > 0) const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: _currentStep == 3 ? (_isSubmitting ? null : _submitEvent) : _nextStep,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD4AF37),
-                  foregroundColor: Colors.black,
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -1648,12 +1568,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_currentStep == 3) ...[
-                      const Icon(Icons.auto_awesome_rounded, color: Colors.black, size: 18),
+                      const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       nextLabels[_currentStep],
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
                     ),
                   ],
                 ),
@@ -1673,12 +1593,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            child: Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+              style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600, fontSize: 12),
             ),
           ),
         ],
@@ -1692,19 +1612,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Container(
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: const Color(0xFFD4AF37).withOpacity(0.15),
+            color: const Color(0xFFEFF6FF),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFBFDBFE)),
           ),
-          child: Icon(icon, color: const Color(0xFFD4AF37), size: 18),
+          child: Icon(icon, color: const Color(0xFF2563EB), size: 18),
         ),
         const SizedBox(width: 10),
         Text(
           title,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF0F172A),
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            letterSpacing: 0.3,
+            letterSpacing: 0.2,
           ),
         ),
       ],
@@ -1716,14 +1637,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF131C31),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-        boxShadow: [
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Color(0x060F172A),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 3),
           ),
         ],
       ),
@@ -1731,37 +1652,37 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  Widget _buildModeChip(String mode, String label) {
+  Widget _buildModeChip(String mode, String label, IconData icon) {
     final isSelected = _locationMode == mode;
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _locationMode = mode),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
-            gradient: isSelected
-                ? const LinearGradient(
-                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: isSelected ? null : const Color(0xFF0A0F1D),
+            color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? const Color(0xFFD4AF37) : Colors.white24,
+              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1),
+              width: isSelected ? 1.5 : 1,
             ),
           ),
-          child: Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isSelected ? Colors.black : Colors.white70,
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 15, color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF475569),
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -1773,18 +1694,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return FilterChip(
       selected: isSelected,
       label: Text(label),
-      avatar: Icon(icon, size: 16, color: isSelected ? Colors.black : const Color(0xFFD4AF37)),
+      avatar: Icon(icon, size: 16, color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.black : Colors.white,
+        color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF334155),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
-      backgroundColor: const Color(0xFF0A0F1D),
-      selectedColor: const Color(0xFFD4AF37),
-      checkmarkColor: Colors.black,
+      backgroundColor: Colors.white,
+      selectedColor: const Color(0xFFEFF6FF),
+      checkmarkColor: const Color(0xFF2563EB),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: isSelected ? const Color(0xFFD4AF37) : Colors.white24),
+        side: BorderSide(color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFCBD5E1)),
       ),
       onSelected: (selected) {
         setState(() {
@@ -1802,27 +1723,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
-      hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-      prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFD4AF37), size: 18) : null,
+      labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+      prefixIcon: icon != null ? Icon(icon, color: const Color(0xFF2563EB), size: 18) : null,
       filled: true,
-      fillColor: const Color(0xFF0A0F1D),
+      fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.white24),
+        borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: const BorderSide(color: Color(0xFFEF4444)),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
       ),
     );
   }
