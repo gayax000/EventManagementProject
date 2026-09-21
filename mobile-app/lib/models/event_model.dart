@@ -198,4 +198,8 @@ class BanquetHallItem {
       isAvailable: json['isAvailable'] != false,
     );
   }
+
+  String get hotelName => venueName;
 }
+
+typedef BanquetHallSummary = BanquetHallItem;
