@@ -15,33 +15,36 @@ class EventCraftApp extends StatelessWidget {
       title: 'EventCraft AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A0F1D),
-        canvasColor: const Color(0xFF0A0F1D),
-        cardColor: const Color(0xFF131C31),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFD4AF37), // Champagne Gold
-          secondary: Color(0xFF06B6D4), // Electric Cyan
-          surface: Color(0xFF131C31),
-          onPrimary: Colors.black,
-          onSecondary: Colors.black,
-          onSurface: Colors.white,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        canvasColor: const Color(0xFFF8FAFC),
+        cardColor: Colors.white,
+        dividerColor: const Color(0xFFE2E8F0),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF2563EB), // Royal Blue
+          secondary: Color(0xFF0284C7), // Sky Blue
+          surface: Colors.white,
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: Color(0xFF0F172A), // Deep Slate
+          error: Color(0xFFEF4444),
         ),
         textTheme: GoogleFonts.plusJakartaSansTextTheme(
-          ThemeData.dark().textTheme,
+          ThemeData.light().textTheme,
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFF131C31),
+          backgroundColor: Colors.white,
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
           titleTextStyle: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: const Color(0xFF0F172A),
           ),
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
         ),
       ),
       home: const SplashScreen(),
     );
   }
-}
+}
