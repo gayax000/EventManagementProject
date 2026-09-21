@@ -1317,15 +1317,25 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             if (match != null) {
               final val = double.tryParse(match.group(1)!.replaceAll(',', '')) ?? 0.0;
               final lower = str.toLowerCase();
-              if (lower.contains('photo')) parsedCosts['photo'] = val;
-              else if (lower.contains('sound') || lower.contains('audio')) parsedCosts['sound'] = val;
-              else if (lower.contains('deco') || lower.contains('floral') || lower.contains('stage')) parsedCosts['deco'] = val;
-              else if (lower.contains('cake') || lower.contains('gateau')) parsedCosts['cake'] = val;
-              else if (lower.contains('transport') || lower.contains('sedan') || lower.contains('car') || lower.contains('van')) parsedCosts['transport'] = val;
-              else if (lower.contains('special') || lower.contains('request')) parsedCosts['special'] = val;
-              else if (lower.contains('tent') || lower.contains('safeguard') || lower.contains('canopy') || lower.contains('marquee')) parsedCosts['tent'] = val;
-              else if (lower.contains('venue') || lower.contains('hall')) parsedCosts['hall'] = val;
-              else if (lower.contains('buffet') || lower.contains('catering')) parsedCosts['catering'] = val;
+              if (lower.contains('photo')) {
+                parsedCosts['photo'] = val;
+              } else if (lower.contains('sound') || lower.contains('audio')) {
+                parsedCosts['sound'] = val;
+              } else if (lower.contains('deco') || lower.contains('floral') || lower.contains('stage')) {
+                parsedCosts['deco'] = val;
+              } else if (lower.contains('cake') || lower.contains('gateau')) {
+                parsedCosts['cake'] = val;
+              } else if (lower.contains('transport') || lower.contains('sedan') || lower.contains('car') || lower.contains('van')) {
+                parsedCosts['transport'] = val;
+              } else if (lower.contains('special') || lower.contains('request')) {
+                parsedCosts['special'] = val;
+              } else if (lower.contains('tent') || lower.contains('safeguard') || lower.contains('canopy') || lower.contains('marquee')) {
+                parsedCosts['tent'] = val;
+              } else if (lower.contains('venue') || lower.contains('hall')) {
+                parsedCosts['hall'] = val;
+              } else if (lower.contains('buffet') || lower.contains('catering')) {
+                parsedCosts['catering'] = val;
+              }
             }
           }
         }
