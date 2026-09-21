@@ -80,7 +80,7 @@ export const eventService = {
   },
 
   // Manager Approve Proposal with exact finalTotal and optional status & customAddonCost
-  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number) => {
+  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number, planItems?: string[]) => {
     let url = `/events/${eventId}/approve-proposal?discount=${discount}`;
     if (finalTotal !== undefined) {
       url += `&finalTotal=${finalTotal}`;
@@ -91,7 +91,7 @@ export const eventService = {
     if (customAddonCost !== undefined) {
       url += `&customAddonCost=${customAddonCost}`;
     }
-    const response = await apiClient.post(url);
+    const response = await apiClient.post(url, planItems || null);
     return response.data;
   },
 

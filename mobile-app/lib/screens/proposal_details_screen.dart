@@ -727,93 +727,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     }
                   },
                 ),
-                if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty)) ...[
-                  const SizedBox(height: 10),
-                  const Text("📦 Itemized Package Breakdown:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                  const SizedBox(height: 6),
-                  
-                  // Venue Rental Item
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text("🏛️ ${proposal.banquetHallName ?? proposal.venueName} Rental", style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
-                        ),
-                        Text("LKR ${(proposal.hallRentalPrice ?? 350000).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
-                      ],
-                    ),
-                  ),
-
-                  // Catering Item
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text("🍽️ Hotel Dinner Buffet (${proposal.guestCount} Guests)", style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
-                        ),
-                        Text("LKR ${((proposal.perPlatePrice ?? 5200) * proposal.guestCount).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
-                      ],
-                    ),
-                  ),
-
-                  ...proposal.selectedServices.map((s) {
-                    String desc = s;
-                    double cost = 100000;
-                    if (s.toLowerCase().contains('photo')) {
-                      desc = "📸 Photography & 4K Video";
-                      cost = 160000;
-                    } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-                      desc = "🔊 Sound & Intelligent Lighting";
-                      cost = 180000;
-                    } else if (s.toLowerCase().contains('deco')) {
-                      desc = "🌸 Stage Styling & Theme Decor";
-                      cost = 130000;
-                    } else if (s.toLowerCase().contains('cake')) {
-                      desc = "🎂 Luxury Celebration Cake";
-                      cost = 45000;
-                    } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-                      desc = "🚗 Chauffeur VIP Transport";
-                      cost = 65000;
-                    }
-                    final costStr = cost.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 11.5)),
-                          ),
-                          Text("LKR $costStr", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11.5)),
-                        ],
-                      ),
-                    );
-                  }),
-
-                  if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text("💐 Special Request (${proposal.additionalDetails})", style: const TextStyle(color: Colors.pinkAccent, fontSize: 11.5, fontWeight: FontWeight.w600)),
-                          ),
-                          Text(
-                            proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
-                              ? "LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}"
-                              : "Priced by Manager",
-                            style: const TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 11.5),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
+                if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty))
+                  _buildItemizedBreakdown(proposal),
                 const Divider(color: Colors.white12, height: 22),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1387,6 +1302,165 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
+    final Map<String, double> parsedCosts = {};
+    if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
+      try {
+        final dynamic decoded = jsonDecode(proposal.generatedPlan!);
+        if (decoded is List) {
+          for (var item in decoded) {
+            final str = item.toString();
+            final match = RegExp(r'\(.*(?:Rs\.|LKR)\s*([\d,]+)\)').firstMatch(str);
+            if (match != null) {
+              final val = double.tryParse(match.group(1)!.replaceAll(',', '')) ?? 0.0;
+              final lower = str.toLowerCase();
+              if (lower.contains('photo')) parsedCosts['photo'] = val;
+              else if (lower.contains('sound') || lower.contains('audio')) parsedCosts['sound'] = val;
+              else if (lower.contains('deco') || lower.contains('floral') || lower.contains('stage')) parsedCosts['deco'] = val;
+              else if (lower.contains('cake') || lower.contains('gateau')) parsedCosts['cake'] = val;
+              else if (lower.contains('transport') || lower.contains('sedan') || lower.contains('car') || lower.contains('van')) parsedCosts['transport'] = val;
+              else if (lower.contains('special') || lower.contains('request')) parsedCosts['special'] = val;
+              else if (lower.contains('tent') || lower.contains('safeguard') || lower.contains('canopy') || lower.contains('marquee')) parsedCosts['tent'] = val;
+              else if (lower.contains('venue') || lower.contains('hall')) parsedCosts['hall'] = val;
+              else if (lower.contains('buffet') || lower.contains('catering')) parsedCosts['catering'] = val;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    final double hallPrice = parsedCosts['hall'] ?? proposal.hallRentalPrice ?? 350000.0;
+    final double cateringPrice = parsedCosts['catering'] ?? ((proposal.perPlatePrice ?? 5000.0) * proposal.guestCount);
+    
+    final bool isAutoFit = proposal.status == 'ApprovedByManager' || proposal.status == 'Confirmed' || proposal.estimatedTotalCost <= proposal.budgetLimit;
+
+    final List<Map<String, dynamic>> items = [];
+
+    // 1. Venue Rental
+    items.add({
+      'icon': '🏛️',
+      'label': '${proposal.banquetHallName ?? proposal.venueName} Rental',
+      'cost': hallPrice,
+      'isSpecial': false,
+    });
+
+    // 2. Hotel Catering
+    items.add({
+      'icon': '🍽️',
+      'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
+      'cost': cateringPrice,
+      'isSpecial': false,
+    });
+
+    // 3. Selected Services
+    for (var s in proposal.selectedServices) {
+      String desc = s;
+      double cost = 100000;
+      String icon = '📦';
+      if (s.toLowerCase().contains('photo')) {
+        icon = '📸';
+        desc = 'Photography & 4K Video';
+        cost = parsedCosts['photo'] ?? (isAutoFit ? 60000.0 : (proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0));
+      } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
+        icon = '🔊';
+        desc = 'Sound & Intelligent Lighting';
+        cost = parsedCosts['sound'] ?? (isAutoFit ? 80000.0 : (proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0));
+      } else if (s.toLowerCase().contains('deco')) {
+        icon = '🌸';
+        desc = 'Stage Styling & Theme Decor';
+        cost = parsedCosts['deco'] ?? (isAutoFit ? 50000.0 : (proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0));
+      } else if (s.toLowerCase().contains('cake')) {
+        icon = '🎂';
+        desc = 'Luxury Celebration Cake';
+        cost = parsedCosts['cake'] ?? (isAutoFit ? 20000.0 : (proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0));
+      } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
+        icon = '🚗';
+        desc = 'Chauffeur VIP Transport';
+        cost = parsedCosts['transport'] ?? (isAutoFit ? 35000.0 : (proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0));
+      }
+      items.add({
+        'icon': icon,
+        'label': desc,
+        'cost': cost,
+        'isSpecial': false,
+      });
+    }
+
+    // 4. Special Client Request
+    if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
+      double specialCost = parsedCosts['special'] ?? proposal.specialRequestAllocation ?? 0.0;
+      items.add({
+        'icon': '💐',
+        'label': 'Special Request (${proposal.additionalDetails})',
+        'cost': specialCost,
+        'isSpecial': true,
+      });
+    }
+
+    // 5. Outdoor Weather Safeguard Tent
+    if (proposal.isOutdoor) {
+      double tentCost = parsedCosts['tent'] ?? (isAutoFit ? 100000.0 : 150000.0);
+      if (tentCost > 0) {
+        items.add({
+          'icon': '⛺',
+          'label': 'Waterproof Weather Safeguard Tent',
+          'cost': tentCost,
+          'isSpecial': false,
+        });
+      }
+    }
+
+    // Balance check against estimatedTotalCost if target total is set
+    double currentItemsSum = items.fold(0.0, (sum, item) => sum + (item['cost'] as double));
+    if (proposal.estimatedTotalCost > 0 && (currentItemsSum - proposal.estimatedTotalCost).abs() > 0.01) {
+      double diff = proposal.estimatedTotalCost - currentItemsSum;
+      for (var item in items) {
+        if ((item['label'] as String).contains('Sound') || (item['label'] as String).contains('Photography') || (item['label'] as String).contains('Decor')) {
+          item['cost'] = (item['cost'] as double) + diff;
+          break;
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        const Text("📦 Itemized Package Breakdown:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+        const SizedBox(height: 6),
+        ...items.map((item) {
+          final costStr = (item['cost'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 3),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    "${item['icon']} ${item['label']}", 
+                    style: TextStyle(
+                      color: item['isSpecial'] == true ? Colors.pinkAccent : Colors.white70, 
+                      fontSize: 11.5,
+                      fontWeight: item['isSpecial'] == true ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                Text(
+                  item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
+                  style: TextStyle(
+                    color: item['isSpecial'] == true ? Colors.pinkAccent : Colors.white, 
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
     );
   }
 }

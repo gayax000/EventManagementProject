@@ -496,27 +496,63 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const weatherData = selectedEvent.weatherAssessment;
     const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
     const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
-    const weatherTentCost = isEventOutdoor 
-      ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
-      : 0;
+
+    let weatherTentCost = 0;
+    let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
+
+    if (isEventOutdoor) {
+      if (selectedWeatherOptionId) {
+        const found = WEATHER_SAFEGUARD_CATALOG.find(w => w.id === selectedWeatherOptionId);
+        if (found) {
+          weatherTentCost = found.cost;
+          weatherTentName = found.name;
+        }
+      } else if (isBudgetAutoFitted) {
+        if ((selectedEvent.guestCount || 0) >= 200) {
+          weatherTentCost = 100000;
+          weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+        } else if ((selectedEvent.guestCount || 0) >= 100) {
+          weatherTentCost = 60000;
+          weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
+        } else {
+          weatherTentCost = 25000;
+          weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+        }
+      } else {
+        weatherTentCost = weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0);
+        if (weatherTentCost === 150000) {
+          weatherTentName = 'Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls';
+        } else if (weatherTentCost === 85000) {
+          weatherTentName = 'Waterproof Stretch Canopy & Rain Drapes';
+        } else if (weatherTentCost === 45000) {
+          weatherTentName = 'Standard High-Peak Modular Canopies';
+        }
+      }
+    }
 
     const computedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
 
     let computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
     let targetStatus = 'ApprovedByManager';
 
-    if (isBudgetAutoFitted) {
-      computedFinalTotal = Math.min(computedSubtotal, clientBudgetLimit);
-      targetStatus = 'ApprovedByManager';
-    } else if (clientApprovalRequested) {
+    if (clientApprovalRequested) {
       targetStatus = 'PendingClientBudgetApproval';
-    } else if (selectedEvent.status === 'ClientChoiceSubmitted') {
-      computedFinalTotal = selectedEvent.estimatedTotalCost || computedFinalTotal;
-      targetStatus = 'ApprovedByManager';
     }
 
+    const planItems = [
+      `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
+      `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
+    ];
+    if (alloc.hasSounds) planItems.push(`${alloc.soundsName} (Rs. ${alloc.soundsCost.toLocaleString()})`);
+    if (alloc.hasDeco) planItems.push(`${alloc.decoName} (Rs. ${alloc.decoCost.toLocaleString()})`);
+    if (alloc.hasPhoto) planItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
+    if (alloc.hasCake) planItems.push(`${alloc.cakeLabel} (Rs. ${alloc.cakeCost.toLocaleString()})`);
+    if (alloc.hasTransport) planItems.push(`${alloc.transportName} (Rs. ${alloc.transportCost.toLocaleString()})`);
+    if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
+    if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()})`);
+
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation, planItems);
       setActionSuccess(
         clientApprovalRequested
           ? "Proposal flagged & sent to client for budget increase request!"
@@ -538,15 +574,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const filteredEvents = events.filter(ev => {
     const matchesTab = 
       eventFilterTab === 'all' ? true :
-      eventFilterTab === 'pending' ? (ev.status === 'PendingManagerApproval' || ev.status === 'UnderReview') :
-      (ev.status === 'ApprovedByManager' || ev.status === 'Confirmed');
+      eventFilterTab === 'pending' ? (ev.status === 'PendingManagerApproval' || ev.status === 'UnderReview' || ev.status === 'ClientChoiceSubmitted' || ev.status === 'PendingClientBudgetApproval') :
+      eventFilterTab === 'approved' ? (ev.status === 'ApprovedByManager' || ev.status === 'Confirmed') : true;
 
-    const searchLower = eventSearchQuery.toLowerCase();
     const matchesSearch = 
-      !eventSearchQuery ||
-      ev.title.toLowerCase().includes(searchLower) ||
-      (ev.eventType || '').toLowerCase().includes(searchLower) ||
-      (ev.venueName || '').toLowerCase().includes(searchLower);
+      ev.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+      ev.eventType?.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+      ev.venueName?.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+      ev.status.toLowerCase().includes(eventSearchQuery.toLowerCase());
 
     return matchesTab && matchesSearch;
   });
@@ -601,9 +636,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
-  const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
-    ? selectedEvent.estimatedTotalCost
-    : Math.max(0, currentSubtotal - specialDiscount);
+  const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">

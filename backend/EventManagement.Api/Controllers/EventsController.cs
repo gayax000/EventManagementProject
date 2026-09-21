@@ -375,7 +375,7 @@ public class EventsController : ControllerBase
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [Authorize(Roles = "Manager")]
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null, [FromBody] List<string>? planItems = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
@@ -406,26 +406,30 @@ public class EventsController : ControllerBase
                 aiState.EstimatedTotalCost = Math.Max(0, baseSubtotal - discount);
             }
 
-            if (customAddonCost.HasValue && customAddonCost.Value > 0 && !string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+            if (planItems != null && planItems.Count > 0)
+            {
+                aiState.GeneratedPlanJson = JsonSerializer.Serialize(planItems);
+            }
+            else if (customAddonCost.HasValue && customAddonCost.Value > 0 && !string.IsNullOrWhiteSpace(ev.AdditionalDetails))
             {
                 try
                 {
-                    var planItems = JsonSerializer.Deserialize<List<string>>(aiState.GeneratedPlanJson) ?? new List<string>();
+                    var items = JsonSerializer.Deserialize<List<string>>(aiState.GeneratedPlanJson) ?? new List<string>();
                     bool updated = false;
-                    for (int i = 0; i < planItems.Count; i++)
+                    for (int i = 0; i < items.Count; i++)
                     {
-                        if (planItems[i].StartsWith("Special Client Request:"))
+                        if (items[i].StartsWith("Special Client Request:"))
                         {
-                            planItems[i] = $"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})";
+                            items[i] = $"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})";
                             updated = true;
                             break;
                         }
                     }
                     if (!updated)
                     {
-                        planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})");
+                        items.Add($"Special Client Request: {ev.AdditionalDetails} (Manager Allocated: Rs. {customAddonCost.Value:N0})");
                     }
-                    aiState.GeneratedPlanJson = JsonSerializer.Serialize(planItems);
+                    aiState.GeneratedPlanJson = JsonSerializer.Serialize(items);
                 }
                 catch { }
             }
