@@ -169,23 +169,26 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text("Event Proposal & Status", style: TextStyle(color: Colors.white, fontSize: 16)),
+        backgroundColor: const Color(0xFF131C31),
+        title: const Text(
+          "Event Proposal & Status",
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.cyan),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFFD4AF37)),
             onPressed: _loadProposal,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
           : _proposal == null
               ? Center(
                   child: Column(
