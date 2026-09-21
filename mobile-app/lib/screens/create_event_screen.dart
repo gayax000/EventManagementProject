@@ -8,7 +8,8 @@ import '../models/event_model.dart';
 import '../services/api_service.dart';
 
 class CreateEventScreen extends StatefulWidget {
-  const CreateEventScreen({super.key});
+  final String? initialEventType;
+  const CreateEventScreen({super.key, this.initialEventType});
 
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
@@ -98,6 +99,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialEventType != null && _eventTypes.contains(widget.initialEventType)) {
+      _selectedEventType = widget.initialEventType!;
+      _onEventTypeChanged(_selectedEventType);
+    }
     _loadBanquetHalls();
   }
 
@@ -445,13 +450,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
         title: Text(
           'Plan New Event • Step ${_currentStep + 1} of 4',
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16, letterSpacing: 0.3),
         ),
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: const Color(0xFF131C31),
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -465,7 +470,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   SizedBox(height: 20),
                   Text(
                     'Generating AI Proposal & Securing Hall...',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 6),
                   Text(
@@ -498,16 +503,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   // 1. Top Stepper Header Bar
   Widget _buildStepperHeader() {
     final steps = [
-      {'title': 'Basics', 'icon': Icons.celebration},
-      {'title': 'Venue', 'icon': Icons.location_city},
-      {'title': 'Services', 'icon': Icons.room_service},
-      {'title': 'Review', 'icon': Icons.verified_user},
+      {'title': 'Basics', 'subtitle': 'Scale & Date', 'icon': Icons.celebration_rounded},
+      {'title': 'Venue', 'subtitle': 'Hall & Catering', 'icon': Icons.location_city_rounded},
+      {'title': 'Services', 'subtitle': 'Decor & Vision', 'icon': Icons.room_service_rounded},
+      {'title': 'Review', 'subtitle': 'AI Quotation', 'icon': Icons.verified_user_rounded},
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E293B),
+        color: Color(0xFF131C31),
         border: Border(bottom: BorderSide(color: Colors.white10)),
       ),
       child: Row(
@@ -519,7 +524,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           return Expanded(
             child: InkWell(
               onTap: isDone ? () => setState(() => _currentStep = index) : null,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               child: Row(
                 children: [
                   Expanded(
@@ -528,12 +533,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
-                          width: 32,
-                          height: 32,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
+                            gradient: isActive
+                                ? const LinearGradient(
+                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
                             color: isActive
-                                ? const Color(0xFFD4AF37)
-                                : (isDone ? const Color(0xFF10B981) : const Color(0xFF0F172A)),
+                                ? null
+                                : (isDone ? const Color(0xFF10B981) : const Color(0xFF0A0F1D)),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isActive
@@ -542,20 +554,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               width: isActive ? 2 : 1,
                             ),
                             boxShadow: isActive
-                                ? [BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 8, spreadRadius: 1)]
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  ]
                                 : null,
                           ),
                           child: Center(
                             child: isDone
-                                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                                ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
                                 : Icon(
                                     item['icon'] as IconData,
-                                    size: 15,
+                                    size: 17,
                                     color: isActive ? Colors.black : Colors.white54,
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           item['title'] as String,
                           maxLines: 1,
@@ -576,7 +594,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       width: 14,
                       height: 2,
                       margin: const EdgeInsets.only(bottom: 16),
-                      color: isDone ? const Color(0xFF10B981) : Colors.white12,
+                      decoration: BoxDecoration(
+                        color: isDone ? const Color(0xFF10B981) : Colors.white12,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
                     ),
                 ],
               ),
@@ -605,83 +626,132 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // STEP 0: BASICS (Event Type, Title, Date, Guests & Budget)
   Widget _buildStep0Basics() {
+    final eventCards = [
+      {'name': 'Wedding', 'icon': '💍'},
+      {'name': 'Birthday Party', 'icon': '🎂'},
+      {'name': 'Dinner/Gala', 'icon': '🏢'},
+      {'name': 'Engagement Party', 'icon': '🥂'},
+      {'name': 'Anniversary', 'icon': '✨'},
+      {'name': 'Award Ceremony', 'icon': '🏆'},
+      {'name': 'Product Launch', 'icon': '🚀'},
+      {'name': 'Family Gathering', 'icon': '🌴'},
+      {'name': 'Private Party', 'icon': '🎉'},
+      {'name': 'Other', 'icon': '🪄'},
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Step 1: Event Fundamentals', Icons.celebration),
+        _buildSectionHeader('Step 1: Event Fundamentals', Icons.celebration_rounded),
         const SizedBox(height: 4),
         const Text(
-          'Tell us about your celebration theme and scale.',
+          'Select your celebration occasion and scale for AI multi-agent orchestration.',
           style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
         _buildCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Event Type & Occasion', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedEventType,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF1E293B),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    items: _eventTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-                    onChanged: _onEventTypeChanged,
-                  ),
-                ),
+              const Text(
+                'Select Occasion & Event Theme',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 10),
+
+              // Visual Celebration Grid / Chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: eventCards.map((ec) {
+                  final isSel = _selectedEventType == ec['name'];
+                  return InkWell(
+                    onTap: () => _onEventTypeChanged(ec['name']),
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? const Color(0xFFD4AF37).withValues(alpha: 0.18)
+                            : const Color(0xFF0A0F1D),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSel ? const Color(0xFFD4AF37) : Colors.white12,
+                          width: isSel ? 1.5 : 1,
+                        ),
+                        boxShadow: isSel
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(ec['icon']!, style: const TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Text(
+                            ec['name']!,
+                            style: TextStyle(
+                              color: isSel ? const Color(0xFFD4AF37) : Colors.white,
+                              fontSize: 12,
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
 
               if (_selectedEventType == 'Other') ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 TextFormField(
                   controller: _customEventTypeController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration('Specify Your Event Type', hint: 'e.g. Graduation Party, Fashion Show'),
+                  decoration: _inputDecoration('Specify Your Event Occasion', hint: 'e.g. Graduation Ball, Fashion Runway'),
                   validator: (v) => _selectedEventType == 'Other' && (v == null || v.trim().isEmpty)
                       ? 'Please specify your event type'
                       : null,
                 ),
               ],
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               const Text('Event Title', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Event Title', icon: Icons.title, hint: 'e.g. Royal Wedding Celebration'),
+                decoration: _inputDecoration('Event Title', icon: Icons.title_rounded, hint: 'e.g. Royal Wedding Celebration'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               const Text('Event Setting (Indoor vs Outdoor)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
 
               if (_isInherentlyIndoor) ...[
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF38BDF8).withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+                    color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.info_outline_rounded, color: Color(0xFF06B6D4), size: 18),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue.',
+                          '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue with optimal acoustic controls.',
                           style: const TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ),
@@ -695,51 +765,118 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: GestureDetector(
                         onTap: () => setState(() => _isOutdoor = false),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                           decoration: BoxDecoration(
-                            color: !_isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '🏛️ Indoor (AC Hall)',
-                              style: TextStyle(
-                                color: !_isOutdoor ? Colors.black : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
-                              ),
+                            gradient: !_isOutdoor
+                                ? const LinearGradient(
+                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: !_isOutdoor ? null : const Color(0xFF0A0F1D),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: !_isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                              width: !_isOutdoor ? 1.5 : 1,
                             ),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text('🏛️', style: TextStyle(fontSize: 20)),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Indoor (AC Hall)',
+                                style: TextStyle(
+                                  color: !_isOutdoor ? Colors.black : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '0% Rain Risk • Guaranteed AC',
+                                style: TextStyle(
+                                  color: !_isOutdoor ? Colors.black87 : Colors.white38,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
                         onTap: () => setState(() => _isOutdoor = true),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
                           decoration: BoxDecoration(
-                            color: _isOutdoor ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '🌳 Outdoor (Lawn/Garden)',
-                              style: TextStyle(
-                                color: _isOutdoor ? Colors.black : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
-                              ),
+                            gradient: _isOutdoor
+                                ? const LinearGradient(
+                                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: _isOutdoor ? null : const Color(0xFF0A0F1D),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isOutdoor ? const Color(0xFFD4AF37) : Colors.white24,
+                              width: _isOutdoor ? 1.5 : 1,
                             ),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text('🌳', style: TextStyle(fontSize: 20)),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Outdoor (Lawn/Garden)',
+                                style: TextStyle(
+                                  color: _isOutdoor ? Colors.black : Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Scenic Lawns • Rain Shield',
+                                style: TextStyle(
+                                  color: _isOutdoor ? Colors.black87 : Colors.white38,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ],
                 ),
+                if (_isOutdoor) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.cloud_sync_rounded, color: Color(0xFF06B6D4), size: 16),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "AI Weather Agent will compute monsoonal probability and provide canopy quotation.",
+                            style: TextStyle(color: Color(0xFF06B6D4), fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
@@ -747,32 +884,41 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
         const SizedBox(height: 16),
 
+        // Date, Guests & Budget Target
         _buildCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Date, Guests & Budget Target', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-              const SizedBox(height: 10),
+              const Text('Target Date, Guests & Budget', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 12),
 
               // Date Picker Card
               InkWell(
                 onTap: _selectDate,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                    color: const Color(0xFF0A0F1D),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_month, color: Color(0xFFD4AF37), size: 20),
-                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.calendar_month_rounded, color: Color(0xFFD4AF37), size: 20),
+                      ),
+                      const SizedBox(width: 14),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Target Event Date', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          const Text('TARGET EVENT DATE', style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 0.8)),
+                          const SizedBox(height: 2),
                           Text(
                             DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
@@ -780,43 +926,89 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ],
                       ),
                       const Spacer(),
-                      const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
                     ],
                   ),
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
+              // Guest Count with +/- Stepper & Budget
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _guestController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Guest Count', icon: Icons.people),
-                      onChanged: (_) => setState(() {}),
-                      validator: (v) {
-                        final n = int.tryParse(v ?? '');
-                        if (n == null || n <= 0) return 'Valid count';
-                        return null;
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Guest Count', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const SizedBox(height: 6),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0A0F1D),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_rounded, color: Color(0xFFD4AF37), size: 18),
+                                onPressed: () {
+                                  final n = int.tryParse(_guestController.text) ?? 100;
+                                  if (n > 25) {
+                                    setState(() => _guestController.text = '${n - 25}');
+                                  }
+                                },
+                              ),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _guestController,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                  onChanged: (_) => setState(() {}),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add_rounded, color: Color(0xFFD4AF37), size: 18),
+                                onPressed: () {
+                                  final n = int.tryParse(_guestController.text) ?? 100;
+                                  setState(() => _guestController.text = '${n + 25}');
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
-                    child: TextFormField(
-                      controller: _budgetController,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Budget Limit (LKR)', icon: Icons.attach_money),
-                      onChanged: (_) => setState(() {}),
-                      validator: (v) {
-                        final b = double.tryParse(v ?? '');
-                        if (b == null || b <= 0) return 'Valid budget';
-                        return null;
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Budget Limit (LKR)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _budgetController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          decoration: _inputDecoration('Budget (LKR)', icon: Icons.account_balance_wallet_rounded),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -921,18 +1113,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
 
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
+                          margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFFD4AF37).withOpacity(0.12)
-                                : const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(12),
+                                ? const Color(0xFFD4AF37).withValues(alpha: 0.15)
+                                : const Color(0xFF0A0F1D),
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
                                   ? const Color(0xFFD4AF37)
-                                  : (isAvail ? Colors.white12 : Colors.redAccent.withOpacity(0.4)),
+                                  : (isAvail ? Colors.white12 : const Color(0xFFEF4444).withValues(alpha: 0.4)),
                               width: isSelected ? 1.8 : 1,
                             ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFFD4AF37).withValues(alpha: 0.25),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ]
+                                : null,
                           ),
                           child: InkWell(
                             onTap: isAvail
@@ -941,42 +1142,42 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text('${hall.hallName} is already booked on this date!'),
-                                        backgroundColor: Colors.redAccent,
+                                        backgroundColor: const Color(0xFFEF4444),
                                       ),
                                     );
                                   },
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(14),
                             child: Padding(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(14),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
                                     children: [
                                       Icon(
-                                        isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                        isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
                                         color: isSelected ? const Color(0xFFD4AF37) : Colors.white38,
-                                        size: 18,
+                                        size: 20,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
                                           hall.hallName,
                                           style: TextStyle(
                                             color: isAvail ? Colors.white : Colors.white38,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 14,
+                                            fontSize: 15,
                                           ),
                                         ),
                                       ),
                                       if (hall.isOutdoor)
                                         Container(
                                           margin: const EdgeInsets.only(right: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: Colors.teal.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: Colors.teal.withOpacity(0.4)),
+                                            color: Colors.teal.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.teal.withValues(alpha: 0.4)),
                                           ),
                                           child: Text(
                                             matchesSetting ? '🌳 OUTDOOR' : 'OUTDOOR',
@@ -984,15 +1185,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                           ),
                                         ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: isAvail ? const Color(0xFF10B981).withOpacity(0.2) : Colors.redAccent.withOpacity(0.2),
+                                          color: isAvail ? const Color(0xFF10B981).withValues(alpha: 0.2) : const Color(0xFFEF4444).withValues(alpha: 0.2),
                                           borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: isAvail ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                                         ),
                                         child: Text(
                                           isAvail ? 'AVAILABLE' : 'BOOKED',
                                           style: TextStyle(
-                                            color: isAvail ? const Color(0xFF10B981) : Colors.redAccent,
+                                            color: isAvail ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                           ),
@@ -1000,23 +1202,35 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 10),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('Capacity: up to ${hall.maxCapacity} guests',
-                                          style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                                      Text('Hall Rental: LKR ${curFormat.format(hall.hallRentalPrice)}',
-                                          style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.people_alt_rounded, color: Colors.white54, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text('Capacity: up to ${hall.maxCapacity} guests',
+                                              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        ],
+                                      ),
+                                      Text('Hall: LKR ${curFormat.format(hall.hallRentalPrice)}',
+                                          style: const TextStyle(color: Color(0xFFD4AF37), fontSize: 13, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      const Text('In-House Catering (per plate):',
-                                          style: TextStyle(color: Colors.white60, fontSize: 12)),
-                                      Text('LKR ${curFormat.format(hall.perPlatePrice)} / guest',
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.restaurant_rounded, color: Colors.white54, size: 14),
+                                          const SizedBox(width: 4),
+                                          const Text('In-House Buffet Catering:',
+                                              style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                        ],
+                                      ),
+                                      Text('LKR ${curFormat.format(hall.perPlatePrice)} / plate',
                                           style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
@@ -1028,20 +1242,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       }).toList(),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.blueGrey.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+                        color: const Color(0xFF0A0F1D),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Row(
                             children: [
-                              Icon(Icons.restaurant_menu, color: Color(0xFFD4AF37), size: 16),
+                              Icon(Icons.restaurant_menu_rounded, color: Color(0xFFD4AF37), size: 16),
                               SizedBox(width: 8),
                               Text('In-House Hotel Catering Policy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                             ],
@@ -1310,7 +1524,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37).withOpacity(0.15),
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFFD4AF37)),
                     ),
@@ -1367,9 +1581,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF38BDF8).withOpacity(0.1),
+            color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.3)),
+            border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
           ),
           child: const Row(
             children: [
@@ -1390,13 +1604,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // 3. Bottom Navigation Bar
   Widget _buildBottomBar() {
-    final nextLabels = ['Next: Venue Selection', 'Next: Choose Services', 'Next: Photos & Review', 'Create Event Request'];
+    final nextLabels = ['Next: Venue & Hall ➔', 'Next: Services & Decor ➔', 'Next: Moodboard & Review ➔', 'Submit Event Request'];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E293B),
-        border: Border(top: BorderSide(color: Colors.white10)),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131C31),
+        border: const Border(top: BorderSide(color: Colors.white10)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Row(
@@ -1406,11 +1627,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 onPressed: _prevStep,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.white24),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.arrow_back, size: 16, color: Colors.white70),
-                label: const Text('Back', style: TextStyle(color: Colors.white70)),
+                icon: const Icon(Icons.arrow_back_rounded, size: 16, color: Colors.white70),
+                label: const Text('Back', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold)),
               ),
             if (_currentStep > 0) const SizedBox(width: 12),
             Expanded(
@@ -1419,25 +1640,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD4AF37),
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 3,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (_currentStep == 3) ...[
-                      const Icon(Icons.auto_awesome, color: Colors.black, size: 18),
+                      const Icon(Icons.auto_awesome_rounded, color: Colors.black, size: 18),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       nextLabels[_currentStep],
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
                     ),
-                    if (_currentStep < 3) ...[
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward, color: Colors.black, size: 16),
-                    ],
                   ],
                 ),
               ),
@@ -1450,12 +1667,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Widget _buildSummaryRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 110,
+            width: 120,
             child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
           ),
           Expanded(
@@ -1472,14 +1689,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget _buildSectionHeader(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFFD4AF37), size: 20),
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: const Color(0xFFD4AF37), size: 18),
+        ),
+        const SizedBox(width: 10),
         Text(
           title,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.3,
           ),
         ),
       ],
@@ -1489,11 +1714,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget _buildCard({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF131C31),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
@@ -1505,9 +1737,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       child: GestureDetector(
         onTap: () => setState(() => _locationMode = mode),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFD4AF37) : const Color(0xFF0F172A),
+            gradient: isSelected
+                ? const LinearGradient(
+                    colors: [Color(0xFFD4AF37), Color(0xFFF59E0B)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isSelected ? null : const Color(0xFF0A0F1D),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: isSelected ? const Color(0xFFD4AF37) : Colors.white24,
@@ -1540,7 +1779,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF0A0F1D),
       selectedColor: const Color(0xFFD4AF37),
       checkmarkColor: Colors.black,
       shape: RoundedRectangleBorder(
@@ -1567,8 +1806,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
       prefixIcon: icon != null ? Icon(icon, color: const Color(0xFFD4AF37), size: 18) : null,
       filled: true,
-      fillColor: const Color(0xFF0F172A),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      fillColor: const Color(0xFF0A0F1D),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.white24),
