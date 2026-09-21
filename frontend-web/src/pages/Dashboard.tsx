@@ -105,6 +105,15 @@ const CURATED_SHOWCASE_PHOTOS = [
   }
 ];
 
+const WEATHER_SAFEGUARD_CATALOG = [
+  { id: 'tent_large_premium', name: 'Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls', cost: 150000, desc: '200+ Guests (Grand Outdoor)' },
+  { id: 'tent_large_std', name: 'Standard Large-Capacity Rain Canopy Pavilion', cost: 100000, desc: '200+ Guests (Economy Outdoor)' },
+  { id: 'tent_med_premium', name: 'Waterproof Stretch Canopy & Rain Drapes', cost: 85000, desc: '100-200 Guests (Standard Outdoor)' },
+  { id: 'tent_med_std', name: 'Standard Medium-Capacity Waterproof Pavilion', cost: 60000, desc: '100-200 Guests (Economy Outdoor)' },
+  { id: 'tent_compact_std', name: 'Standard High-Peak Modular Canopies', cost: 45000, desc: '<100 Guests (Compact Outdoor)' },
+  { id: 'tent_compact_budget', name: 'Economy Compact Rain Protection Canopies', cost: 25000, desc: '<100 Guests (Budget Auto-Fit)' }
+];
+
 interface DashboardProps {
   onAuthChange?: () => void;
   onNavigateLogin?: () => void;
@@ -130,6 +139,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
   const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
   const [specialAllocation, setSpecialAllocation] = useState<number>(35000);
+  const [selectedWeatherOptionId, setSelectedWeatherOptionId] = useState<string | null>(null);
 
   // Authentication State & Modal
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(authService.isLoggedIn());
@@ -385,7 +395,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
     if (hasCake) {
-      if (eventType.includes('birthday')) {
+      if (forceAutoFit) {
+        cakeCost = 20000;
+        cakeLabel = '2-Tier Classic Celebration Cake (Budget Auto-Fit)';
+      } else if (eventType.includes('birthday')) {
         if (budget >= 1000000) {
           cakeCost = 35000;
           cakeLabel = '3-Tier Grand Custom Thematic Birthday Cake';
@@ -435,7 +448,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let transportCost = 0;
     let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
     if (hasTransport) {
-      if (eventType.includes('wedding')) {
+      if (forceAutoFit) {
+        transportCost = 35000;
+        transportName = 'Executive Chauffeur Sedan / VIP Van (Budget Auto-Fit)';
+      } else if (eventType.includes('wedding')) {
         if (budget >= 2000000) {
           transportCost = 95000;
           transportName = 'Classic Vintage Rolls Royce / Jaguar Bridal Car';
@@ -549,17 +565,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? "Monsoon Showers" : "Indoor Climate Controlled");
   const weatherAction = weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
 
-  const weatherTentCost = isEventOutdoor 
-    ? (weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0))
-    : 0;
+  let weatherTentCost = 0;
+  let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
+
+  if (isEventOutdoor) {
+    if (selectedWeatherOptionId) {
+      const found = WEATHER_SAFEGUARD_CATALOG.find(w => w.id === selectedWeatherOptionId);
+      if (found) {
+        weatherTentCost = found.cost;
+        weatherTentName = found.name;
+      }
+    } else if (isBudgetAutoFitted) {
+      if ((selectedEvent?.guestCount || 0) >= 200) {
+        weatherTentCost = 100000;
+        weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+      } else if ((selectedEvent?.guestCount || 0) >= 100) {
+        weatherTentCost = 60000;
+        weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
+      } else {
+        weatherTentCost = 25000;
+        weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+      }
+    } else {
+      weatherTentCost = weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0);
+      if (weatherTentCost === 150000) {
+        weatherTentName = 'Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls';
+      } else if (weatherTentCost === 85000) {
+        weatherTentName = 'Waterproof Stretch Canopy & Rain Drapes';
+      } else if (weatherTentCost === 45000) {
+        weatherTentName = 'Standard High-Peak Modular Canopies';
+      }
+    }
+  }
 
   const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
   const displayedFinalTotal = isApproved && selectedEvent?.estimatedTotalCost
     ? selectedEvent.estimatedTotalCost
-    : isBudgetAutoFitted
-    ? Math.min(currentSubtotal, clientBudgetLimit)
     : Math.max(0, currentSubtotal - specialDiscount);
 
   return (
@@ -969,8 +1012,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </p>
                       <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
                         <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        Auto Safeguard: Heavy-Duty Waterproof Marquee Tent (Rs. {weatherTentCost.toLocaleString()}) added.
+                        Auto Safeguard: {weatherTentName} (Rs. {weatherTentCost.toLocaleString()}) active.
                       </p>
+
+                      <div className="mt-3 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <label className="text-xs font-bold text-amber-950">Weather Safeguard Tier:</label>
+                        <select
+                          value={selectedWeatherOptionId || (isBudgetAutoFitted ? ((selectedEvent?.guestCount || 0) >= 200 ? 'tent_large_std' : (selectedEvent?.guestCount || 0) >= 100 ? 'tent_med_std' : 'tent_compact_budget') : 'tent_large_premium')}
+                          onChange={(e) => setSelectedWeatherOptionId(e.target.value)}
+                          disabled={isApproved}
+                          className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+                        >
+                          {WEATHER_SAFEGUARD_CATALOG.map(opt => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.name} — Rs. {opt.cost.toLocaleString()} ({opt.desc})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -1085,7 +1144,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {weatherTentCost > 0 && (
                       <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
                         <div>
-                          <span className="text-slate-700 font-medium">🎪 Waterproof Marquee Tent (Autonomous Weather Safeguard)</span>
+                          <span className="text-slate-700 font-medium">🎪 {weatherTentName}</span>
                           <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
                         </div>
                         <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
