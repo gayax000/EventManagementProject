@@ -83,7 +83,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("🎉 Bank slip submitted! Manager has been notified for verification."),
+          content: Text("Bank slip submitted! Manager has been notified for verification."),
           backgroundColor: Colors.green,
         ),
       );
@@ -145,7 +145,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("🎉 Contract Signed & QR Pass Issued!"),
+            content: Text("Contract Signed & QR Pass Issued!"),
             backgroundColor: Colors.green,
           ),
         );
@@ -169,26 +169,26 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0F1D),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF131C31),
+        backgroundColor: Colors.white,
         title: const Text(
           "Event Proposal & Status",
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.3),
+          style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.2),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFFD4AF37)),
+            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2563EB)),
             onPressed: _loadProposal,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD4AF37)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)))
           : _proposal == null
               ? Center(
                   child: Column(
@@ -230,31 +230,34 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         children: [
           // 1. Status Header
           if (isConfirmed)
-            _buildBadge("✅ STATUS: BOOKING CONFIRMED & PASS ISSUED", Colors.green, Colors.greenAccent)
+            _buildBadge("STATUS: BOOKING CONFIRMED & PASS ISSUED", const Color(0xFFDCFCE7), const Color(0xFF059669))
           else if (isApproved) ...[
             if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
-              _buildBadge("🟢 PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", Colors.green, Colors.greenAccent)
+              _buildBadge("PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", const Color(0xFFDCFCE7), const Color(0xFF059669))
             else if (proposal.paymentStatus == 'PendingVerification')
-              _buildBadge("🟡 PAYMENT SLIP UNDER MANAGER VERIFICATION", Colors.amber, Colors.amberAccent)
+              _buildBadge("PAYMENT SLIP UNDER MANAGER VERIFICATION", const Color(0xFFFEF3C7), const Color(0xFFD97706))
             else
-              _buildBadge("💳 PROPOSAL APPROVED: AWAITING PAYMENT DEPOSIT", const Color(0xFFD4AF37), const Color(0xFFD4AF37)),
+              _buildBadge("PROPOSAL APPROVED: AWAITING PAYMENT DEPOSIT", const Color(0xFFDBEAFE), const Color(0xFF2563EB)),
           ] else if (isChoiceSubmitted)
-            _buildBadge("📩 CHOICE SUBMITTED: AWAITING MANAGER FINAL CONFIRMATION", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
+            _buildBadge("CHOICE SUBMITTED: AWAITING MANAGER FINAL CONFIRMATION", const Color(0xFFEEF2FF), const Color(0xFF4F46E5))
           else if (isPendingBudgetApproval)
-            _buildBadge("🟣 STATUS: MANAGER RECOMMENDATION (BUDGET OVERRUN)", const Color(0xFF818CF8), const Color(0xFFA5B4FC))
+            _buildBadge("STATUS: MANAGER RECOMMENDATION (BUDGET OVERRUN)", const Color(0xFFFEF3C7), const Color(0xFFD97706))
           else
-            _buildBadge("🟡 STATUS: UNDER MANAGER REVIEW", Colors.amber, Colors.amber),
+            _buildBadge("STATUS: UNDER MANAGER REVIEW", const Color(0xFFFEF3C7), const Color(0xFFD97706)),
 
           const SizedBox(height: 12),
 
           // Visual Timeline Stepper Bar
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -271,11 +274,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // 2. Event Title & Details Card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white10),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,19 +289,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(proposal.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                      child: Text(
+                        proposal.title,
+                        style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 17),
+                      ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: proposal.isOutdoor ? Colors.amber.withOpacity(0.15) : Colors.cyan.withOpacity(0.15),
+                        color: proposal.isOutdoor ? const Color(0xFFFEF3C7) : const Color(0xFFE0F2FE),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: proposal.isOutdoor ? Colors.amber : Colors.cyan),
+                        border: Border.all(color: proposal.isOutdoor ? const Color(0xFFFCD34D) : const Color(0xFFBAE6FD)),
                       ),
                       child: Text(
-                        proposal.isOutdoor ? '🌳 Outdoor' : '🏛️ Indoor',
+                        proposal.isOutdoor ? 'Outdoor' : 'Indoor',
                         style: TextStyle(
-                          color: proposal.isOutdoor ? Colors.amber : Colors.cyanAccent,
+                          color: proposal.isOutdoor ? const Color(0xFFD97706) : const Color(0xFF0284C7),
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -303,10 +312,30 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text("📅 Date: $formattedDate", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                Text("👥 Guests: ${proposal.guestCount}  |  📍 Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                Text("💰 Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Text(formattedDate, style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.people_alt_outlined, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Text("Guests: ${proposal.guestCount}  |  Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Text("Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ],
             ),
           ),
@@ -340,7 +369,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
-                          "👔 HOTEL MANAGER'S RECOMMENDATION",
+                          "HOTEL MANAGER'S RECOMMENDATION",
                           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
                         ),
                       ),
@@ -458,7 +487,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           }
                         },
                         icon: const Icon(Icons.verified, size: 16, color: Colors.white),
-                        label: Text("💎 Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        label: Text("Accept Premium Package (LKR $formattedCost)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4F46E5),
                           padding: const EdgeInsets.symmetric(vertical: 11),
@@ -479,8 +508,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(ok
-                                    ? "⚡ Request submitted! Waiting for Manager's final confirmation on Web Dashboard."
-                                    : "⚡ Request submitted to manager."),
+                                    ? "Request submitted! Waiting for Manager's final confirmation on Web Dashboard."
+                                    : "Request submitted to manager."),
                                 backgroundColor: Colors.teal,
                               ),
                             );
@@ -488,7 +517,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           }
                         },
                         icon: const Icon(Icons.bolt, size: 16, color: Colors.amberAccent),
-                        label: Text("⚡ Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
+                        label: Text("Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.amberAccent),
                           padding: const EdgeInsets.symmetric(vertical: 11),
@@ -509,35 +538,35 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFE11D48).withOpacity(0.12),
+                color: const Color(0xFFFFF1F2),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE11D48).withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFFFECDD3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Text('💐', style: TextStyle(fontSize: 16)),
+                      const Icon(Icons.auto_awesome, color: Color(0xFFE11D48), size: 16),
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Text(
                           'SPECIAL CLIENT REQUESTS & ADD-ONS',
-                          style: TextStyle(color: Colors.pinkAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(color: Color(0xFFE11D48), fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                       Text(
                         proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
                           ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
                           : 'Priced by Manager',
-                        style: const TextStyle(color: Colors.pinkAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Color(0xFFE11D48), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     proposal.additionalDetails!,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(color: Color(0xFF9F1239), fontSize: 13),
                   ),
                 ],
               ),
@@ -549,26 +578,29 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           if (proposal.inspirationImages.isNotEmpty) ...[
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white10),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.photo_library, color: Color(0xFFD4AF37), size: 16),
+                      const Icon(Icons.photo_library_outlined, color: Color(0xFF2563EB), size: 16),
                       const SizedBox(width: 8),
                       Text(
                         'Inspiration Photos (${proposal.inspirationImages.length})',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                        style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   SizedBox(
                     height: 70,
                     child: ListView.builder(
@@ -581,7 +613,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.white24),
+                            border: Border.all(color: const Color(0xFFCBD5E1)),
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
@@ -589,12 +621,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                 ? Image.memory(
                                     base64Decode(img.split(',').last),
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Color(0xFF94A3B8)),
                                   )
                                 : Image.network(
                                     img,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white38),
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Color(0xFF94A3B8)),
                                   ),
                           ),
                         );
@@ -609,26 +641,32 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
           // 3. AI Generated Breakdown Card
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.cyan.withOpacity(0.3)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 18),
+                    Icon(Icons.auto_awesome, color: Color(0xFF2563EB), size: 18),
                     SizedBox(width: 8),
-                    Text("AI AGENTIC BREAKDOWN & SAFEGUARD", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text(
+                      "AI AGENTIC BREAKDOWN & SAFEGUARD",
+                      style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
-                Text("• Venue: ${proposal.venueName}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                Text("• Catering & Resources: Optimized for ${proposal.guestCount} guests", style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                const SizedBox(height: 8),
+                Text("• Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                Text("• Catering & Resources: Optimized for ${proposal.guestCount} guests", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                const SizedBox(height: 10),
                 Builder(
                   builder: (context) {
                     Map<String, dynamic>? wMap;
@@ -645,85 +683,91 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
                     if (!isOut) {
                       return Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF064E3B).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green.withOpacity(0.3)),
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
                         ),
                         child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.shield_rounded, color: Colors.greenAccent, size: 16),
+                                Icon(Icons.shield_rounded, color: Color(0xFF16A34A), size: 16),
                                 SizedBox(width: 6),
-                                Text("Weather Assessment: 0% Risk (Indoor Venue)", 
-                                  style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                Text(
+                                  "Weather Assessment: 0% Risk (Indoor Venue)", 
+                                  style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
                               ],
                             ),
-                            SizedBox(height: 3),
+                            SizedBox(height: 4),
                             Text("• Indoor Climate-Controlled Banquet Hall. Zero weather risk.", 
-                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                              style: TextStyle(color: Color(0xFF15803D), fontSize: 11)),
                             Text("• Safeguard: None required. Saved Rs. 150,000 marquee tent cost.", 
-                              style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
                     } else if (hasTent) {
                       return Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF78350F).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orangeAccent.withOpacity(0.4)),
+                          color: const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.cloud_sync_rounded, color: Colors.orangeAccent, size: 16),
+                                const Icon(Icons.cloud_sync_rounded, color: Color(0xFFD97706), size: 16),
                                 const SizedBox(width: 6),
-                                Text("Weather Assessment: $rainPct% Rain Risk ($cond)", 
-                                  style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                Text(
+                                  "Weather Assessment: $rainPct% Rain Risk ($cond)", 
+                                  style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             const Text("• Outdoor Monsoon contingency safeguard applied.", 
-                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                              style: TextStyle(color: Color(0xFF92400E), fontSize: 11)),
                             const Text("• Safeguard: Waterproof Marquee Tent Included (Rs. 150,000).", 
-                              style: TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
                     } else {
                       return Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0C4A6E).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.lightBlueAccent.withOpacity(0.3)),
+                          color: const Color(0xFFF0F9FF),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFBAE6FD)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.wb_sunny_rounded, color: Colors.amberAccent, size: 16),
+                                const Icon(Icons.wb_sunny_rounded, color: Color(0xFF0284C7), size: 16),
                                 const SizedBox(width: 6),
-                                Text("Weather Forecast: $rainPct% Rain Risk ($cond)", 
-                                  style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+                                Text(
+                                  "Weather Forecast: $rainPct% Rain Risk ($cond)", 
+                                  style: const TextStyle(color: Color(0xFF0284C7), fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: 4),
                             const Text("• Dry favorable outdoor forecast. No heavy precipitation expected.", 
-                              style: TextStyle(color: Colors.white70, fontSize: 11)),
+                              style: TextStyle(color: Color(0xFF0369A1), fontSize: 11)),
                             const Text("• Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.", 
-                              style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
@@ -732,12 +776,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
                 if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty))
                   _buildItemizedBreakdown(proposal),
-                const Divider(color: Colors.white12, height: 22),
+                const Divider(color: Color(0xFFE2E8F0), height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text("LKR $formattedCost", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 17)),
                   ],
                 ),
               ],
@@ -766,7 +810,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text("🎟️ OFFICIAL EVENT ENTRY PASS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15)),
+                    const Text("OFFICIAL EVENT ENTRY PASS", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 4),
                     const Text("Present this QR at the venue entrance gate", style: TextStyle(color: Colors.black54, fontSize: 11)),
                     const SizedBox(height: 16),
@@ -800,13 +844,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF064E3B).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFF86EFAC)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.verified_user_rounded, color: Colors.greenAccent, size: 22),
+                            const Icon(Icons.verified_user_rounded, color: Color(0xFF059669), size: 22),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
@@ -814,11 +858,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                 children: [
                                   const Text(
                                     "PAYMENT VERIFIED: SIGN CONTRACT TO MINT ENTRY PASS",
-                                    style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                                    style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 12),
                                   ),
                                   Text(
                                     "Finance Manager approved your payment (Invoice: ${proposal.invoiceNumber ?? 'INV-PAID'}). Draw your signature below to legally execute the agreement and receive your QR Entry Pass.",
-                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                    style: const TextStyle(color: Color(0xFF047857), fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -826,9 +870,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           ],
                         ),
                       ),
-                      const Text(
-                        "✍️ DRAW YOUR DIGITAL SIGNATURE TO CONFIRM",
-                        style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                      const Row(
+                        children: [
+                          Icon(Icons.draw_rounded, size: 16, color: Color(0xFF0F172A)),
+                          SizedBox(width: 6),
+                          Text(
+                            "DRAW YOUR DIGITAL SIGNATURE TO CONFIRM",
+                            style: TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       Container(
@@ -849,7 +899,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white24),
+                                side: const BorderSide(color: Color(0xFFCBD5E1)),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               onPressed: () => _signatureController.clear(),
@@ -860,7 +910,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           Expanded(
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade600,
+                                backgroundColor: const Color(0xFF059669),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               onPressed: _isSubmittingSignature ? null : _confirmAndSign,
@@ -880,17 +930,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+                      ],
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.lock_person_rounded, color: Color(0xFFD4AF37), size: 36),
+                        const Icon(Icons.lock_person_rounded, color: Color(0xFF2563EB), size: 36),
                         const SizedBox(height: 8),
                         const Text(
-                          "🔒 Digital Signature Locked (Payment Required)",
-                          style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13),
+                          "Digital Signature Locked (Payment Required)",
+                          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -898,15 +951,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               ? "Your bank transfer slip has been uploaded and is currently in the Manager's verification queue. This signature pad and your QR Entry Pass will unlock as soon as your payment is approved."
                               : "Please transfer the required total (LKR $formattedCost) to our Commercial Bank account above and upload your deposit slip. Once our Finance Manager approves the transaction on the Web Dashboard, this pad will unlock automatically.",
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
                         ),
                         const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white10,
+                            color: isPendingVerification ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white24),
+                            border: Border.all(color: isPendingVerification ? const Color(0xFFFCD34D) : const Color(0xFFBFDBFE)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -914,7 +967,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               Icon(
                                 isPendingVerification ? Icons.hourglass_top : Icons.pending_actions,
                                 size: 14,
-                                color: isPendingVerification ? Colors.amberAccent : Colors.white60,
+                                color: isPendingVerification ? const Color(0xFFD97706) : const Color(0xFF2563EB),
                               ),
                               const SizedBox(width: 6),
                               Text(
@@ -922,7 +975,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                     ? "Step 2: Awaiting Manager Slip Verification"
                                     : "Step 1: Upload Bank Transfer Slip Above",
                                 style: TextStyle(
-                                  color: isPendingVerification ? Colors.amberAccent : Colors.white60,
+                                  color: isPendingVerification ? const Color(0xFFD97706) : const Color(0xFF2563EB),
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -942,21 +995,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                color: const Color(0xFFFEF3C7).withOpacity(0.5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFCD34D)),
               ),
               child: Column(
                 children: [
-                  const Icon(Icons.lock_clock, color: Colors.amber, size: 32),
+                  const Icon(Icons.lock_clock, color: Color(0xFFD97706), size: 32),
                   const SizedBox(height: 8),
                   Text(
                     isChoiceSubmitted
-                      ? "🔒 Bank Slip Upload Locked (Awaiting Manager Final Approval)"
+                      ? "Bank Slip Upload Locked (Awaiting Manager Final Approval)"
                       : isPendingBudgetApproval
-                      ? "🔒 Bank Slip Upload Locked (Awaiting Budget Choice)"
-                      : "🔒 Bank Slip Upload Locked (Awaiting Manager Review)",
-                    style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 13.5),
+                      ? "Bank Slip Upload Locked (Awaiting Budget Choice)"
+                      : "Bank Slip Upload Locked (Awaiting Manager Review)",
+                    style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -966,7 +1019,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       ? "Please review the Manager's recommendation card above and select your budget choice to proceed."
                       : "Our AI Multi-Agent system has compiled your preliminary plan. The Event Manager is reviewing vendor packages and pricing on the Web Portal. Please check back shortly!",
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
@@ -978,20 +1031,23 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   }
 
   Widget _buildStepItem(String label, bool isActive, bool isDone) {
+    final Color color = isDone
+        ? const Color(0xFF059669)
+        : (isActive ? const Color(0xFF2563EB) : const Color(0xFF94A3B8));
     return Row(
       children: [
         Icon(
-          isDone ? Icons.check_circle : (isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+          isDone ? Icons.check_circle_rounded : (isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked),
           size: 14,
-          color: isDone ? Colors.greenAccent : (isActive ? Colors.cyanAccent : Colors.white38),
+          color: color,
         ),
         const SizedBox(width: 4),
         Text(
           label,
           style: TextStyle(
             fontSize: 10,
-            fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.normal,
-            color: isDone ? Colors.greenAccent : (isActive ? Colors.cyanAccent : Colors.white54),
+            fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.w500,
+            color: color,
           ),
         ),
       ],
@@ -1002,11 +1058,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: bgColor.withOpacity(0.2),
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: textColor.withOpacity(0.6)),
+        border: Border.all(color: textColor.withOpacity(0.35)),
       ),
-      child: Text(text, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
+      child: Text(text, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
     );
   }
 
@@ -1018,14 +1074,17 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isPaid
               ? const Color(0xFF10B981)
-              : (isPendingReview ? const Color(0xFFF59E0B) : const Color(0xFFD4AF37)),
+              : (isPendingReview ? const Color(0xFFF59E0B) : const Color(0xFFE2E8F0)),
           width: 1.5,
         ),
+        boxShadow: const [
+          BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1037,14 +1096,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 children: [
                   Icon(
                     Icons.account_balance,
-                    color: isPaid ? const Color(0xFF10B981) : const Color(0xFFD4AF37),
+                    color: isPaid ? const Color(0xFF10B981) : const Color(0xFF2563EB),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   const Text(
                     "BANK TRANSFER & PAYMENT",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF0F172A),
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       letterSpacing: 0.5,
@@ -1056,18 +1115,18 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isPaid
-                      ? Colors.green.withOpacity(0.2)
-                      : (isPendingReview ? Colors.amber.withOpacity(0.2) : const Color(0xFFD4AF37).withOpacity(0.2)),
+                      ? const Color(0xFFDCFCE7)
+                      : (isPendingReview ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE)),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   isPaid
-                      ? "🟢 VERIFIED & SETTLED"
-                      : (isPendingReview ? "🟡 SLIP UNDER REVIEW" : "PENDING PAYMENT"),
+                      ? "VERIFIED & SETTLED"
+                      : (isPendingReview ? "SLIP UNDER REVIEW" : "PENDING PAYMENT"),
                   style: TextStyle(
                     color: isPaid
-                        ? Colors.greenAccent
-                        : (isPendingReview ? Colors.amberAccent : const Color(0xFFD4AF37)),
+                        ? const Color(0xFF059669)
+                        : (isPendingReview ? const Color(0xFFD97706) : const Color(0xFF2563EB)),
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1080,11 +1139,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Bank Details Card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white12),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: const [
+                BoxShadow(color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2)),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1111,7 +1172,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text("Account Number:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("8001234567", style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+                    Text("8001234567", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -1127,7 +1188,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Required Amount:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                    Text("LKR $formattedCost", style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 14)),
                   ],
                 ),
                 if (proposal.invoiceNumber != null && proposal.invoiceNumber!.isNotEmpty) ...[
@@ -1136,7 +1197,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("Tax Invoice Number:", style: TextStyle(color: Colors.white54, fontSize: 11)),
-                      Text(proposal.invoiceNumber!, style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 11)),
+                      Text(proposal.invoiceNumber!, style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 11)),
                     ],
                   ),
                 ],
@@ -1149,15 +1210,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Slip Status & Upload Controls
           if (isPaid) ...[
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.15),
+                color: const Color(0xFFDCFCE7),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFF86EFAC)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 24),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 24),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -1165,11 +1226,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       children: [
                         const Text(
                           "Payment Slip Verified & Approved",
-                          style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                         Text(
                           "Official Invoice ${proposal.invoiceNumber ?? 'INV-PAID'} issued. All vendor contracts activated.",
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          style: const TextStyle(color: Color(0xFF047857), fontSize: 11),
                         ),
                       ],
                     ),
@@ -1181,21 +1242,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.12),
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                border: Border.all(color: const Color(0xFFFCD34D)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.hourglass_bottom_rounded, color: Colors.amberAccent, size: 18),
+                      Icon(Icons.hourglass_bottom_rounded, color: Color(0xFFD97706), size: 18),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           "Deposit Slip Under Verification",
-                          style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                     ],
@@ -1203,7 +1264,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   const SizedBox(height: 6),
                   const Text(
                     "Your bank transfer slip was received and is in the Operations Manager's verification queue. You will receive invoice confirmation once cleared.",
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                    style: TextStyle(color: Color(0xFFB45309), fontSize: 11),
                   ),
                   const SizedBox(height: 8),
                   if (proposal.slipImageUrl != null && proposal.slipImageUrl!.isNotEmpty)
@@ -1212,17 +1273,17 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       child: Container(
                         height: 100,
                         width: double.infinity,
-                        color: Colors.black26,
+                        color: Colors.black12,
                         child: proposal.slipImageUrl!.startsWith('data:image')
                             ? Image.memory(
                                 base64Decode(proposal.slipImageUrl!.split(',').last),
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white30),
+                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.black26),
                               )
                             : Image.network(
                                 proposal.slipImageUrl!,
                                 fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.white30),
+                                errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Colors.black26),
                               ),
                       ),
                     ),
@@ -1234,9 +1295,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white10,
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFD4AF37)),
+                  border: Border.all(color: const Color(0xFF2563EB)),
                 ),
                 child: Column(
                   children: [
@@ -1255,9 +1316,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _pickSlipImage,
-                            icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
-                            label: const Text("Change Slip", style: TextStyle(color: Colors.white70, fontSize: 11)),
-                            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24)),
+                            icon: const Icon(Icons.refresh, size: 14, color: Color(0xFF64748B)),
+                            label: const Text("Change Slip", style: TextStyle(color: Color(0xFF64748B), fontSize: 11)),
+                            style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFCBD5E1))),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1265,13 +1326,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           child: ElevatedButton.icon(
                             onPressed: _isUploadingSlip ? null : _submitPaymentSlip,
                             icon: _isUploadingSlip
-                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                                : const Icon(Icons.cloud_upload_rounded, size: 14, color: Colors.black),
+                                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.cloud_upload_rounded, size: 14, color: Colors.white),
                             label: Text(
                               _isUploadingSlip ? "Uploading..." : "Submit Slip",
-                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                             ),
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD4AF37)),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
                           ),
                         ),
                       ],
@@ -1285,21 +1346,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: _pickSlipImage,
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFD4AF37), width: 1.2),
+                    side: const BorderSide(color: Color(0xFF2563EB), width: 1.2),
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  icon: const Icon(Icons.upload_file_rounded, color: Color(0xFFD4AF37), size: 18),
+                  icon: const Icon(Icons.upload_file_rounded, color: Color(0xFF2563EB), size: 18),
                   label: const Text(
                     "Upload Bank Deposit / Transfer Slip",
-                    style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12),
+                    style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               ),
               const SizedBox(height: 4),
               const Text(
                 "Attach JPG/PNG payment confirmation. Manager will verify within 1 hour.",
-                style: TextStyle(color: Colors.white54, fontSize: 10),
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 10),
               ),
             ],
           ],
@@ -1357,7 +1418,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
     // 1. Venue Rental
     items.add({
-      'icon': '🏛️',
+      'icon': '',
       'label': '${proposal.banquetHallName ?? proposal.venueName} Rental',
       'cost': hallPrice,
       'isSpecial': false,
@@ -1365,7 +1426,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
     // 2. Hotel Catering
     items.add({
-      'icon': '🍽️',
+      'icon': '',
       'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
       'cost': cateringPrice,
       'isSpecial': false,
@@ -1375,25 +1436,25 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     for (var s in proposal.selectedServices) {
       String desc = s;
       double cost = 100000;
-      String icon = '📦';
+      String icon = '';
       if (s.toLowerCase().contains('photo')) {
-        icon = '📸';
+        icon = '';
         desc = 'Photography & 4K Video';
         cost = parsedCosts['photo'] ?? (isAutoFit ? 60000.0 : (proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0));
       } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-        icon = '🔊';
+        icon = '';
         desc = 'Sound & Intelligent Lighting';
         cost = parsedCosts['sound'] ?? (isAutoFit ? 80000.0 : (proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0));
       } else if (s.toLowerCase().contains('deco')) {
-        icon = '🌸';
+        icon = '';
         desc = 'Stage Styling & Theme Decor';
         cost = parsedCosts['deco'] ?? (isAutoFit ? 50000.0 : (proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0));
       } else if (s.toLowerCase().contains('cake')) {
-        icon = '🎂';
+        icon = '';
         desc = 'Luxury Celebration Cake';
         cost = parsedCosts['cake'] ?? (isAutoFit ? 20000.0 : (proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0));
       } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-        icon = '🚗';
+        icon = '';
         desc = 'Chauffeur VIP Transport';
         cost = parsedCosts['transport'] ?? (isAutoFit ? 35000.0 : (proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0));
       }
@@ -1409,7 +1470,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
       double specialCost = parsedCosts['special'] ?? proposal.specialRequestAllocation ?? 0.0;
       items.add({
-        'icon': '💐',
+        'icon': '',
         'label': 'Special Request (${proposal.additionalDetails})',
         'cost': specialCost,
         'isSpecial': true,
@@ -1421,7 +1482,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       double tentCost = parsedCosts['tent'] ?? (isAutoFit ? 100000.0 : 150000.0);
       if (tentCost > 0) {
         items.add({
-          'icon': '⛺',
+          'icon': '',
           'label': 'Waterproof Weather Safeguard Tent',
           'cost': tentCost,
           'isSpecial': false,
@@ -1445,7 +1506,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 10),
-        const Text("📦 Itemized Package Breakdown:", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+        const Text("Itemized Package Breakdown:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
         const SizedBox(height: 6),
         ...items.map((item) {
           final costStr = (item['cost'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
@@ -1458,7 +1519,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   child: Text(
                     "${item['icon']} ${item['label']}", 
                     style: TextStyle(
-                      color: item['isSpecial'] == true ? Colors.pinkAccent : Colors.white70, 
+                      color: item['isSpecial'] == true ? const Color(0xFFE11D48) : const Color(0xFF475569), 
                       fontSize: 11.5,
                       fontWeight: item['isSpecial'] == true ? FontWeight.w600 : FontWeight.normal,
                     ),
@@ -1467,7 +1528,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text(
                   item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
                   style: TextStyle(
-                    color: item['isSpecial'] == true ? Colors.pinkAccent : Colors.white, 
+                    color: item['isSpecial'] == true ? const Color(0xFFE11D48) : const Color(0xFF0F172A), 
                     fontWeight: FontWeight.bold, 
                     fontSize: 11.5,
                   ),
