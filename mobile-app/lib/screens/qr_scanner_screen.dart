@@ -109,12 +109,12 @@ class _QrScannerScreenState extends State<QrScannerScreen>
             : Colors.redAccent;
 
     final String statusLabel = isValid
-        ? '✅  ENTRY CLEARED'
+        ? 'ENTRY CLEARED'
         : alreadyUsed
-            ? '⚠️  PASS ALREADY USED'
+            ? 'PASS ALREADY USED'
             : statusCode == 404
-                ? '❌  INVALID PASS'
-                : '❌  VERIFICATION FAILED';
+                ? 'INVALID PASS'
+                : 'VERIFICATION FAILED';
 
     // ---------- helpers ----------
     String _fmt(dynamic v) => v?.toString() ?? '—';
