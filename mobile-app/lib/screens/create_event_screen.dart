@@ -556,7 +556,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             boxShadow: isActive
                                 ? [
                                     BoxShadow(
-                                      color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                                      color: const Color(0xFFD4AF37).withOpacity(0.4),
                                       blurRadius: 10,
                                       spreadRadius: 1,
                                     )
@@ -674,7 +674,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: isSel
-                            ? const Color(0xFFD4AF37).withValues(alpha: 0.18)
+                            ? const Color(0xFFD4AF37).withOpacity(0.18)
                             : const Color(0xFF0A0F1D),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
@@ -684,7 +684,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         boxShadow: isSel
                             ? [
                                 BoxShadow(
-                                  color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                                  color: const Color(0xFFD4AF37).withOpacity(0.2),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -741,9 +741,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                    color: const Color(0xFF06B6D4).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
+                    border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
@@ -859,9 +859,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+                      color: const Color(0xFF06B6D4).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
+                      border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
                     ),
                     child: const Row(
                       children: [
@@ -901,14 +901,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF0A0F1D),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.4)),
+                    border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          color: const Color(0xFFD4AF37).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.calendar_month_rounded, color: Color(0xFFD4AF37), size: 20),
@@ -929,7 +929,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                          color: const Color(0xFFD4AF37).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text('Change', style: TextStyle(color: Color(0xFFD4AF37), fontWeight: FontWeight.bold, fontSize: 12)),
@@ -1116,19 +1116,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFFD4AF37).withValues(alpha: 0.15)
+                                ? const Color(0xFFD4AF37).withOpacity(0.15)
                                 : const Color(0xFF0A0F1D),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
                                   ? const Color(0xFFD4AF37)
-                                  : (isAvail ? Colors.white12 : const Color(0xFFEF4444).withValues(alpha: 0.4)),
+                                  : (isAvail ? Colors.white12 : const Color(0xFFEF4444).withOpacity(0.4)),
                               width: isSelected ? 1.8 : 1,
                             ),
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: const Color(0xFFD4AF37).withValues(alpha: 0.25),
+                                      color: const Color(0xFFD4AF37).withOpacity(0.25),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     )
@@ -1175,9 +1175,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                           margin: const EdgeInsets.only(right: 6),
                                           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                           decoration: BoxDecoration(
-                                            color: Colors.teal.withValues(alpha: 0.2),
+                                            color: Colors.teal.withOpacity(0.2),
                                             borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.teal.withValues(alpha: 0.4)),
+                                            border: Border.all(color: Colors.teal.withOpacity(0.4)),
                                           ),
                                           child: Text(
                                             matchesSetting ? '🌳 OUTDOOR' : 'OUTDOOR',
@@ -1187,7 +1187,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: isAvail ? const Color(0xFF10B981).withValues(alpha: 0.2) : const Color(0xFFEF4444).withValues(alpha: 0.2),
+                                          color: isAvail ? const Color(0xFF10B981).withOpacity(0.2) : const Color(0xFFEF4444).withOpacity(0.2),
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(color: isAvail ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                                         ),
@@ -1248,7 +1248,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF0A0F1D),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.3)),
+                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1524,7 +1524,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+                      color: const Color(0xFFD4AF37).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFFD4AF37)),
                     ),
@@ -1581,9 +1581,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF06B6D4).withValues(alpha: 0.1),
+            color: const Color(0xFF06B6D4).withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF06B6D4).withValues(alpha: 0.3)),
+            border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.3)),
           ),
           child: const Row(
             children: [
@@ -1613,7 +1613,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         border: const Border(top: BorderSide(color: Colors.white10)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withOpacity(0.4),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -1692,7 +1692,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         Container(
           padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: const Color(0xFFD4AF37).withValues(alpha: 0.15),
+            color: const Color(0xFFD4AF37).withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: const Color(0xFFD4AF37), size: 18),
@@ -1721,7 +1721,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         border: Border.all(color: Colors.white10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
+            color: Colors.black.withOpacity(0.25),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
