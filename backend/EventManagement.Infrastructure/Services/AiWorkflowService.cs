@@ -179,10 +179,11 @@ public class AiWorkflowService : IAiWorkflowService
 
         try
         {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             _logger.LogInformation("Calling Agentic AI Subsystem at {Url} for Event {EventId}...", _aiServiceUrl, eventId);
 
-            var response = await _httpClient.PostAsync(_aiServiceUrl, content);
+            var response = await _httpClient.PostAsync(_aiServiceUrl, content, cts.Token);
             if (response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();

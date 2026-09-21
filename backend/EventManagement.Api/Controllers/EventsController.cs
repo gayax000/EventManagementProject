@@ -26,6 +26,7 @@ public class EventsController : ControllerBase
     }
 
     // 1. POST: api/events (Create Event Request & Auto-Trigger Agentic AI)
+    [AllowAnonymous]
     [HttpPost]
     public async Task<ActionResult<EventResponseDto>> CreateEvent([FromBody] CreateEventRequestDto dto)
     {
@@ -320,6 +321,7 @@ public class EventsController : ControllerBase
     }
 
     // 3. GET: api/events/my-events (List Customer Events with strict per-user filtering)
+    [AllowAnonymous]
     [HttpGet("my-events")]
     public async Task<ActionResult<IEnumerable<EventResponseDto>>> GetMyEvents([FromQuery] Guid? customerId)
     {
