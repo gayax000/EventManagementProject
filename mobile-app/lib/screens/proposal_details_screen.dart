@@ -1316,9 +1316,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         if (decoded is List) {
           for (var item in decoded) {
             final str = item.toString();
-            final match = RegExp(r'\(.*(?:Rs\.|LKR)\s*([\d,]+)\)').firstMatch(str);
-            if (match != null) {
-              final val = double.tryParse(match.group(1)!.replaceAll(',', '')) ?? 0.0;
+            final matches = RegExp(r'(?:Rs\.|LKR)\s*([\d,]+)').allMatches(str);
+            if (matches.isNotEmpty) {
+              final val = double.tryParse(matches.last.group(1)!.replaceAll(',', '')) ?? 0.0;
               final lower = str.toLowerCase();
               if (lower.contains('photo')) {
                 parsedCosts['photo'] = val;
@@ -1346,7 +1346,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     final double hallPrice = parsedCosts['hall'] ?? proposal.hallRentalPrice ?? 350000.0;
-    final double cateringPrice = parsedCosts['catering'] ?? ((proposal.perPlatePrice ?? 5000.0) * proposal.guestCount);
+    double cateringPrice = parsedCosts['catering'] ?? ((proposal.perPlatePrice ?? 5000.0) * proposal.guestCount);
+    if (cateringPrice < 20000 && proposal.guestCount > 1) {
+      cateringPrice = cateringPrice * proposal.guestCount;
+    }
     
     final bool isAutoFit = proposal.status == 'ApprovedByManager' || proposal.status == 'Confirmed' || proposal.estimatedTotalCost <= proposal.budgetLimit;
 
