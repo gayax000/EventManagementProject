@@ -776,50 +776,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
                           ],
                         ),
-                        const SizedBox(height: 36),
-
-                        // Main Action Call-To-Action (CTA) Buttons
-                        Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(maxWidth: 420),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () => _showAuthBottomSheet(isRegister: false),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                  elevation: 4,
-                                  shadowColor: const Color(0xFF2563EB).withOpacity(0.5),
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.login_rounded, size: 18),
-                                    SizedBox(width: 8),
-                                    Text("Sign In as Client", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              OutlinedButton(
-                                onPressed: () => _showAuthBottomSheet(isRegister: true),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide(color: Colors.white.withOpacity(0.35), width: 1.2),
-                                  backgroundColor: const Color(0xFF0F172A).withOpacity(0.65),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                child: const Text("Create Free Client Account", style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
 
                         // Autonomous Weather Shield Glass Badge
                         Container(
