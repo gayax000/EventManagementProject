@@ -582,200 +582,299 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: const Color(0xFF090D16),
-      body: SafeArea(
-        child: Column(
-          children: [
-            
-            // =======================================================
-            // 1. TOP NAVBAR: Logo on Left, Log In & Sign Up on Right
-            // =======================================================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left: Logo
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0284C7), Color(0xFF2563EB)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
-                      ),
-                      const SizedBox(width: 8),
-                      RichText(
-                        text: const TextSpan(
-                          children: [
-                            TextSpan(text: "EventCraft", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            TextSpan(text: ".AI", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 18, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Right: Log In and Sign Up buttons (Strictly Client Access)
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => _showAuthBottomSheet(isRegister: false),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: const Text("Log In", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 4),
-                      ElevatedButton(
-                        onPressed: () => _showAuthBottomSheet(isRegister: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB), // Royal Blue
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 2,
-                        ),
-                        child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+      body: Stack(
+        children: [
+          // =======================================================
+          // 1. FULL-PAGE RESPONSIVE PORTRAIT LUXURY BACKGROUND PHOTO
+          // =======================================================
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/luxury_event_hero_bg.jpg',
+              width: size.width,
+              height: size.height,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Image.network(
+                  FEATURED_HERO_IMAGE,
+                  width: size.width,
+                  height: size.height,
+                  fit: BoxFit.cover,
+                );
+              },
             ),
+          ),
 
-            const Divider(color: Colors.white10, height: 1),
-
-            // =======================================================
-            // 2. MIDDLE CONTENT & SINGLE FULL-SIZE LUXURY PHOTO
-            // =======================================================
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  children: [
-                    
-                    // Center Hero Text
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.5)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 12),
-                          SizedBox(width: 4),
-                          Text("Client Experience Portal", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    RichText(
-                      textAlign: TextAlign.center,
-                      text: const TextSpan(
-                        children: [
-                          TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                          TextSpan(text: "EventCraft", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 26, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    Text(
-                      "EventCraft is Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time environmental weather contingency safeguards for unforgettable weddings, galas, and celebrations.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade300, fontSize: 13, height: 1.45),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // =======================================================
-                    // 3. ONLY ONE FULL-SIZE LUXURY EVENT PHOTO
-                    // =======================================================
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white12),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(19),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              FEATURED_HERO_IMAGE,
-                              width: double.infinity,
-                              height: 240,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  height: 240,
-                                  color: const Color(0xFF131C2E),
-                                  alignment: Alignment.center,
-                                  child: const CircularProgressIndicator(color: Color(0xFF2563EB), strokeWidth: 2),
-                                );
-                              },
-                            ),
-                            Positioned(
-                              bottom: 12,
-                              left: 12,
-                              right: 12,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white24),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.verified_outlined, color: Color(0xFF38BDF8), size: 14),
-                                    SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        "5-Star Certified Venues & Autonomous Weather Shield",
-                                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-                    Text("SE3090 Frameworks • EventCraft AI", style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                    const SizedBox(height: 12),
-
+          // =======================================================
+          // 2. LUXURY CINEMATIC GRADIENT VIGNETTE OVERLAY
+          // =======================================================
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF090D16).withOpacity(0.85),
+                    const Color(0xFF090D16).withOpacity(0.40),
+                    const Color(0xFF090D16).withOpacity(0.78),
+                    const Color(0xFF090D16).withOpacity(0.96),
                   ],
+                  stops: const [0.0, 0.32, 0.68, 1.0],
                 ),
               ),
             ),
+          ),
 
-          ],
-        ),
+          // =======================================================
+          // 3. RESPONSIVE FOREGROUND CONTENT
+          // =======================================================
+          SafeArea(
+            child: Column(
+              children: [
+                // Top Navbar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Logo
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0284C7), Color(0xFF2563EB)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2563EB).withOpacity(0.4),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 8),
+                          RichText(
+                            text: const TextSpan(
+                              children: [
+                                TextSpan(text: "EventCraft", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                TextSpan(text: ".AI", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 18, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Top Navbar Log In & Sign Up Buttons
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: () => _showAuthBottomSheet(isRegister: false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            child: const Text("Log In", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 4),
+                          ElevatedButton(
+                            onPressed: () => _showAuthBottomSheet(isRegister: true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB), // Royal Blue
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              visualDensity: VisualDensity.compact,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 2,
+                            ),
+                            child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Divider(color: Colors.white12, height: 1),
+
+                // Middle & Bottom Responsive Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 12),
+
+                        // Portal Tag Pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A).withOpacity(0.85),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.6)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2563EB).withOpacity(0.2),
+                                blurRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 13),
+                              SizedBox(width: 6),
+                              Text("Client Experience Portal", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Welcome Title
+                        RichText(
+                          textAlign: TextAlign.center,
+                          text: const TextSpan(
+                            children: [
+                              TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                              TextSpan(text: "EventCraft", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Description
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            "Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time weather contingency safeguards for unforgettable celebrations.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Feature Highlights Pills
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _buildFeatureBadge(Icons.hotel_rounded, "5-Star Venues"),
+                            _buildFeatureBadge(Icons.cloud_done_rounded, "Weather Safeguard"),
+                            _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
+                          ],
+                        ),
+                        const SizedBox(height: 36),
+
+                        // Main Action Call-To-Action (CTA) Buttons
+                        Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () => _showAuthBottomSheet(isRegister: false),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 4,
+                                  shadowColor: const Color(0xFF2563EB).withOpacity(0.5),
+                                ),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.login_rounded, size: 18),
+                                    SizedBox(width: 8),
+                                    Text("Sign In as Client", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton(
+                                onPressed: () => _showAuthBottomSheet(isRegister: true),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(color: Colors.white.withOpacity(0.35), width: 1.2),
+                                  backgroundColor: const Color(0xFF0F172A).withOpacity(0.65),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                child: const Text("Create Free Client Account", style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Autonomous Weather Shield Glass Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.55),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 15),
+                              SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  "5-Star Certified Venues & Autonomous Weather Shield",
+                                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        Text("SE3090 Frameworks • EventCraft AI", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                        const SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withOpacity(0.75),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF38BDF8), size: 13),
+          const SizedBox(width: 6),
+          Text(text, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
