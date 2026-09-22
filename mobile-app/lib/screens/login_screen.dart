@@ -53,7 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
     else setState(() => _isLoading = false);
 
     if (result.success) {
-      // Check if user is a Vendor -> strictly restrict access to Clients only
       final role = await AuthService.getUserRole();
       if (role == 'Vendor') {
         await AuthService.logout();
@@ -64,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // close modal if open
+        Navigator.of(context, rootNavigator: true).pop();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
@@ -88,7 +87,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setModalState(() => _regLoading = true);
-    // Strictly register as Client/Customer
     final result = await AuthService.register(name, email, password, phone, role: 'Customer');
     setModalState(() => _regLoading = false);
 
@@ -122,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Modern Client Auth Bottom Sheet
   void _showAuthBottomSheet({required bool isRegister}) {
     showModalBottomSheet(
       context: context,
@@ -147,20 +144,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Handle Bar
                     Center(
                       child: Container(
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: Colors.white24,
+                          color: const Color(0xFFD4AF37).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Header Mode Switcher
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -177,14 +172,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 4),
                     Text(
                       inRegisterMode 
-                        ? "Create your client account to explore venues & plan events."
+                        ? "Create your client account to explore 5-star venues & plan events."
                         : "Access your personalized AI proposals and live event statuses.",
                       style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                     ),
                     const SizedBox(height: 18),
 
                     if (!inRegisterMode) ...[
-                      // Login Fields
                       TextField(
                         controller: _emailController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -199,16 +193,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: _buildInputDecoration("Password", Icons.lock_outline),
                       ),
                       const SizedBox(height: 18),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : () => _handleLogin(setModalState),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFD4AF37), Color(0xFFFCD34D)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
                         ),
-                        child: _isLoading
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Sign In as Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : () => _handleLogin(setModalState),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Color(0xFF0F172A), strokeWidth: 2))
+                              : const Text("Sign In as Client", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Center(
@@ -219,14 +225,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: "Don't have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Sign Up as Client", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign Up as Client", style: TextStyle(color: Color(0xFFFCD34D), fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
                         ),
                       ),
                     ] else ...[
-                      // Register Fields (Strictly for Clients)
                       TextField(
                         controller: _regNameController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -254,16 +259,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: _buildInputDecoration("Password", Icons.lock_outline),
                       ),
                       const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _regLoading ? null : () => _handleRegister(setModalState),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo.shade600,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFD4AF37), Color(0xFFFCD34D)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
                         ),
-                        child: _regLoading
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Create Client Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        child: ElevatedButton(
+                          onPressed: _regLoading ? null : () => _handleRegister(setModalState),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: _regLoading
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Color(0xFF0F172A), strokeWidth: 2))
+                              : const Text("Create Client Account", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Center(
@@ -274,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: "Already have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Sign In", style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign In", style: TextStyle(color: Color(0xFFFCD34D), fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -295,7 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       labelText: label,
       labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-      prefixIcon: Icon(icon, color: Colors.cyanAccent, size: 18),
+      prefixIcon: Icon(icon, color: const Color(0xFFFCD34D), size: 18),
       filled: true,
       fillColor: const Color(0xFF1E293B),
       isDense: true,
@@ -303,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.cyanAccent, width: 1.2),
+        borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 1.2),
       ),
     );
   }
@@ -311,65 +328,51 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF090D16),
+      backgroundColor: const Color(0xFF070B12),
       body: SafeArea(
         child: Column(
           children: [
             
             // =======================================================
-            // 1. TOP NAVBAR: Logo on Left, Log In & Sign Up on Right
+            // 1. TOP NAVBAR: Stylized Gold-Engraved Logo & Hamburger Menu
             // =======================================================
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Left: Logo
+                  // Gold-engraved Logo
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Colors.lightBlue, Colors.indigoAccent]),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFD4AF37), Color(0xFFFCD34D)],
+                          ),
                           borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2)),
+                          ],
                         ),
-                        child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                        child: const Icon(Icons.auto_awesome, color: Color(0xFF070B12), size: 18),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       RichText(
                         text: const TextSpan(
                           children: [
-                            TextSpan(text: "EventCraft", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            TextSpan(text: ".AI", style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                            TextSpan(text: "EventCraft", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                            TextSpan(text: ".AI", style: TextStyle(color: Color(0xFFFCD34D), fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                           ],
                         ),
                       ),
                     ],
                   ),
 
-                  // Right: Log In and Sign Up buttons (Strictly Client Access)
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () => _showAuthBottomSheet(isRegister: false),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: const Text("Log In", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ),
-                      const SizedBox(width: 4),
-                      ElevatedButton(
-                        onPressed: () => _showAuthBottomSheet(isRegister: true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan.shade600,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          visualDensity: VisualDensity.compact,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      ),
-                    ],
+                  // Minimalist Hamburger Menu Icon
+                  IconButton(
+                    icon: const Icon(Icons.menu_rounded, color: Color(0xFFFCD34D), size: 26),
+                    onPressed: () => _showAuthBottomSheet(isRegister: false),
                   ),
                 ],
               ),
@@ -378,81 +381,96 @@ class _LoginScreenState extends State<LoginScreen> {
             const Divider(color: Colors.white10, height: 1),
 
             // =======================================================
-            // 2. MIDDLE CONTENT & SINGLE FULL-SIZE LUXURY PHOTO
+            // 2. MAIN WELCOME CONTENT & FLOATING LUXURY HERO CARD
             // =======================================================
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   children: [
                     
-                    // Center Hero Text
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
+                    
+                    // Champagne Gold Glowing Pill Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF131C2E),
+                        color: const Color(0xFF161F33),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.15), blurRadius: 10, spreadRadius: 1),
+                        ],
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 12),
-                          SizedBox(width: 4),
-                          Text("Client Experience Portal", style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Icon(Icons.auto_awesome, color: Color(0xFFFCD34D), size: 12),
+                          SizedBox(width: 6),
+                          Text("Client Experience Portal", style: TextStyle(color: Color(0xFFFCD34D), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
+                    // Main Welcome Typography
                     RichText(
                       textAlign: TextAlign.center,
                       text: const TextSpan(
                         children: [
-                          TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                          TextSpan(text: "EventCraft", style: TextStyle(color: Colors.cyanAccent, fontSize: 26, fontWeight: FontWeight.bold)),
+                          TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          TextSpan(
+                            text: "EventCraft",
+                            style: TextStyle(
+                              color: Color(0xFFFCD34D),
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 10),
 
+                    // Tagline
                     Text(
-                      "EventCraft is Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time environmental weather contingency safeguards for unforgettable weddings, galas, and celebrations.",
+                      "Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time environmental weather contingency safeguards for unforgettable weddings, galas, and celebrations.",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade300, fontSize: 13, height: 1.45),
+                      style: TextStyle(color: Colors.grey.shade300, fontSize: 13, height: 1.5, letterSpacing: 0.2),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
 
                     // =======================================================
-                    // 3. ONLY ONE FULL-SIZE LUXURY EVENT PHOTO
+                    // 3. FLOATING LUXURY BANQUET & GOURMET VISUAL CARD
                     // =======================================================
                     Container(
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white12),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.35), width: 1.2),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
+                          BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.12), blurRadius: 20, spreadRadius: 2, offset: const Offset(0, 8)),
+                          BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 16, offset: const Offset(0, 6)),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(19),
+                        borderRadius: BorderRadius.circular(21),
                         child: Stack(
                           children: [
                             Image.network(
                               FEATURED_HERO_IMAGE,
                               width: double.infinity,
-                              height: 240,
+                              height: 220,
                               fit: BoxFit.cover,
                               loadingBuilder: (context, child, progress) {
                                 if (progress == null) return child;
                                 return Container(
-                                  height: 240,
+                                  height: 220,
                                   color: const Color(0xFF131C2E),
                                   alignment: Alignment.center,
-                                  child: const CircularProgressIndicator(color: Colors.cyanAccent, strokeWidth: 2),
+                                  child: const CircularProgressIndicator(color: Color(0xFFFCD34D), strokeWidth: 2),
                                 );
                               },
                             ),
@@ -461,16 +479,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               left: 12,
                               right: 12,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.white24),
+                                  color: const Color(0xFF070B12).withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFD4AF37).withOpacity(0.4)),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.verified_outlined, color: Colors.cyanAccent, size: 14),
-                                    SizedBox(width: 6),
+                                    Icon(Icons.verified_outlined, color: Color(0xFFFCD34D), size: 15),
+                                    SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         "5-Star Certified Venues & Autonomous Weather Shield",
@@ -487,9 +505,77 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 26),
+
+                    // =======================================================
+                    // 4. ACTION BUTTONS: Champagne Gold Sign Up & Dark Blue Log In
+                    // =======================================================
+                    
+                    // Prominent Champagne-Gold Gradient Sign Up Button
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFD4AF37), Color(0xFFFCD34D)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFFD4AF37).withOpacity(0.4), blurRadius: 14, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: () => _showAuthBottomSheet(isRegister: true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text(
+                          "Sign Up",
+                          style: TextStyle(color: Color(0xFF070B12), fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Outlined Dark Blue Button with Gold Border & Text for Log In
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFD4AF37), width: 1.5),
+                      ),
+                      child: OutlinedButton(
+                        onPressed: () => _showAuthBottomSheet(isRegister: false),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide.none,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text(
+                          "Log In",
+                          style: TextStyle(color: Color(0xFFFCD34D), fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // Subtle Text Link below buttons
+                    GestureDetector(
+                      onTap: () => _showAuthBottomSheet(isRegister: false),
+                      child: const Text(
+                        "or explore Client Experience Portal",
+                        style: TextStyle(color: Colors.white54, fontSize: 12, decoration: TextDecoration.underline, decorationColor: Colors.white38),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
                     Text("SE3090 Frameworks • EventCraft AI", style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
                   ],
                 ),
