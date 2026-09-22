@@ -16,6 +16,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _loginEmailError;
+  String? _loginPasswordError;
+  String? _loginAuthError;
 
   // Register Controllers
   final _regNameController = TextEditingController();
@@ -39,13 +42,49 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      _showSnackBar('Please fill in both email and password', isError: true);
+    String? emailErr;
+    String? passwordErr;
+
+    if (email.isEmpty) {
+      emailErr = 'Please enter your email';
+    } else if (!email.contains('@')) {
+      emailErr = 'Email must contain @';
+    }
+
+    if (password.isEmpty) {
+      passwordErr = 'Please enter your password';
+    } else if (password.length < 6) {
+      passwordErr = 'Password must be at least 6 characters';
+    }
+
+    if (emailErr != null || passwordErr != null) {
+      final msg = emailErr ?? passwordErr!;
+      void updateErrors() {
+        _loginEmailError = emailErr;
+        _loginPasswordError = passwordErr;
+        _loginAuthError = null;
+      }
+      if (setModalState != null) {
+        setModalState(updateErrors);
+      } else {
+        setState(updateErrors);
+      }
+      _showSnackBar(msg, isError: true);
       return;
     }
 
-    if (setModalState != null) setModalState(() => _isLoading = true);
-    else setState(() => _isLoading = true);
+    void startLoading() {
+      _isLoading = true;
+      _loginEmailError = null;
+      _loginPasswordError = null;
+      _loginAuthError = null;
+    }
+
+    if (setModalState != null) {
+      setModalState(startLoading);
+    } else {
+      setState(startLoading);
+    }
 
     final result = await AuthService.login(email, password);
 
@@ -70,8 +109,24 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } else {
+      final errorMsg = (result.message != null && result.message!.isNotEmpty)
+          ? (result.message!.toLowerCase().contains('invalid')
+              ? 'Invalid email or password'
+              : result.message!)
+          : 'Invalid email or password';
+
+      void setAuthErr() {
+        _loginAuthError = errorMsg;
+      }
+
+      if (setModalState != null) {
+        setModalState(setAuthErr);
+      } else {
+        setState(setAuthErr);
+      }
+
       if (mounted) {
-        _showSnackBar(result.message ?? 'Login failed. Please check your credentials.', isError: true);
+        _showSnackBar(errorMsg, isError: true);
       }
     }
   }
@@ -124,6 +179,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Modern Client Auth Bottom Sheet
   void _showAuthBottomSheet({required bool isRegister}) {
+    _loginEmailError = null;
+    _loginPasswordError = null;
+    _loginAuthError = null;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -184,19 +243,69 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 18),
 
                     if (!inRegisterMode) ...[
+                      // Login Auth Error Banner (e.g. Invalid email or password)
+                      if (_loginAuthError != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _loginAuthError!,
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       // Login Fields
                       TextField(
                         controller: _emailController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: _buildInputDecoration("Client Email Address", Icons.email_outlined),
+                        decoration: _buildInputDecoration(
+                          "Client Email Address",
+                          Icons.email_outlined,
+                          errorText: _loginEmailError,
+                        ),
                         keyboardType: TextInputType.emailAddress,
+                        onChanged: (val) {
+                          if (_loginEmailError != null || _loginAuthError != null) {
+                            setModalState(() {
+                              _loginEmailError = null;
+                              _loginAuthError = null;
+                            });
+                          }
+                        },
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: _buildInputDecoration("Password", Icons.lock_outline),
+                        decoration: _buildInputDecoration(
+                          "Password",
+                          Icons.lock_outline,
+                          errorText: _loginPasswordError,
+                        ),
+                        onChanged: (val) {
+                          if (_loginPasswordError != null || _loginAuthError != null) {
+                            setModalState(() {
+                              _loginPasswordError = null;
+                              _loginAuthError = null;
+                            });
+                          }
+                        },
+                        onSubmitted: (_) => _isLoading ? null : _handleLogin(setModalState),
                       ),
                       const SizedBox(height: 18),
                       ElevatedButton(
@@ -213,7 +322,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 14),
                       Center(
                         child: GestureDetector(
-                          onTap: () => setModalState(() => inRegisterMode = true),
+                          onTap: () => setModalState(() {
+                            inRegisterMode = true;
+                            _loginEmailError = null;
+                            _loginPasswordError = null;
+                            _loginAuthError = null;
+                          }),
                           child: RichText(
                             text: TextSpan(
                               text: "Don't have an account? ",
@@ -268,7 +382,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 14),
                       Center(
                         child: GestureDetector(
-                          onTap: () => setModalState(() => inRegisterMode = false),
+                          onTap: () => setModalState(() {
+                            inRegisterMode = false;
+                            _loginEmailError = null;
+                            _loginPasswordError = null;
+                            _loginAuthError = null;
+                          }),
                           child: RichText(
                             text: TextSpan(
                               text: "Already have an account? ",
@@ -291,9 +410,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
+  InputDecoration _buildInputDecoration(String label, IconData icon, {String? errorText}) {
     return InputDecoration(
       labelText: label,
+      errorText: errorText,
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
       labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
       prefixIcon: Icon(icon, color: Colors.cyanAccent, size: 18),
       filled: true,
@@ -304,6 +425,14 @@ class _LoginScreenState extends State<LoginScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.cyanAccent, width: 1.2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
       ),
     );
   }
