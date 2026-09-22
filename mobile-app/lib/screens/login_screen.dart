@@ -12,15 +12,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Login Controllers & Errors
+  // Login Controllers
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _loginEmailError;
   String? _loginPasswordError;
-  String? _loginFormError;
+  String? _loginAuthError;
 
-  // Register Controllers & Errors
+  // Register Controllers
   final _regNameController = TextEditingController();
   final _regEmailController = TextEditingController();
   final _regPhoneController = TextEditingController();
@@ -30,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _regEmailError;
   String? _regPhoneError;
   String? _regPasswordError;
-  String? _regFormError;
 
   @override
   void dispose() {
@@ -43,64 +42,67 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _handleLogin(StateSetter setModalState) async {
+  Future<void> _handleLogin(StateSetter? setModalState) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     String? emailErr;
     String? passwordErr;
-    String? formErr;
 
-    if (email.isEmpty && password.isEmpty) {
-      emailErr = 'Email is required';
-      passwordErr = 'Password is required';
-      formErr = 'These fields are required. Please enter your email and password.';
-    } else {
-      if (email.isEmpty) {
-        emailErr = 'Email is required';
-      } else if (!email.contains('@')) {
-        emailErr = 'Email must contain @';
-      }
+    if (email.isEmpty) {
+      emailErr = 'Please enter your email';
+    } else if (!email.contains('@')) {
+      emailErr = 'Email must contain @';
+    }
 
-      if (password.isEmpty) {
-        passwordErr = 'Password is required';
-      } else if (password.length < 6) {
-        passwordErr = 'Password must be at least 6 characters';
-      }
-
-      if (emailErr != null || passwordErr != null) {
-        formErr = emailErr ?? passwordErr;
-      }
+    if (password.isEmpty) {
+      passwordErr = 'Please enter your password';
+    } else if (password.length < 6) {
+      passwordErr = 'Password must be at least 6 characters';
     }
 
     if (emailErr != null || passwordErr != null) {
-      setModalState(() {
+      final msg = emailErr ?? passwordErr!;
+      void updateErrors() {
         _loginEmailError = emailErr;
         _loginPasswordError = passwordErr;
-        _loginFormError = formErr;
-      });
+        _loginAuthError = null;
+      }
+      if (setModalState != null) {
+        setModalState(updateErrors);
+      } else {
+        setState(updateErrors);
+      }
+      _showSnackBar(msg, isError: true);
       return;
     }
 
-    setModalState(() {
+    void startLoading() {
       _isLoading = true;
       _loginEmailError = null;
       _loginPasswordError = null;
-      _loginFormError = null;
-    });
+      _loginAuthError = null;
+    }
+
+    if (setModalState != null) {
+      setModalState(startLoading);
+    } else {
+      setState(startLoading);
+    }
 
     final result = await AuthService.login(email, password);
 
-    setModalState(() => _isLoading = false);
+    if (setModalState != null) setModalState(() => _isLoading = false);
+    else setState(() => _isLoading = false);
 
     if (result.success) {
       // Check if user is a Vendor -> strictly restrict access to Clients only
       final role = await AuthService.getUserRole();
       if (role == 'Vendor') {
         await AuthService.logout();
-        setModalState(() {
-          _loginFormError = 'Access Restricted: This dashboard is exclusively for Clients. Suppliers & Vendors please use the Supplier Web Portal.';
-        });
+        if (mounted) {
+          _showSnackBar('Access Restricted: This dashboard is exclusively for Clients. Suppliers & Vendors please use the Supplier Web Portal.', isError: true);
+        }
         return;
       }
 
@@ -117,9 +119,19 @@ class _LoginScreenState extends State<LoginScreen> {
               : result.message!)
           : 'Invalid email or password';
 
-      setModalState(() {
-        _loginFormError = errorMsg;
-      });
+      void setAuthErr() {
+        _loginAuthError = errorMsg;
+      }
+
+      if (setModalState != null) {
+        setModalState(setAuthErr);
+      } else {
+        setState(setAuthErr);
+      }
+
+      if (mounted) {
+        _showSnackBar(errorMsg, isError: true);
+      }
     }
   }
 
@@ -133,40 +145,22 @@ class _LoginScreenState extends State<LoginScreen> {
     String? emailErr;
     String? phoneErr;
     String? passwordErr;
-    String? formErr;
 
-    if (name.isEmpty && email.isEmpty && phone.isEmpty && password.isEmpty) {
-      nameErr = 'Full name is required';
-      emailErr = 'Email is required';
-      phoneErr = 'Phone number is required';
-      passwordErr = 'Password is required';
-      formErr = 'These fields are required. Please complete all fields.';
-    } else {
-      if (name.isEmpty) {
-        nameErr = 'Full name is required';
-      }
-
-      if (email.isEmpty) {
-        emailErr = 'Email is required';
-      } else if (!email.contains('@')) {
-        emailErr = 'Email must contain @';
-      }
-
-      if (phone.isEmpty) {
-        phoneErr = 'Phone number is required';
-      } else if (phone.replaceAll(RegExp(r'\D'), '').length < 9) {
-        phoneErr = 'Please enter a valid phone number (min 9 digits)';
-      }
-
-      if (password.isEmpty) {
-        passwordErr = 'Password is required';
-      } else if (password.length < 6) {
-        passwordErr = 'Password must be at least 6 characters';
-      }
-
-      if (nameErr != null || emailErr != null || phoneErr != null || passwordErr != null) {
-        formErr = nameErr ?? emailErr ?? phoneErr ?? passwordErr;
-      }
+    if (name.isEmpty) {
+      nameErr = 'Please enter your full name';
+    }
+    if (email.isEmpty) {
+      emailErr = 'Please enter your email';
+    } else if (!email.contains('@')) {
+      emailErr = 'Email must contain @';
+    }
+    if (phone.isEmpty) {
+      phoneErr = 'Please enter your phone number';
+    }
+    if (password.isEmpty) {
+      passwordErr = 'Please enter your password';
+    } else if (password.length < 6) {
+      passwordErr = 'Password must be at least 6 characters';
     }
 
     if (nameErr != null || emailErr != null || phoneErr != null || passwordErr != null) {
@@ -175,8 +169,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _regEmailError = emailErr;
         _regPhoneError = phoneErr;
         _regPasswordError = passwordErr;
-        _regFormError = formErr;
       });
+      _showSnackBar(nameErr ?? emailErr ?? phoneErr ?? passwordErr!, isError: true);
       return;
     }
 
@@ -186,7 +180,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _regEmailError = null;
       _regPhoneError = null;
       _regPasswordError = null;
-      _regFormError = null;
     });
 
     final result = await AuthService.register(name, email, password, phone, role: 'Customer');
@@ -205,10 +198,9 @@ class _LoginScreenState extends State<LoginScreen> {
         _showSnackBar('Client account created! Please sign in with your password.', isError: false);
       }
     } else {
-      final errorMsg = result.message ?? 'Registration failed. Please try again.';
-      setModalState(() {
-        _regFormError = errorMsg;
-      });
+      if (mounted) {
+        _showSnackBar(result.message ?? 'Registration failed. Please try again.', isError: true);
+      }
     }
   }
 
@@ -223,48 +215,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildErrorBanner(String? errorMessage) {
-    if (errorMessage == null || errorMessage.isEmpty) {
-      return const SizedBox.shrink();
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.6), width: 1),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              errorMessage,
-              style: const TextStyle(
-                color: Colors.redAccent,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Modern Client Auth Bottom Sheet
   void _showAuthBottomSheet({required bool isRegister}) {
     _loginEmailError = null;
     _loginPasswordError = null;
-    _loginFormError = null;
+    _loginAuthError = null;
     _regNameError = null;
     _regEmailError = null;
     _regPhoneError = null;
     _regPasswordError = null;
-    _regFormError = null;
 
     showModalBottomSheet(
       context: context,
@@ -326,8 +285,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 18),
 
                     if (!inRegisterMode) ...[
-                      // In-form Login Error Banner
-                      _buildErrorBanner(_loginFormError),
+                      // Login Auth Error Banner (e.g. Invalid email or password)
+                      if (_loginAuthError != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _loginAuthError!,
+                                  style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
 
                       // Login Fields
                       TextField(
@@ -340,10 +321,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         keyboardType: TextInputType.emailAddress,
                         onChanged: (val) {
-                          if (_loginEmailError != null || _loginFormError != null) {
+                          if (_loginEmailError != null || _loginAuthError != null) {
                             setModalState(() {
                               _loginEmailError = null;
-                              _loginFormError = null;
+                              _loginAuthError = null;
                             });
                           }
                         },
@@ -359,10 +340,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           errorText: _loginPasswordError,
                         ),
                         onChanged: (val) {
-                          if (_loginPasswordError != null || _loginFormError != null) {
+                          if (_loginPasswordError != null || _loginAuthError != null) {
                             setModalState(() {
                               _loginPasswordError = null;
-                              _loginFormError = null;
+                              _loginAuthError = null;
                             });
                           }
                         },
@@ -372,9 +353,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: _isLoading ? null : () => _handleLogin(setModalState),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan.shade600,
+                          backgroundColor: const Color(0xFF2563EB), // Executive Royal Blue
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
                         ),
                         child: _isLoading
                             ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -387,43 +370,36 @@ class _LoginScreenState extends State<LoginScreen> {
                             inRegisterMode = true;
                             _loginEmailError = null;
                             _loginPasswordError = null;
-                            _loginFormError = null;
+                            _loginAuthError = null;
                             _regNameError = null;
                             _regEmailError = null;
                             _regPhoneError = null;
                             _regPasswordError = null;
-                            _regFormError = null;
                           }),
                           child: RichText(
                             text: TextSpan(
                               text: "Don't have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Sign Up as Client", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign Up as Client", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
                         ),
                       ),
                     ] else ...[
-                      // In-form Register Error Banner
-                      _buildErrorBanner(_regFormError),
-
                       // Register Fields (Strictly for Clients)
                       TextField(
                         controller: _regNameController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _buildInputDecoration(
                           "Full Name", 
-                          Icons.person_outline, 
+                          Icons.person_outline,
                           errorText: _regNameError,
                         ),
                         onChanged: (val) {
-                          if (_regNameError != null || _regFormError != null) {
-                            setModalState(() {
-                              _regNameError = null;
-                              _regFormError = null;
-                            });
+                          if (_regNameError != null) {
+                            setModalState(() => _regNameError = null);
                           }
                         },
                       ),
@@ -433,16 +409,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _buildInputDecoration(
                           "Email Address", 
-                          Icons.email_outlined, 
+                          Icons.email_outlined,
                           errorText: _regEmailError,
                         ),
                         keyboardType: TextInputType.emailAddress,
                         onChanged: (val) {
-                          if (_regEmailError != null || _regFormError != null) {
-                            setModalState(() {
-                              _regEmailError = null;
-                              _regFormError = null;
-                            });
+                          if (_regEmailError != null) {
+                            setModalState(() => _regEmailError = null);
                           }
                         },
                       ),
@@ -452,16 +425,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _buildInputDecoration(
                           "Phone (+94)", 
-                          Icons.phone_outlined, 
+                          Icons.phone_outlined,
                           errorText: _regPhoneError,
                         ),
                         keyboardType: TextInputType.phone,
                         onChanged: (val) {
-                          if (_regPhoneError != null || _regFormError != null) {
-                            setModalState(() {
-                              _regPhoneError = null;
-                              _regFormError = null;
-                            });
+                          if (_regPhoneError != null) {
+                            setModalState(() => _regPhoneError = null);
                           }
                         },
                       ),
@@ -472,15 +442,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: _buildInputDecoration(
                           "Password", 
-                          Icons.lock_outline, 
+                          Icons.lock_outline,
                           errorText: _regPasswordError,
                         ),
                         onChanged: (val) {
-                          if (_regPasswordError != null || _regFormError != null) {
-                            setModalState(() {
-                              _regPasswordError = null;
-                              _regFormError = null;
-                            });
+                          if (_regPasswordError != null) {
+                            setModalState(() => _regPasswordError = null);
                           }
                         },
                         onSubmitted: (_) => _regLoading ? null : _handleRegister(setModalState),
@@ -489,9 +456,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: _regLoading ? null : () => _handleRegister(setModalState),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo.shade600,
+                          backgroundColor: const Color(0xFF1D4ED8), // Deep Royal Blue
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
                         ),
                         child: _regLoading
                             ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -504,19 +473,18 @@ class _LoginScreenState extends State<LoginScreen> {
                             inRegisterMode = false;
                             _loginEmailError = null;
                             _loginPasswordError = null;
-                            _loginFormError = null;
+                            _loginAuthError = null;
                             _regNameError = null;
                             _regEmailError = null;
                             _regPhoneError = null;
                             _regPasswordError = null;
-                            _regFormError = null;
                           }),
                           child: RichText(
                             text: TextSpan(
                               text: "Already have an account? ",
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
                               children: const [
-                                TextSpan(text: "Sign In", style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
+                                TextSpan(text: "Sign In", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ),
@@ -537,26 +505,25 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       labelText: label,
       errorText: errorText,
-      errorMaxLines: 2,
-      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.w500),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
       labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-      prefixIcon: Icon(icon, color: errorText != null ? Colors.redAccent : Colors.cyanAccent, size: 18),
+      prefixIcon: Icon(icon, color: errorText != null ? Colors.redAccent : const Color(0xFF0284C7), size: 18),
       filled: true,
       fillColor: const Color(0xFF1E293B),
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.cyanAccent, width: 1.2),
+      focusedBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: Color(0xFF2563EB), width: 1.5),
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
+      errorBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.2),
       ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.4),
+      focusedErrorBorder: const OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderSide: BorderSide(color: Colors.redAccent, width: 1.4),
       ),
     );
   }
@@ -583,7 +550,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Colors.lightBlue, Colors.indigoAccent]),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0284C7), Color(0xFF2563EB)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
@@ -593,7 +564,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: const TextSpan(
                           children: [
                             TextSpan(text: "EventCraft", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            TextSpan(text: ".AI", style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                            TextSpan(text: ".AI", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 18, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -615,10 +586,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton(
                         onPressed: () => _showAuthBottomSheet(isRegister: true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan.shade600,
+                          backgroundColor: const Color(0xFF2563EB), // Royal Blue
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           visualDensity: VisualDensity.compact,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 2,
                         ),
                         child: const Text("Sign Up", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
@@ -645,16 +618,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF131C2E),
+                        color: const Color(0xFF0F172A),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                        border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.5)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 12),
+                          Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 12),
                           SizedBox(width: 4),
-                          Text("Client Experience Portal", style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text("Client Experience Portal", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 10, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -665,7 +638,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       text: const TextSpan(
                         children: [
                           TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                          TextSpan(text: "EventCraft", style: TextStyle(color: Colors.cyanAccent, fontSize: 26, fontWeight: FontWeight.bold)),
+                          TextSpan(text: "EventCraft", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 26, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -705,7 +678,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   height: 240,
                                   color: const Color(0xFF131C2E),
                                   alignment: Alignment.center,
-                                  child: const CircularProgressIndicator(color: Colors.cyanAccent, strokeWidth: 2),
+                                  child: const CircularProgressIndicator(color: Color(0xFF2563EB), strokeWidth: 2),
                                 );
                               },
                             ),
@@ -722,7 +695,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.verified_outlined, color: Colors.cyanAccent, size: 14),
+                                    Icon(Icons.verified_outlined, color: Color(0xFF38BDF8), size: 14),
                                     SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
