@@ -584,59 +584,53 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 'Select Occasion & Event Theme',
                 style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-              // Visual Celebration Grid / Chips (Zero Emojis)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: eventCards.map((ec) {
-                  final isSel = _selectedEventType == ec['name'];
-                  return InkWell(
-                    onTap: () => _onEventTypeChanged(ec['name'] as String),
-                    borderRadius: BorderRadius.circular(12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSel ? const Color(0xFFEFF6FF) : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
-                          width: isSel ? 1.5 : 1,
+              DropdownButtonFormField<String>(
+                value: eventCards.any((ec) => ec['name'] == _selectedEventType)
+                    ? _selectedEventType
+                    : eventCards.first['name'] as String,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+                  ),
+                ),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF2563EB), size: 24),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                isExpanded: true,
+                items: eventCards.map((ec) {
+                  return DropdownMenuItem<String>(
+                    value: ec['name'] as String,
+                    child: Row(
+                      children: [
+                        Icon(ec['icon'] as IconData, size: 18, color: const Color(0xFF2563EB)),
+                        const SizedBox(width: 10),
+                        Text(
+                          ec['name'] as String,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                        boxShadow: isSel
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF2563EB).withOpacity(0.15),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            ec['icon'] as IconData,
-                            size: 16,
-                            color: isSel ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            ec['name'] as String,
-                            style: TextStyle(
-                              color: isSel ? const Color(0xFF2563EB) : const Color(0xFF334155),
-                              fontSize: 12,
-                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   );
                 }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    _onEventTypeChanged(val);
+                  }
+                },
               ),
 
               if (_selectedEventType == 'Other') ...[
@@ -657,7 +651,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               TextFormField(
                 controller: _titleController,
                 style: const TextStyle(color: Color(0xFF0F172A)),
-                decoration: _inputDecoration('Event Title', icon: Icons.title_rounded, hint: 'e.g. Royal Wedding Celebration'),
+                decoration: _inputDecoration(null, icon: Icons.title_rounded, hint: 'e.g. Royal Wedding Celebration'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter a title' : null,
               ),
 
@@ -893,7 +887,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           controller: _budgetController,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
-                          decoration: _inputDecoration('Budget (LKR)', icon: Icons.payments_outlined),
+                          decoration: _inputDecoration(null, icon: Icons.payments_outlined),
                           onChanged: (_) => setState(() {}),
                         ),
                       ],
@@ -1685,7 +1679,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  InputDecoration _inputDecoration(String label, {String? hint, IconData? icon}) {
+  InputDecoration _inputDecoration(String? label, {String? hint, IconData? icon}) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
