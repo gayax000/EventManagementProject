@@ -681,8 +681,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     final num safeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
                     final bool hasTent = isOut && (safeguardCost > 0 || rainPct >= 60);
 
+                    // Shorten verbose weather conditions for clean mobile responsiveness
+                    final String cleanCond = cond
+                        .replaceAll('North-East Monsoon Showers', 'Monsoon Showers')
+                        .replaceAll('Inter-Monsoon Thunderstorms', 'Monsoon Storms');
+
                     if (!isOut) {
                       return Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
@@ -690,29 +696,33 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFBBF7D0)),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: [
+                              children: const [
                                 Icon(Icons.shield_rounded, color: Color(0xFF16A34A), size: 16),
                                 SizedBox(width: 6),
-                                Text(
-                                  "Weather Assessment: 0% Risk (Indoor Venue)", 
-                                  style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Weather Risk: 0% (Indoor Venue)", 
+                                    style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 4),
-                            Text("• Indoor Climate-Controlled Banquet Hall. Zero weather risk.", 
+                            const SizedBox(height: 5),
+                            const Text("• Indoor Climate-Controlled Hall. Zero weather risk.", 
                               style: TextStyle(color: Color(0xFF15803D), fontSize: 11)),
-                            Text("• Safeguard: None required. Saved Rs. 150,000 marquee tent cost.", 
+                            const SizedBox(height: 2),
+                            const Text("• Safeguard: None needed (Saved Rs. 150,000 tent cost).", 
                               style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
                     } else if (hasTent) {
                       return Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
@@ -727,22 +737,26 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               children: [
                                 const Icon(Icons.cloud_sync_rounded, color: Color(0xFFD97706), size: 16),
                                 const SizedBox(width: 6),
-                                Text(
-                                  "Weather Assessment: $rainPct% Rain Risk ($cond)", 
-                                  style: const TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.bold, fontSize: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Weather Risk: $rainPct% ($cleanCond)", 
+                                    style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text("• Outdoor Monsoon contingency safeguard applied.", 
+                            const SizedBox(height: 5),
+                            const Text("• Outdoor contingency safeguard applied.", 
                               style: TextStyle(color: Color(0xFF92400E), fontSize: 11)),
-                            const Text("• Safeguard: Waterproof Marquee Tent Included (Rs. 150,000).", 
+                            const SizedBox(height: 2),
+                            const Text("• Safeguard: Waterproof Marquee Tent (Rs. 150,000).", 
                               style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
                     } else {
                       return Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(top: 4, bottom: 4),
                         decoration: BoxDecoration(
@@ -757,16 +771,19 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               children: [
                                 const Icon(Icons.wb_sunny_rounded, color: Color(0xFF0284C7), size: 16),
                                 const SizedBox(width: 6),
-                                Text(
-                                  "Weather Forecast: $rainPct% Rain Risk ($cond)", 
-                                  style: const TextStyle(color: Color(0xFF0284C7), fontWeight: FontWeight.bold, fontSize: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Weather Risk: $rainPct% ($cleanCond)", 
+                                    style: const TextStyle(color: Color(0xFF0284C7), fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            const Text("• Dry favorable outdoor forecast. No heavy precipitation expected.", 
+                            const SizedBox(height: 5),
+                            const Text("• Favorable outdoor forecast. No heavy rain expected.", 
                               style: TextStyle(color: Color(0xFF0369A1), fontSize: 11)),
-                            const Text("• Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.", 
+                            const SizedBox(height: 2),
+                            const Text("• Safeguard: Not needed (Saved Rs. 150,000 tent cost).", 
                               style: TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -780,7 +797,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Expanded(
+                      child: Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5)),
+                    ),
                     Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 17)),
                   ],
                 ),
@@ -1089,37 +1108,65 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header Row: Bank Icon & Title with Expanded
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.account_balance,
-                    color: isPaid ? const Color(0xFF10B981) : const Color(0xFF2563EB),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    "BANK TRANSFER & PAYMENT",
-                    style: TextStyle(
-                      color: Color(0xFF0F172A),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: isPaid
-                      ? const Color(0xFFDCFCE7)
-                      : (isPendingReview ? const Color(0xFFFEF3C7) : const Color(0xFFDBEAFE)),
-                  borderRadius: BorderRadius.circular(6),
+                  color: isPaid ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                child: Icon(
+                  Icons.account_balance_rounded,
+                  color: isPaid ? const Color(0xFF059669) : const Color(0xFF2563EB),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
                 child: Text(
+                  "BANK TRANSFER & PAYMENT",
+                  style: TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.5,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Status Badge: Positioned below title with generous space & modern pill badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: isPaid
+                  ? const Color(0xFFDCFCE7)
+                  : (isPendingReview ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF)),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isPaid
+                    ? const Color(0xFF86EFAC)
+                    : (isPendingReview ? const Color(0xFFFCD34D) : const Color(0xFFBFDBFE)),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPaid
+                      ? Icons.check_circle_rounded
+                      : (isPendingReview ? Icons.hourglass_top_rounded : Icons.pending_actions_rounded),
+                  size: 13,
+                  color: isPaid
+                      ? const Color(0xFF059669)
+                      : (isPendingReview ? const Color(0xFFD97706) : const Color(0xFF2563EB)),
+                ),
+                const SizedBox(width: 5),
+                Text(
                   isPaid
                       ? "VERIFIED & SETTLED"
                       : (isPendingReview ? "SLIP UNDER REVIEW" : "PENDING PAYMENT"),
@@ -1127,14 +1174,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     color: isPaid
                         ? const Color(0xFF059669)
                         : (isPendingReview ? const Color(0xFFD97706) : const Color(0xFF2563EB)),
-                    fontSize: 10,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // Bank Details Card
           Container(
@@ -1151,52 +1199,90 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("Official Deposit Account:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(height: 8),
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 105,
+                      child: Text("Bank:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
+                    Expanded(
+                      child: Text(
+                        "Commercial Bank of Ceylon",
+                        textAlign: TextAlign.right,
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Bank:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("Commercial Bank of Ceylon", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    SizedBox(
+                      width: 105,
+                      child: Text("Account Name:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
+                    Expanded(
+                      child: Text(
+                        "EventCraft Pvt Ltd",
+                        textAlign: TextAlign.right,
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text("Account Name:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("EventCraft Pvt Ltd", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    SizedBox(
+                      width: 105,
+                      child: Text("Account Number:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
+                    Expanded(
+                      child: Text(
+                        "8001234567",
+                        textAlign: TextAlign.right,
+                        style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Account Number:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("8001234567", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
+                    SizedBox(
+                      width: 105,
+                      child: Text("Branch / SWIFT:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ),
+                    Expanded(
+                      child: Text(
+                        "Colombo City (CCEYLKLX)",
+                        textAlign: TextAlign.right,
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Branch / SWIFT:", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("Colombo City Branch (CCEYLKLX)", style: TextStyle(color: Colors.white70, fontSize: 11)),
-                  ],
-                ),
-                const Divider(color: Colors.white12, height: 16),
+                const Divider(color: Colors.white12, height: 18),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Required Amount:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    const Expanded(
+                      child: Text("Required Amount:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
                     Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF34D399), fontWeight: FontWeight.bold, fontSize: 14)),
                   ],
                 ),
                 if (proposal.invoiceNumber != null && proposal.invoiceNumber!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Tax Invoice Number:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      const Expanded(
+                        child: Text("Tax Invoice Number:", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                      ),
                       Text(proposal.invoiceNumber!, style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 11)),
                     ],
                   ),
