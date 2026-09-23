@@ -662,7 +662,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ),
 
               const SizedBox(height: 18),
-              const Text('Event Setting (Indoor vs Outdoor)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Event Setting', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
 
               if (_isInherentlyIndoor) ...[
@@ -679,7 +679,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          '$_selectedEventType is conducted in an Indoor (Air-Conditioned) banquet venue with optimal acoustic controls.',
+                          '$_selectedEventType is conducted in an Indoor banquet venue.',
                           style: const TextStyle(color: Color(0xFF0369A1), fontSize: 12),
                         ),
                       ),
@@ -693,7 +693,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: GestureDetector(
                         onTap: () => setState(() => _isOutdoor = false),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: !_isOutdoor ? const Color(0xFFEFF6FF) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -702,31 +703,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               width: !_isOutdoor ? 1.5 : 1,
                             ),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.apartment_rounded,
-                                size: 22,
-                                color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Indoor (AC Hall)',
-                                style: TextStyle(
-                                  color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
-                                  fontSize: 12,
-                                  fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '0% Rain Risk • Guaranteed AC',
-                                style: TextStyle(
-                                  color: !_isOutdoor ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Indoor',
+                            style: TextStyle(
+                              color: !_isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
+                              fontSize: 14,
+                              fontWeight: !_isOutdoor ? FontWeight.bold : FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -736,7 +719,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: GestureDetector(
                         onTap: () => setState(() => _isOutdoor = true),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _isOutdoor ? const Color(0xFFEFF6FF) : Colors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -745,31 +729,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               width: _isOutdoor ? 1.5 : 1,
                             ),
                           ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.park_outlined,
-                                size: 22,
-                                color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Outdoor (Lawn/Garden)',
-                                style: TextStyle(
-                                  color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
-                                  fontSize: 12,
-                                  fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Scenic Lawns • Rain Shield',
-                                style: TextStyle(
-                                  color: _isOutdoor ? const Color(0xFF0284C7) : const Color(0xFF94A3B8),
-                                  fontSize: 9,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Outdoor',
+                            style: TextStyle(
+                              color: _isOutdoor ? const Color(0xFF2563EB) : const Color(0xFF334155),
+                              fontSize: 14,
+                              fontWeight: _isOutdoor ? FontWeight.bold : FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -1459,7 +1425,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
               _buildSummaryRow('Event Title:', _titleController.text.trim()),
               _buildSummaryRow('Target Date:', DateFormat('EEEE, MMM d, yyyy').format(_selectedDate)),
-              _buildSummaryRow('Setting:', _isInherentlyIndoor ? 'Indoor (AC Hall)' : (_isOutdoor ? 'Outdoor Lawn' : 'Indoor AC Hall')),
+              _buildSummaryRow('Setting:', _isInherentlyIndoor ? 'Indoor' : (_isOutdoor ? 'Outdoor' : 'Indoor')),
               _buildSummaryRow('Guests / Budget:', '${_guestController.text} guests  •  LKR ${curFormat.format(double.tryParse(_budgetController.text) ?? 0)}'),
 
               if (_locationMode == 'hotel')
