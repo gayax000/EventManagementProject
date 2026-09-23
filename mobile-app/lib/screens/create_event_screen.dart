@@ -796,18 +796,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: const Icon(Icons.calendar_month_rounded, color: Color(0xFF2563EB), size: 20),
                       ),
                       const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8)),
-                          const SizedBox(height: 2),
-                          Text(
-                            DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
-                            style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 14),
-                          ),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8)),
+                            const SizedBox(height: 2),
+                            Text(
+                              DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13.5),
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -924,11 +928,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               // Mode Selector Tabs (Zero Emojis)
               Row(
                 children: [
-                  _buildModeChip('hotel', 'Luxury Hotels', Icons.apartment_rounded),
+                  _buildModeChip('hotel', 'Hotels', Icons.apartment_rounded),
                   const SizedBox(width: 8),
                   _buildModeChip('district', 'Districts', Icons.map_outlined),
                   const SizedBox(width: 8),
-                  _buildModeChip('custom', 'Private Venue', Icons.edit_location_alt_outlined),
+                  _buildModeChip('custom', 'Private', Icons.edit_location_alt_outlined),
                 ],
               ),
               const Divider(color: Color(0xFFE2E8F0), height: 26),
@@ -1028,44 +1032,46 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                   },
                             borderRadius: BorderRadius.circular(14),
                             child: Padding(
-                              padding: const EdgeInsets.all(14),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       Icon(
                                         isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
                                         color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
-                                        size: 20,
+                                        size: 19,
                                       ),
-                                      const SizedBox(width: 10),
+                                      const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           hall.hallName,
                                           style: TextStyle(
                                             color: isAvail ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 15,
+                                            fontSize: 14,
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(width: 6),
                                       if (hall.isOutdoor)
                                         Container(
-                                          margin: const EdgeInsets.only(right: 6),
-                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                          margin: const EdgeInsets.only(right: 5),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFECFDF5),
                                             borderRadius: BorderRadius.circular(6),
                                             border: Border.all(color: const Color(0xFFA7F3D0)),
                                           ),
-                                          child: Text(
-                                            matchesSetting ? 'OUTDOOR' : 'OUTDOOR',
-                                            style: const TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold),
+                                          child: const Text(
+                                            'OUTDOOR',
+                                            style: TextStyle(color: Color(0xFF059669), fontSize: 9, fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: isAvail ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
                                           borderRadius: BorderRadius.circular(6),
@@ -1075,43 +1081,65 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                           isAvail ? 'AVAILABLE' : 'BOOKED',
                                           style: TextStyle(
                                             color: isAvail ? const Color(0xFF059669) : const Color(0xFFDC2626),
-                                            fontSize: 10,
+                                            fontSize: 9.5,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 8),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.people_alt_rounded, color: Color(0xFF64748B), size: 14),
-                                          const SizedBox(width: 4),
-                                          Text('Capacity: up to ${hall.maxCapacity} guests',
-                                              style: const TextStyle(color: Color(0xFF475569), fontSize: 12)),
-                                        ],
+                                      Expanded(
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.people_alt_rounded, color: Color(0xFF64748B), size: 14),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                'Up to ${hall.maxCapacity} guests',
+                                                style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      Text('Hall: LKR ${curFormat.format(hall.hallRentalPrice)}',
-                                          style: const TextStyle(color: Color(0xFF2563EB), fontSize: 13, fontWeight: FontWeight.bold)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Hall: LKR ${curFormat.format(hall.hallRentalPrice)}',
+                                        style: const TextStyle(color: Color(0xFF2563EB), fontSize: 12.5, fontWeight: FontWeight.bold),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.restaurant_rounded, color: Color(0xFF64748B), size: 14),
-                                          const SizedBox(width: 4),
-                                          const Text('In-House Buffet Catering:',
-                                              style: TextStyle(color: Color(0xFF475569), fontSize: 12)),
-                                        ],
+                                      Expanded(
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.restaurant_rounded, color: Color(0xFF64748B), size: 14),
+                                            const SizedBox(width: 4),
+                                            const Flexible(
+                                              child: Text(
+                                                'Buffet:',
+                                                style: TextStyle(color: Color(0xFF475569), fontSize: 12),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      Text('LKR ${curFormat.format(hall.perPlatePrice)} / plate',
-                                          style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'LKR ${curFormat.format(hall.perPlatePrice)} / plate',
+                                        style: const TextStyle(color: Color(0xFF059669), fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -1124,7 +1152,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
                     const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
@@ -1137,12 +1165,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             children: const [
                               Icon(Icons.restaurant_menu_rounded, color: Color(0xFF2563EB), size: 16),
                               SizedBox(width: 8),
-                              Text('In-House Hotel Catering Policy', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
+                              Expanded(
+                                child: Text(
+                                  'In-House Catering Policy',
+                                  style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Hotels provide full in-house gourmet banquet buffet at LKR ${curFormat.format(_selectedHall?.perPlatePrice ?? 0)}/plate.',
+                            'Hotels provide banquet buffet service at LKR ${curFormat.format(_selectedHall?.perPlatePrice ?? 0)}/plate.',
                             style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
                           ),
                           if (_selectedHall != null) ...[
@@ -1150,8 +1184,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Venue + Food Subtotal (${_guestController.text} guests):', style: const TextStyle(color: Color(0xFF475569), fontSize: 12)),
-                                Text('LKR ${curFormat.format(_calculatedVenueTotal)}', style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 13)),
+                                Expanded(
+                                  child: Text(
+                                    'Subtotal (${_guestController.text.trim()} guests):',
+                                    style: const TextStyle(color: Color(0xFF475569), fontSize: 12, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'LKR ${curFormat.format(_calculatedVenueTotal)}',
+                                  style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 13),
+                                ),
                               ],
                             ),
                           ],
@@ -1443,7 +1487,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Estimated Venue & Catering:', style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                    const Expanded(
+                      child: Text(
+                        'Estimated Venue & Catering:',
+                        style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       'LKR ${curFormat.format(_calculatedVenueTotal)}',
                       style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 14),
@@ -1484,7 +1535,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // 3. Bottom Navigation Bar
   Widget _buildBottomBar() {
-    final nextLabels = ['Next: Venue & Hall ➔', 'Next: Services & Decor ➔', 'Next: Moodboard & Review ➔', 'Submit Event Request'];
+    final nextLabels = ['Next: Venue ➔', 'Next: Services ➔', 'Next: Review ➔', 'Submit Request'];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -1552,7 +1603,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 105,
             child: Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
           ),
           Expanded(
@@ -1595,7 +1646,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Widget _buildCard({required Widget child}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1619,7 +1670,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         onTap: () => setState(() => _locationMode = mode),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
             borderRadius: BorderRadius.circular(10),
@@ -1630,16 +1681,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 15, color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF475569),
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF475569),
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  ),
                 ),
               ),
             ],
