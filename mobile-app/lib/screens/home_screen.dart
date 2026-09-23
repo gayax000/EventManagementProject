@@ -337,42 +337,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 360;
+        final bool isCompact = constraints.maxWidth < 450;
+        final double spacing = isCompact ? 8.0 : 12.0;
+
         return Row(
           children: [
             Expanded(
               child: _buildKpiCard(
-                label: "ACTIVE INQUIRIES",
+                label: isCompact ? "Active\nInquiries" : "Active Inquiries",
                 value: "${_events.length}",
                 icon: Icons.calendar_today_rounded,
                 iconColor: const Color(0xFF0284C7), // Sky Blue
                 iconBg: const Color(0xFFF0F9FF),
                 valueColor: const Color(0xFF0F172A),
-                isNarrow: isNarrow,
+                isCompact: isCompact,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: spacing),
             Expanded(
               child: _buildKpiCard(
-                label: "PENDING REVIEW",
+                label: isCompact ? "Pending\nReview" : "Pending Review",
                 value: "$pendingCount",
                 icon: Icons.access_time_rounded,
                 iconColor: const Color(0xFFD97706), // Amber
                 iconBg: const Color(0xFFFFFBEB),
                 valueColor: const Color(0xFFD97706),
-                isNarrow: isNarrow,
+                isCompact: isCompact,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: spacing),
             Expanded(
               child: _buildKpiCard(
-                label: "APPROVED & READY",
+                label: isCompact ? "Approved\n& Ready" : "Approved & Ready",
                 value: "$confirmedCount",
                 icon: Icons.check_circle_outline_rounded,
                 iconColor: const Color(0xFF059669), // Emerald
                 iconBg: const Color(0xFFECFDF5),
                 valueColor: const Color(0xFF059669),
-                isNarrow: isNarrow,
+                isCompact: isCompact,
               ),
             ),
           ],
@@ -388,10 +390,13 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color iconColor,
     required Color iconBg,
     required Color valueColor,
-    required bool isNarrow,
+    required bool isCompact,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      padding: EdgeInsets.symmetric(
+        vertical: isCompact ? 12 : 14,
+        horizontal: isCompact ? 8 : 12,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -409,35 +414,44 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: EdgeInsets.all(isCompact ? 6 : 7),
                 decoration: BoxDecoration(
                   color: iconBg,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: iconColor, size: 16),
+                child: Icon(icon, color: iconColor, size: isCompact ? 15 : 18),
               ),
-              Text(
-                value,
-                style: TextStyle(
-                  color: valueColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: valueColor,
+                    fontSize: isCompact ? 18 : 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
+          SizedBox(height: isCompact ? 8 : 10),
+          SizedBox(
+            height: isCompact ? 28 : null,
+            child: Text(
+              label,
+              maxLines: 2,
+              softWrap: true,
+              style: TextStyle(
+                color: const Color(0xFF64748B),
+                fontSize: isCompact ? 10 : 11.5,
+                fontWeight: FontWeight.bold,
+                height: 1.15,
+                letterSpacing: 0.1,
+              ),
             ),
           ),
         ],
