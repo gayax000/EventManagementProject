@@ -30,163 +30,179 @@ public class EventsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<EventResponseDto>> CreateEvent([FromBody] CreateEventRequestDto dto)
     {
-        // Extract customer ID securely from token, payload, or fallback
-        Guid customerId = Guid.Empty;
-        if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
+        try
         {
-            customerId = dto.CustomerId.Value;
-        }
-        else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
-        {
-            customerId = parsedId;
-        }
-
-        if (customerId == Guid.Empty)
-        {
-            var sampleCustomer = await _context.Users.FirstOrDefaultAsync(u => u.Role!.RoleName == "Customer") 
-                                 ?? await CreateFallbackCustomer();
-            customerId = sampleCustomer.UserId;
-        }
-
-        Guid? venueId = dto.VenueId;
-        Guid? banquetHallId = dto.BanquetHallId;
-        BanquetHall? chosenHall = null;
-
-        // Check Banquet Hall & Session Availability (Double-Booking Prevention per Session)
-        if (banquetHallId.HasValue && banquetHallId.Value != Guid.Empty)
-        {
-            chosenHall = await _context.BanquetHalls.Include(h => h.Venue).FirstOrDefaultAsync(h => h.BanquetHallId == banquetHallId.Value);
-            if (chosenHall != null)
+            // Extract customer ID securely from token, payload, or fallback
+            Guid customerId = Guid.Empty;
+            if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
             {
-                venueId = chosenHall.VenueId;
+                customerId = dto.CustomerId.Value;
+            }
+            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+            {
+                customerId = parsedId;
+            }
 
-                var targetUtcDate = DateTime.SpecifyKind(dto.TargetDate.Date, DateTimeKind.Utc);
-                var nextUtcDate = targetUtcDate.AddDays(1);
-                var requestedSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
+            if (customerId == Guid.Empty)
+            {
+                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer") 
+                                     ?? await CreateFallbackCustomer();
+                customerId = sampleCustomer.UserId;
+            }
 
-                var isAlreadyBooked = await _context.Events.AnyAsync(e => 
-                    e.BanquetHallId == banquetHallId.Value && 
-                    e.Status != "Cancelled" && 
-                    e.TargetDate >= targetUtcDate && 
-                    e.TargetDate < nextUtcDate &&
-                    (e.EventSession == requestedSession || string.IsNullOrEmpty(e.EventSession)));
+            Guid? venueId = dto.VenueId;
+            Guid? banquetHallId = dto.BanquetHallId;
+            BanquetHall? chosenHall = null;
 
-                if (isAlreadyBooked)
+            // Check Banquet Hall & Session Availability (Double-Booking Prevention per Session)
+            if (banquetHallId.HasValue && banquetHallId.Value != Guid.Empty)
+            {
+                chosenHall = await _context.BanquetHalls.Include(h => h.Venue).FirstOrDefaultAsync(h => h.BanquetHallId == banquetHallId.Value);
+                if (chosenHall != null)
                 {
-                    var sessionName = requestedSession == "NightDinner" ? "Night Dinner Session" : (requestedSession == "EveningHighTea" ? "High Tea Session" : "Day Lunch Session");
-                    return BadRequest(new { message = $"The banquet hall '{chosenHall.HallName}' is already reserved on {dto.TargetDate:yyyy-MM-dd} for the {sessionName}. Please choose another time slot, hall, or date." });
+                    venueId = chosenHall.VenueId;
+
+                    var targetUtcDate = DateTime.SpecifyKind(dto.TargetDate.Date, DateTimeKind.Utc);
+                    var nextUtcDate = targetUtcDate.AddDays(1);
+                    var requestedSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
+
+                    var isAlreadyBooked = await _context.Events.AnyAsync(e => 
+                        e.BanquetHallId == banquetHallId.Value && 
+                        e.Status != "Cancelled" && 
+                        e.TargetDate >= targetUtcDate && 
+                        e.TargetDate < nextUtcDate &&
+                        (e.EventSession == requestedSession || string.IsNullOrEmpty(e.EventSession)));
+
+                    if (isAlreadyBooked)
+                    {
+                        var sessionName = requestedSession == "NightDinner" ? "Night Dinner Session" : (requestedSession == "EveningHighTea" ? "High Tea Session" : "Day Lunch Session");
+                        return BadRequest(new { message = $"The banquet hall '{chosenHall.HallName}' is already reserved on {dto.TargetDate:yyyy-MM-dd} for the {sessionName}. Please choose another time slot, hall, or date." });
+                    }
                 }
             }
-        }
-        else if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
-        {
-            var matchedVenue = await _context.Venues.FirstOrDefaultAsync(v => 
-                v.Name.ToLower().Contains(dto.PreferredLocation.ToLower()) ||
-                v.LocationAddress.ToLower().Contains(dto.PreferredLocation.ToLower()));
-            if (matchedVenue != null)
+            else if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
             {
-                venueId = matchedVenue.VenueId;
+                var targetLoc = dto.PreferredLocation.ToLower();
+                var matchedVenue = await _context.Venues.FirstOrDefaultAsync(v => 
+                    (v.Name != null && v.Name.ToLower().Contains(targetLoc)) ||
+                    (v.LocationAddress != null && v.LocationAddress.ToLower().Contains(targetLoc)));
+                if (matchedVenue != null)
+                {
+                    venueId = matchedVenue.VenueId;
+                }
             }
-        }
 
-        var eventType = !string.IsNullOrWhiteSpace(dto.CustomEventType) 
-            ? dto.CustomEventType.Trim() 
-            : (!string.IsNullOrWhiteSpace(dto.EventType) ? dto.EventType.Trim() : "Wedding");
+            var eventType = !string.IsNullOrWhiteSpace(dto.CustomEventType) 
+                ? dto.CustomEventType.Trim() 
+                : (!string.IsNullOrWhiteSpace(dto.EventType) ? dto.EventType.Trim() : "Wedding");
 
-        bool isInherentlyIndoor = 
-            eventType.Equals("Product Launch", StringComparison.OrdinalIgnoreCase) ||
-            eventType.Equals("Dinner/Gala", StringComparison.OrdinalIgnoreCase) ||
-            eventType.Equals("Award Ceremony", StringComparison.OrdinalIgnoreCase) ||
-            eventType.Equals("Award Ceramony", StringComparison.OrdinalIgnoreCase);
+            bool isInherentlyIndoor = 
+                eventType.Equals("Product Launch", StringComparison.OrdinalIgnoreCase) ||
+                eventType.Equals("Dinner/Gala", StringComparison.OrdinalIgnoreCase) ||
+                eventType.Equals("Award Ceremony", StringComparison.OrdinalIgnoreCase) ||
+                eventType.Equals("Award Ceramony", StringComparison.OrdinalIgnoreCase);
 
-        bool isOutdoor = isInherentlyIndoor ? false : dto.IsOutdoor;
+            bool isOutdoor = isInherentlyIndoor ? false : dto.IsOutdoor;
 
-        string? additionalDetails = !string.IsNullOrWhiteSpace(dto.AdditionalDetails) 
-            ? dto.AdditionalDetails.Trim() 
-            : null;
+            string? additionalDetails = !string.IsNullOrWhiteSpace(dto.AdditionalDetails) 
+                ? dto.AdditionalDetails.Trim() 
+                : null;
 
-        string? inspirationJson = null;
-        if (dto.InspirationImages != null && dto.InspirationImages.Count > 0)
-        {
-            inspirationJson = JsonSerializer.Serialize(dto.InspirationImages);
-        }
-        else if (!string.IsNullOrWhiteSpace(dto.InspirationImageUrl))
-        {
-            var raw = dto.InspirationImageUrl.Trim();
-            if (raw.StartsWith("["))
+            string? inspirationJson = null;
+            if (dto.InspirationImages != null && dto.InspirationImages.Count > 0)
             {
-                inspirationJson = raw;
+                inspirationJson = JsonSerializer.Serialize(dto.InspirationImages);
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(dto.InspirationImageUrl))
             {
-                inspirationJson = JsonSerializer.Serialize(new List<string> { raw });
+                var raw = dto.InspirationImageUrl.Trim();
+                if (raw.StartsWith("["))
+                {
+                    inspirationJson = raw;
+                }
+                else
+                {
+                    inspirationJson = JsonSerializer.Serialize(new List<string> { raw });
+                }
             }
+
+            var servicesJson = dto.SelectedServices != null && dto.SelectedServices.Count > 0
+                ? JsonSerializer.Serialize(dto.SelectedServices)
+                : null;
+
+            var refreshmentsJson = dto.TableRefreshments != null && dto.TableRefreshments.Count > 0
+                ? JsonSerializer.Serialize(dto.TableRefreshments)
+                : null;
+
+            var eventSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
+            var cateringStyle = !string.IsNullOrWhiteSpace(dto.CateringStyle) ? dto.CateringStyle.Trim() : "InternationalBuffet";
+
+            var newEvent = new Event
+            {
+                CustomerId = customerId,
+                VenueId = venueId,
+                BanquetHallId = banquetHallId,
+                EventType = eventType,
+                Title = string.IsNullOrWhiteSpace(dto.Title) ? $"{eventType} Celebration" : dto.Title,
+                TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
+                GuestCount = dto.GuestCount,
+                BudgetLimit = dto.BudgetLimit,
+                IsOutdoor = isOutdoor,
+                AdditionalDetails = additionalDetails,
+                InspirationImageUrl = inspirationJson,
+                SelectedServicesJson = servicesJson,
+                EventSession = eventSession,
+                CateringStyle = cateringStyle,
+                TableRefreshmentsJson = refreshmentsJson,
+                Status = "UnderReview"
+            };
+
+            _context.Events.Add(newEvent);
+            await _context.SaveChangesAsync();
+
+            // Trigger Agentic AI Workflow in background (End-to-End Spec Section 10)
+            try
+            {
+                await _aiWorkflowService.TriggerAgenticPlanAsync(newEvent.EventId);
+            }
+            catch (Exception aiEx)
+            {
+                _logger.LogWarning(aiEx, "AI Plan generation experienced non-fatal warning for Event {EventId}", newEvent.EventId);
+            }
+
+            var response = new EventResponseDto
+            {
+                EventId = newEvent.EventId,
+                Title = newEvent.Title,
+                EventType = newEvent.EventType,
+                TargetDate = newEvent.TargetDate,
+                GuestCount = newEvent.GuestCount,
+                BudgetLimit = newEvent.BudgetLimit,
+                IsOutdoor = newEvent.IsOutdoor,
+                AdditionalDetails = newEvent.AdditionalDetails,
+                Status = newEvent.Status, // Will be 'PendingManagerApproval' after AI execution
+                VenueId = newEvent.VenueId,
+                BanquetHallId = newEvent.BanquetHallId,
+                BanquetHallName = chosenHall?.HallName,
+                HallRentalPrice = chosenHall?.HallRentalPrice,
+                PerPlatePrice = chosenHall?.PerPlatePrice,
+                InspirationImageUrl = newEvent.InspirationImageUrl,
+                InspirationImages = ParseInspirationImages(newEvent.InspirationImageUrl),
+                SelectedServices = dto.SelectedServices,
+                EventSession = newEvent.EventSession,
+                CateringStyle = newEvent.CateringStyle,
+                TableRefreshments = dto.TableRefreshments,
+                RevisionNotes = newEvent.RevisionNotes,
+                CreatedAt = newEvent.CreatedAt
+            };
+
+            return CreatedAtAction(nameof(GetEventById), new { id = newEvent.EventId }, response);
         }
-
-        var servicesJson = dto.SelectedServices != null && dto.SelectedServices.Count > 0
-            ? JsonSerializer.Serialize(dto.SelectedServices)
-            : null;
-
-        var refreshmentsJson = dto.TableRefreshments != null && dto.TableRefreshments.Count > 0
-            ? JsonSerializer.Serialize(dto.TableRefreshments)
-            : null;
-
-        var eventSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
-        var cateringStyle = !string.IsNullOrWhiteSpace(dto.CateringStyle) ? dto.CateringStyle.Trim() : "InternationalBuffet";
-
-        var newEvent = new Event
+        catch (Exception ex)
         {
-            CustomerId = customerId,
-            VenueId = venueId,
-            BanquetHallId = banquetHallId,
-            EventType = eventType,
-            Title = string.IsNullOrWhiteSpace(dto.Title) ? $"{eventType} Celebration" : dto.Title,
-            TargetDate = DateTime.SpecifyKind(dto.TargetDate, DateTimeKind.Utc),
-            GuestCount = dto.GuestCount,
-            BudgetLimit = dto.BudgetLimit,
-            IsOutdoor = isOutdoor,
-            AdditionalDetails = additionalDetails,
-            InspirationImageUrl = inspirationJson,
-            SelectedServicesJson = servicesJson,
-            EventSession = eventSession,
-            CateringStyle = cateringStyle,
-            TableRefreshmentsJson = refreshmentsJson,
-            Status = "UnderReview"
-        };
-
-        _context.Events.Add(newEvent);
-        await _context.SaveChangesAsync();
-
-        // Trigger Agentic AI Workflow in background (End-to-End Spec Section 10)
-        await _aiWorkflowService.TriggerAgenticPlanAsync(newEvent.EventId);
-
-        var response = new EventResponseDto
-        {
-            EventId = newEvent.EventId,
-            Title = newEvent.Title,
-            EventType = newEvent.EventType,
-            TargetDate = newEvent.TargetDate,
-            GuestCount = newEvent.GuestCount,
-            BudgetLimit = newEvent.BudgetLimit,
-            IsOutdoor = newEvent.IsOutdoor,
-            AdditionalDetails = newEvent.AdditionalDetails,
-            Status = newEvent.Status, // Will be 'PendingManagerApproval' after AI execution
-            VenueId = newEvent.VenueId,
-            BanquetHallId = newEvent.BanquetHallId,
-            BanquetHallName = chosenHall?.HallName,
-            HallRentalPrice = chosenHall?.HallRentalPrice,
-            PerPlatePrice = chosenHall?.PerPlatePrice,
-            InspirationImageUrl = newEvent.InspirationImageUrl,
-            InspirationImages = ParseInspirationImages(newEvent.InspirationImageUrl),
-            SelectedServices = dto.SelectedServices,
-            EventSession = newEvent.EventSession,
-            CateringStyle = newEvent.CateringStyle,
-            TableRefreshments = dto.TableRefreshments,
-            RevisionNotes = newEvent.RevisionNotes,
-            CreatedAt = newEvent.CreatedAt
-        };
-
-        return CreatedAtAction(nameof(GetEventById), new { id = newEvent.EventId }, response);
+            _logger.LogError(ex, "Error occurred during CreateEvent.");
+            return StatusCode(500, new { message = $"Failed to create event: {ex.Message}" });
+        }
     }
 
     // 2. GET: api/events/{id}
