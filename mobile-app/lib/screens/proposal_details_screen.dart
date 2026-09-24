@@ -696,26 +696,30 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFBBF7D0)),
                         ),
-                        child: Column(
+                        child: const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              children: const [
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Icon(Icons.shield_rounded, color: Color(0xFF16A34A), size: 16),
                                 SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    "Weather Risk: 0% (Indoor Venue)", 
+                                    "Weather Assessment: 0% Risk (Indoor Venue)", 
+                                    softWrap: true,
                                     style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.bold, fontSize: 12),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 5),
-                            const Text("• Indoor Climate-Controlled Hall. Zero weather risk.", 
+                            SizedBox(height: 5),
+                            Text("• Indoor Climate-Controlled Hall. Zero weather risk.", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFF15803D), fontSize: 11)),
-                            const SizedBox(height: 2),
-                            const Text("• Safeguard: None needed (Saved Rs. 150,000 tent cost).", 
+                            SizedBox(height: 2),
+                            Text("• Safeguard: None needed (Saved Rs. 150,000 tent cost).", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -734,12 +738,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Icon(Icons.cloud_sync_rounded, color: Color(0xFFD97706), size: 16),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    "Weather Risk: $rainPct% ($cleanCond)", 
+                                    "Weather Assessment: $rainPct% Rain Risk ($cleanCond)", 
+                                    softWrap: true,
                                     style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 12),
                                   ),
                                 ),
@@ -747,9 +753,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                             ),
                             const SizedBox(height: 5),
                             const Text("• Outdoor contingency safeguard applied.", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFF92400E), fontSize: 11)),
                             const SizedBox(height: 2),
                             const Text("• Safeguard: Waterproof Marquee Tent (Rs. 150,000).", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -768,12 +776,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Icon(Icons.wb_sunny_rounded, color: Color(0xFF0284C7), size: 16),
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    "Weather Risk: $rainPct% ($cleanCond)", 
+                                    "Weather Assessment: $rainPct% Rain Risk ($cleanCond)", 
+                                    softWrap: true,
                                     style: const TextStyle(color: Color(0xFF0284C7), fontWeight: FontWeight.bold, fontSize: 12),
                                   ),
                                 ),
@@ -781,9 +791,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                             ),
                             const SizedBox(height: 5),
                             const Text("• Favorable outdoor forecast. No heavy rain expected.", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFF0369A1), fontSize: 11)),
                             const SizedBox(height: 2),
                             const Text("• Safeguard: Not needed (Saved Rs. 150,000 tent cost).", 
+                              softWrap: true,
                               style: TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -1127,11 +1139,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               const Expanded(
                 child: Text(
                   "BANK TRANSFER & PAYMENT",
+                  softWrap: true,
                   style: TextStyle(
                     color: Color(0xFF0F172A),
                     fontWeight: FontWeight.bold,
-                    fontSize: 13.5,
-                    letterSpacing: 0.4,
+                    fontSize: 13,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ),
@@ -1204,13 +1217,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 105,
+                      width: 85,
                       child: Text("Bank:", style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
                     Expanded(
                       child: Text(
                         "Commercial Bank of Ceylon",
                         textAlign: TextAlign.right,
+                        softWrap: true,
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
@@ -1221,13 +1235,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 105,
+                      width: 85,
                       child: Text("Account Name:", style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
                     Expanded(
                       child: Text(
                         "EventCraft Pvt Ltd",
                         textAlign: TextAlign.right,
+                        softWrap: true,
                         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
@@ -1238,13 +1253,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 105,
+                      width: 85,
                       child: Text("Account Number:", style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
                     Expanded(
                       child: Text(
                         "8001234567",
                         textAlign: TextAlign.right,
+                        softWrap: true,
                         style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1),
                       ),
                     ),
@@ -1255,13 +1271,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
-                      width: 105,
+                      width: 85,
                       child: Text("Branch / SWIFT:", style: TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
                     Expanded(
                       child: Text(
-                        "Colombo City (CCEYLKLX)",
+                        "Colombo City Branch (CCEYLKLX)",
                         textAlign: TextAlign.right,
+                        softWrap: true,
                         style: TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),
@@ -1600,10 +1617,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
-                    "${item['icon']} ${item['label']}", 
+                    "${item['icon']} ${item['label']}".trim(), 
+                    softWrap: true,
                     style: TextStyle(
                       color: item['isSpecial'] == true ? const Color(0xFFE11D48) : const Color(0xFF475569), 
                       fontSize: 11.5,
@@ -1611,6 +1630,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
                   style: TextStyle(
