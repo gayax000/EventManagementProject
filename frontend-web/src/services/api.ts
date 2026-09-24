@@ -41,6 +41,10 @@ export interface EventItem {
   isOutdoor?: boolean;
   additionalDetails?: string;
   selectedServices?: string[];
+  eventSession?: string;
+  cateringStyle?: string;
+  tableRefreshments?: string[];
+  revisionNotes?: string;
   inspirationImages?: string[];
   inspirationImageUrl?: string;
   weatherAssessment?: any;

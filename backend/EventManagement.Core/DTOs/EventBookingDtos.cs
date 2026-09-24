@@ -31,6 +31,9 @@ public class CreateEventRequestDto
 
     public List<string>? SelectedServices { get; set; }
     public string? CustomServiceNotes { get; set; }
+    public string? EventSession { get; set; } = "DayLunch";
+    public string? CateringStyle { get; set; } = "InternationalBuffet";
+    public List<string>? TableRefreshments { get; set; }
 }
 
 // 2. Event Response DTO
@@ -54,8 +57,20 @@ public class EventResponseDto
     public string? InspirationImageUrl { get; set; }
     public List<string> InspirationImages { get; set; } = new();
     public List<string>? SelectedServices { get; set; }
+    public string? EventSession { get; set; }
+    public string? CateringStyle { get; set; }
+    public List<string>? TableRefreshments { get; set; }
+    public string? RevisionNotes { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+// 2.0 Client Choice / Revision Request DTO
+public class SubmitClientBudgetChoiceDto
+{
+    public string ClientAction { get; set; } = "accept"; // "accept" or "request_revision"
+    public string? SelectedTier { get; set; }
+    public string? RevisionNotes { get; set; }
 }
 
 // 2.1 Banquet Hall DTO

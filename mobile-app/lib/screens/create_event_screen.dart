@@ -46,6 +46,56 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _budgetController = TextEditingController(text: '1500000');
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 45));
 
+  // Dynamic Session & Catering Options
+  String _selectedSession = 'DayLunch'; // DayLunch, NightDinner, EveningHighTea
+  String _selectedCateringStyle = 'InternationalBuffet'; // InternationalBuffet, OutdoorBBQ, HighTeaCanape, SriLankanHeritage
+  final Set<String> _selectedTableRefreshments = {
+    'Welcome Mocktails',
+    'Boiled Chickpeas (Kadala)',
+    'Fresh Sliced Apple Platter',
+    'Salted Cashews & Roasted Nuts'
+  };
+
+  void _applyOccasionAutoPreset(String occasion) {
+    final occ = occasion.toLowerCase();
+    _selectedServices.clear();
+    _selectedTableRefreshments.clear();
+
+    if (occ.contains('wedding')) {
+      _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering', 'Bridal Transport'});
+      _selectedCateringStyle = 'InternationalBuffet';
+      _selectedTableRefreshments.addAll({
+        'Welcome Mocktails',
+        'Boiled Chickpeas (Kadala)',
+        'Fresh Sliced Apple Platter',
+        'Salted Cashews & Roasted Nuts'
+      });
+    } else if (occ.contains('birthday')) {
+      _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting', 'Cake Tiering'});
+      _selectedCateringStyle = 'OutdoorBBQ';
+      _selectedTableRefreshments.addAll({
+        'Welcome Mocktails',
+        'Finger Sandwiches & Savory Bites',
+        'Salted Cashews & Roasted Nuts'
+      });
+    } else if (occ.contains('engagement') || occ.contains('anniversary')) {
+      _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering'});
+      _selectedCateringStyle = 'HighTeaCanape';
+      _selectedTableRefreshments.addAll({
+        'Welcome Mocktails',
+        'Fresh Sliced Apple Platter',
+        'Finger Sandwiches & Savory Bites'
+      });
+    } else {
+      _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting'});
+      _selectedCateringStyle = 'InternationalBuffet';
+      _selectedTableRefreshments.addAll({
+        'Welcome Mocktails',
+        'Salted Cashews & Roasted Nuts'
+      });
+    }
+  }
+
   // Dynamic Services Selection
   final Set<String> _selectedServices = {'Photography', 'Decorations'};
   final _customServiceNotesController = TextEditingController();
@@ -206,6 +256,37 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
   }
 
+  void _onEventTypeChanged(String? newType) {
+    if (newType == null) return;
+    setState(() {
+      _selectedEventType = newType;
+      _applyOccasionAutoPreset(newType);
+      if (_isInherentlyIndoor) {
+        _isOutdoor = false;
+      }
+      // Auto suggest title
+      if (_selectedEventType == 'Wedding') {
+        _titleController.text = 'Grand Wedding Celebration';
+      } else if (_selectedEventType == 'Birthday Party') {
+        _titleController.text = 'Birthday Celebration Party';
+      } else if (_selectedEventType == 'Engagement Party') {
+        _titleController.text = 'Romantic Engagement Party';
+      } else if (_selectedEventType == 'Anniversary') {
+        _titleController.text = 'Silver Anniversary Celebration';
+      } else if (_selectedEventType == 'Award Ceremony') {
+        _titleController.text = 'Annual Corporate Awards Night';
+      } else if (_selectedEventType == 'Dinner/Gala') {
+        _titleController.text = 'Grand Gala Dinner';
+      } else if (_selectedEventType == 'Product Launch') {
+        _titleController.text = 'Tech Product Launch Event';
+      } else if (_selectedEventType == 'Family Gathering') {
+        _titleController.text = 'Family Reunion & Dinner';
+      } else if (_selectedEventType == 'Private Party') {
+        _titleController.text = 'Exclusive Private Party';
+      }
+    });
+  }
+
   String get _dynamicCakeLabel {
     if (_selectedEventType == 'Wedding') return 'Wedding Cake Tier';
     if (_selectedEventType == 'Birthday Party') return 'Birthday Cake';
@@ -351,6 +432,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         selectedServices: _selectedServices.toList(),
         customServiceNotes: customNotes.isNotEmpty ? customNotes : null,
         inspirationImages: base64Images.isNotEmpty ? base64Images : null,
+        eventSession: _selectedSession,
+        cateringStyle: _selectedCateringStyle,
+        tableRefreshments: _selectedTableRefreshments.toList(),
       );
 
       if (mounted) {
@@ -760,6 +844,82 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   ),
                 ],
               ],
+
+              const SizedBox(height: 18),
+              const Text('Preferred Event Time Slot / Session', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedSession = 'DayLunch'),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37) : Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('☀️', style: TextStyle(fontSize: 16)),
+                            const SizedBox(height: 2),
+                            Text('Day Lunch', style: TextStyle(color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const Text('10 AM - 3:30 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedSession = 'NightDinner'),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37) : Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('🌙', style: TextStyle(fontSize: 16)),
+                            const SizedBox(height: 2),
+                            Text('Night Dinner', style: TextStyle(color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const Text('6 PM - 11:30 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _selectedSession = 'EveningHighTea'),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        decoration: BoxDecoration(
+                          color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37) : Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('☕', style: TextStyle(fontSize: 16)),
+                            const SizedBox(height: 2),
+                            Text('High Tea', style: TextStyle(color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                            const Text('3:30 PM - 7 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -1273,22 +1433,100 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         ),
         const SizedBox(height: 14),
 
-        // Service Selection Card
+        // 1. Catering Style Card
         _buildCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tailored Event Services', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+              const Row(
+                children: [
+                  Icon(Icons.restaurant_rounded, color: Color(0xFFD4AF37), size: 18),
+                  SizedBox(width: 8),
+                  Text('Catering Package & Culinary Style', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _buildServiceFilterChip('Photography', Icons.camera_alt_outlined),
-                  _buildServiceFilterChip('Sound and Lighting', Icons.speaker_outlined),
-                  _buildServiceFilterChip('Decorations', Icons.park_outlined),
-                  _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake_outlined),
-                  _buildServiceFilterChip('Luxury Transport', Icons.directions_car_outlined),
+                  {'id': 'InternationalBuffet', 'name': 'International Buffet', 'icon': '🍽️'},
+                  {'id': 'OutdoorBBQ', 'name': 'Outdoor Live BBQ', 'icon': '🍖'},
+                  {'id': 'HighTeaCanape', 'name': 'High Tea Canapé', 'icon': '☕'},
+                  {'id': 'SriLankanHeritage', 'name': 'Sri Lankan Heritage', 'icon': '🍲'},
+                ].map((c) {
+                  final isSel = _selectedCateringStyle == c['id'];
+                  return InkWell(
+                    onTap: () => setState(() => _selectedCateringStyle = c['id']!),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSel ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: isSel ? const Color(0xFFD4AF37) : Colors.white12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(c['icon']!, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 6),
+                          Text(c['name']!, style: TextStyle(color: isSel ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11.5, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 14),
+              const Text('Table Refreshments & Welcome Refreshments', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 6),
+              Column(
+                children: [
+                  'Welcome Mocktails',
+                  'Boiled Chickpeas (Kadala)',
+                  'Fresh Sliced Apple Platter',
+                  'Salted Cashews & Roasted Nuts',
+                  'Finger Sandwiches & Savory Bites'
+                ].map((item) {
+                  final checked = _selectedTableRefreshments.contains(item);
+                  return CheckboxListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(item, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    activeColor: const Color(0xFFD4AF37),
+                    value: checked,
+                    onChanged: (val) {
+                      setState(() {
+                        if (val == true) _selectedTableRefreshments.add(item);
+                        else _selectedTableRefreshments.remove(item);
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Service Selection Card
+        _buildCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tailored Event Services (Auto-Preset Engine)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildServiceFilterChip('Photography', Icons.camera_alt),
+                  _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
+                  _buildServiceFilterChip('Decorations', Icons.park),
+                  _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
+                  _buildServiceFilterChip('Bridal Transport', Icons.directions_car),
                 ],
               ),
             ],

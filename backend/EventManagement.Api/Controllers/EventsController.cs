@@ -123,6 +123,13 @@ public class EventsController : ControllerBase
             ? JsonSerializer.Serialize(dto.SelectedServices)
             : null;
 
+        var refreshmentsJson = dto.TableRefreshments != null && dto.TableRefreshments.Count > 0
+            ? JsonSerializer.Serialize(dto.TableRefreshments)
+            : null;
+
+        var eventSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
+        var cateringStyle = !string.IsNullOrWhiteSpace(dto.CateringStyle) ? dto.CateringStyle.Trim() : "InternationalBuffet";
+
         var newEvent = new Event
         {
             CustomerId = customerId,
@@ -137,6 +144,9 @@ public class EventsController : ControllerBase
             AdditionalDetails = additionalDetails,
             InspirationImageUrl = inspirationJson,
             SelectedServicesJson = servicesJson,
+            EventSession = eventSession,
+            CateringStyle = cateringStyle,
+            TableRefreshmentsJson = refreshmentsJson,
             Status = "UnderReview"
         };
 
@@ -165,6 +175,10 @@ public class EventsController : ControllerBase
             InspirationImageUrl = newEvent.InspirationImageUrl,
             InspirationImages = ParseInspirationImages(newEvent.InspirationImageUrl),
             SelectedServices = dto.SelectedServices,
+            EventSession = newEvent.EventSession,
+            CateringStyle = newEvent.CateringStyle,
+            TableRefreshments = dto.TableRefreshments,
+            RevisionNotes = newEvent.RevisionNotes,
             CreatedAt = newEvent.CreatedAt
         };
 
@@ -206,6 +220,12 @@ public class EventsController : ControllerBase
             SelectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
                 ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
                 : new List<string>(),
+            EventSession = ev.EventSession,
+            CateringStyle = ev.CateringStyle,
+            TableRefreshments = !string.IsNullOrEmpty(ev.TableRefreshmentsJson)
+                ? JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson)
+                : new List<string>(),
+            RevisionNotes = ev.RevisionNotes,
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             CreatedAt = ev.CreatedAt
         });
@@ -244,6 +264,10 @@ public class EventsController : ControllerBase
             ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
             : new List<string>();
 
+        var tableRefreshments = !string.IsNullOrEmpty(ev.TableRefreshmentsJson)
+            ? JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson)
+            : new List<string>();
+
         var inspirationImages = ParseInspirationImages(ev.InspirationImageUrl);
 
         decimal? specialRequestAlloc = null;
@@ -266,6 +290,10 @@ public class EventsController : ControllerBase
             budgetLimit = ev.BudgetLimit,
             isOutdoor = ev.IsOutdoor,
             additionalDetails = ev.AdditionalDetails,
+            eventSession = ev.EventSession,
+            cateringStyle = ev.CateringStyle,
+            tableRefreshments = tableRefreshments,
+            revisionNotes = ev.RevisionNotes,
             specialRequestAllocation = specialRequestAlloc,
             status = ev.Status,
             venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
@@ -290,22 +318,37 @@ public class EventsController : ControllerBase
     }
 
     // 2.2 POST: api/events/{id}/submit-client-budget-choice (Client Budget Response from Mobile)
+    [AllowAnonymous]
     [HttpPost("{id}/submit-client-budget-choice")]
-    public async Task<ActionResult> SubmitClientBudgetChoice(Guid id, [FromQuery] string choice, [FromQuery] decimal chosenTotal)
+    public async Task<ActionResult> SubmitClientBudgetChoice(Guid id, [FromQuery] string? choice, [FromQuery] decimal? chosenTotal, [FromBody] SubmitClientBudgetChoiceDto? dtoBody)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = "Event not found." });
 
-        ev.Status = "ClientChoiceSubmitted";
+        var clientAction = dtoBody?.ClientAction ?? choice ?? "accept";
+        var isRevision = clientAction.Equals("request_revision", StringComparison.OrdinalIgnoreCase) || clientAction.Equals("revision", StringComparison.OrdinalIgnoreCase);
+
+        if (isRevision)
+        {
+            ev.Status = "RevisionRequested";
+            if (!string.IsNullOrWhiteSpace(dtoBody?.RevisionNotes))
+            {
+                ev.RevisionNotes = dtoBody.RevisionNotes.Trim();
+            }
+        }
+        else
+        {
+            ev.Status = "ClientChoiceSubmitted";
+        }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
         if (aiState != null)
         {
-            aiState.ApprovalStatus = "ClientChoiceSubmitted";
-            if (chosenTotal > 0)
+            aiState.ApprovalStatus = ev.Status;
+            if (chosenTotal.HasValue && chosenTotal.Value > 0)
             {
-                aiState.EstimatedTotalCost = chosenTotal;
+                aiState.EstimatedTotalCost = chosenTotal.Value;
             }
         }
 
@@ -313,9 +356,10 @@ public class EventsController : ControllerBase
 
         return Ok(new
         {
-            message = "Client choice submitted successfully. Manager has been notified for final approval.",
+            message = isRevision ? "Revision request submitted to Manager." : "Client choice submitted successfully.",
             status = ev.Status,
-            choice = choice,
+            choice = clientAction,
+            revisionNotes = ev.RevisionNotes,
             chosenTotal = aiState?.EstimatedTotalCost
         });
     }
@@ -353,6 +397,10 @@ public class EventsController : ControllerBase
                 BudgetLimit = ev.BudgetLimit,
                 IsOutdoor = ev.IsOutdoor,
                 AdditionalDetails = ev.AdditionalDetails,
+                EventSession = ev.EventSession,
+                CateringStyle = ev.CateringStyle,
+                TableRefreshments = null,
+                RevisionNotes = ev.RevisionNotes,
                 Status = ev.Status,
                 VenueId = ev.VenueId,
                 VenueName = ev.Venue != null ? ev.Venue.Name : null,
@@ -369,6 +417,12 @@ public class EventsController : ControllerBase
         foreach (var item in events)
         {
             item.InspirationImages = ParseInspirationImages(item.InspirationImageUrl);
+            var evEntity = await _context.Events.FindAsync(item.EventId);
+            if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+            {
+                try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
+                catch { }
+            }
         }
 
         return Ok(events);

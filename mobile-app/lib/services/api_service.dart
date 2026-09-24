@@ -99,12 +99,17 @@ class ApiService {
     }
   }
 
-  // 2.03 Submit Client Budget Choice
-  static Future<bool> submitClientBudgetChoice(String eventId, String choice, double chosenTotal) async {
+  // 2.03 Submit Client Budget Choice or Custom Revision Request
+  static Future<bool> submitClientBudgetChoice(String eventId, String choice, double chosenTotal, {String? revisionNotes}) async {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/submit-client-budget-choice?choice=$choice&chosenTotal=$chosenTotal');
       final headers = await _getHeaders();
-      final response = await http.post(url, headers: headers).timeout(const Duration(seconds: 15));
+      final body = jsonEncode({
+        'clientAction': choice,
+        'revisionNotes': revisionNotes,
+        'selectedTier': choice,
+      });
+      final response = await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("API Error submitClientBudgetChoice: $e");
@@ -152,6 +157,9 @@ class ApiService {
     List<String>? selectedServices,
     String? customServiceNotes,
     List<String>? inspirationImages,
+    String? eventSession,
+    String? cateringStyle,
+    List<String>? tableRefreshments,
   }) async {
     try {
       final userId = await AuthService.getUserId();
@@ -172,6 +180,9 @@ class ApiService {
         'selectedServices': selectedServices,
         'customServiceNotes': customServiceNotes,
         'inspirationImages': inspirationImages,
+        'eventSession': eventSession ?? 'DayLunch',
+        'cateringStyle': cateringStyle ?? 'InternationalBuffet',
+        'tableRefreshments': tableRefreshments,
         'inspirationImageUrl': inspirationImages != null && inspirationImages.isNotEmpty 
             ? jsonEncode(inspirationImages) 
             : null,

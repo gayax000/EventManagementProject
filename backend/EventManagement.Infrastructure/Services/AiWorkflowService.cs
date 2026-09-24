@@ -347,8 +347,22 @@ public class AiWorkflowService : IAiWorkflowService
             planItems.Add("No Marquee Tent Required (Clear weather predicted)");
         }
 
-        planItems.Add($"Venue Booking: {(ev.BanquetHall != null ? ev.BanquetHall.HallName : "Selected Venue")} (Rs. {hallRental:N0})");
-        planItems.Add($"In-House Buffet Catering ({ev.GuestCount} guests @ Rs. {cateringPrice:N0}) = Rs. {cateringCost:N0}");
+        var sessionTitle = ev.EventSession == "NightDinner" ? "Night Dinner Session (6:00 PM - 11:30 PM)" : (ev.EventSession == "EveningHighTea" ? "Evening High Tea (3:30 PM - 7:00 PM)" : "Day Lunch Session (10:00 AM - 3:30 PM)");
+        planItems.Add($"Event Session: {sessionTitle}");
+
+        var cateringStyleLabel = ev.CateringStyle switch
+        {
+            "OutdoorBBQ" => "Outdoor Live BBQ Grill Feast",
+            "HighTeaCanape" => "High Tea Canapé & Snack Platter",
+            "SriLankanHeritage" => "Sri Lankan Heritage Traditional Buffet",
+            _ => "International Hotel Buffet"
+        };
+        planItems.Add($"Catering Style: {cateringStyleLabel} ({ev.GuestCount} guests @ Rs. {cateringPrice:N0}) = Rs. {cateringCost:N0}");
+
+        if (ev.EventSession == "NightDinner" && hasSounds)
+        {
+            soundsName += " + Night Stage Ambient Warm Uplighting Package";
+        }
 
         if (hasSounds) planItems.Add($"{soundsName} (Rs. {soundsCost:N0})");
         if (hasDeco) planItems.Add($"{decoName} (Rs. {decoCost:N0})");
@@ -359,8 +373,8 @@ public class AiWorkflowService : IAiWorkflowService
 
         var traceLogs = new List<string>
         {
-            $"WeatherAgent: Evaluated {eventLocation} on {ev.TargetDate:yyyy-MM-dd} (IsOutdoor: {ev.IsOutdoor}) -> {weather.RainProbabilityPercent}% ({weather.RiskLevel} Risk)",
-            $"ResourceAgent: Compiled venue ({hallRental:N0}) and catering ({cateringCost:N0})",
+            $"WeatherAgent: Evaluated {eventLocation} on {ev.TargetDate:yyyy-MM-dd} (IsOutdoor: {ev.IsOutdoor}, Session: {ev.EventSession}) -> {weather.RainProbabilityPercent}% ({weather.RiskLevel} Risk)",
+            $"ResourceAgent: Compiled venue ({hallRental:N0}), {cateringStyleLabel} ({cateringCost:N0})",
             $"SafetyAgent: Weather safeguard {(weather.SafeguardCost > 0 ? "INJECTED (Rs. 150,000)" : "NOT REQUIRED (Rs. 0)")}"
         };
 

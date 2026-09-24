@@ -76,6 +76,10 @@ class EventProposalDetail {
   final String? paymentStatus;
   final String? slipImageUrl;
   final String? invoiceNumber;
+  final String? eventSession;
+  final String? cateringStyle;
+  final List<String> tableRefreshments;
+  final String? revisionNotes;
   final double? specialRequestAllocation;
 
   EventProposalDetail({
@@ -87,6 +91,10 @@ class EventProposalDetail {
     required this.budgetLimit,
     this.isOutdoor = false,
     this.additionalDetails,
+    this.eventSession,
+    this.cateringStyle,
+    this.tableRefreshments = const [],
+    this.revisionNotes,
     required this.status,
     required this.venueName,
     this.banquetHallName,
@@ -111,6 +119,10 @@ class EventProposalDetail {
     List<String> services = [];
     if (json['selectedServices'] is List) {
       services = (json['selectedServices'] as List).map((e) => e.toString()).toList();
+    }
+    List<String> refreshments = [];
+    if (json['tableRefreshments'] is List) {
+      refreshments = (json['tableRefreshments'] as List).map((e) => e.toString()).toList();
     }
     List<String> images = [];
     if (json['inspirationImages'] is List && (json['inspirationImages'] as List).isNotEmpty) {
@@ -140,6 +152,10 @@ class EventProposalDetail {
       budgetLimit: (json['budgetLimit'] as num?)?.toDouble() ?? 0.0,
       isOutdoor: json['isOutdoor'] == true,
       additionalDetails: json['additionalDetails']?.toString(),
+      eventSession: json['eventSession']?.toString(),
+      cateringStyle: json['cateringStyle']?.toString(),
+      tableRefreshments: refreshments,
+      revisionNotes: json['revisionNotes']?.toString(),
       status: json['status'] ?? 'PendingManagerApproval',
       venueName: json['venueName'] ?? 'Selected Luxury Resort',
       banquetHallName: json['banquetHallName']?.toString(),

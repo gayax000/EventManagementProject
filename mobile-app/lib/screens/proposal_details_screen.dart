@@ -115,6 +115,81 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
   }
 
+  void _showRevisionDialog(EventProposalDetail proposal) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note_rounded, color: Color(0xFFF43F5E), size: 24),
+            SizedBox(width: 8),
+            Text('Request Custom Revision', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Describe the specific changes or adjustments you would like the Operations Manager to make for your event proposal:',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: 'e.g., Please change photography package, adjust food menu options, add welcome drinks...',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                filled: true,
+                fillColor: const Color(0xFF0F172A),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFF43F5E))),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF43F5E),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              final notes = controller.text.trim();
+              if (notes.isEmpty) return;
+              Navigator.of(ctx).pop();
+              setState(() => _isLoading = true);
+              final ok = await ApiService.submitClientBudgetChoice(
+                widget.eventId,
+                'request_revision',
+                proposal.estimatedTotalCost,
+                revisionNotes: notes,
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok ? '⚠️ Revision request submitted to Manager!' : 'Failed to submit revision request.'),
+                    backgroundColor: ok ? Colors.rose : Colors.redAccent,
+                  ),
+                );
+                _loadProposal();
+              }
+            },
+            child: const Text('Submit Revision Request', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _confirmAndSign() async {
     if (_signatureController.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -469,7 +544,33 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  if (isChoiceSubmitted) ...[
+                  if (proposal.status == 'RevisionRequested') ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.rose.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.rose),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.mark_chat_read, color: Colors.roseAccent, size: 28),
+                          const SizedBox(height: 6),
+                          const Text(
+                            "⚠️ Custom Revision Request Submitted to Manager",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Notes sent: \"${proposal.revisionNotes ?? 'Revision requested'}\"\nHotel Operations Manager is reviewing your requested modifications.",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70, fontSize: 11.5, height: 1.3),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (isChoiceSubmitted) ...[
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -555,6 +656,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         label: Text("Request Budget-Fit Standard Package (LKR $formattedBudget)", style: const TextStyle(fontSize: 11.5, color: Colors.amberAccent, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.amberAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 11),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Option C: Request Custom Revision
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showRevisionDialog(proposal),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFFF43F5E)),
+                        label: const Text("⚠️ Request Custom Revision Notes", style: TextStyle(fontSize: 11.5, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFF43F5E)),
                           padding: const EdgeInsets.symmetric(vertical: 11),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),

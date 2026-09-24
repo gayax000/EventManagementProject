@@ -855,6 +855,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center space-x-1.5 ${
                 isApproved
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
+                  : selectedEvent.status === 'RevisionRequested'
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30 animate-pulse'
                   : selectedEvent.status === 'ClientChoiceSubmitted'
                   ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30 animate-bounce'
                   : selectedEvent.status === 'PendingClientBudgetApproval'
@@ -864,6 +866,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span>
                   {isApproved
                     ? '✓ Proposal Approved'
+                    : selectedEvent.status === 'RevisionRequested'
+                    ? '⚠️ Client Requested Revision'
                     : selectedEvent.status === 'ClientChoiceSubmitted'
                     ? '📩 Client Responded to Budget Request'
                     : selectedEvent.status === 'PendingClientBudgetApproval'
@@ -872,6 +876,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </span>
               </span>
             </div>
+
+            {selectedEvent.status === 'RevisionRequested' && (
+              <div className="mx-6 mt-4 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold text-xl shadow-sm flex-shrink-0">
+                  ⚠️
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-rose-950">
+                    Client Requested Custom Revision!
+                  </h4>
+                  <p className="text-xs text-rose-900 mt-1 bg-white/80 p-3 rounded-lg border border-rose-200 font-medium">
+                    "{selectedEvent.revisionNotes || 'Client requested customized options adjustment for this proposal.'}"
+                  </p>
+                  <p className="text-[11px] text-rose-700 mt-1.5">
+                    Adjust the pricing or plan items below and click <strong>"Approve Finalized Proposal"</strong> to update and re-send to client.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {selectedEvent.status === 'ClientChoiceSubmitted' && (
               <div className="mx-6 mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
@@ -901,6 +924,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <span>{getEventTypeIcon(selectedEvent.eventType)}</span>
                       <span>{selectedEvent.eventType || "Event"}</span>
                     </span>
+                    <span className="text-xs font-bold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 flex items-center">
+                      {selectedEvent.eventSession === 'NightDinner' ? '🌙 Night Dinner (6 PM - 11:30 PM)' : (selectedEvent.eventSession === 'EveningHighTea' ? '☕ Evening High Tea (3:30 PM - 7 PM)' : '☀️ Day Lunch (10 AM - 3:30 PM)')}
+                    </span>
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-md border flex items-center ${
                       selectedEvent.isOutdoor 
                         ? 'text-amber-800 bg-amber-50 border-amber-200' 
@@ -908,6 +934,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }`}>
                       {selectedEvent.isOutdoor ? '🌳 Outdoor Setting' : '🏛️ Indoor Setting'}
                     </span>
+                    {selectedEvent.cateringStyle && (
+                      <span className="text-xs font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-200 flex items-center">
+                        🍽️ {selectedEvent.cateringStyle === 'OutdoorBBQ' ? 'Live BBQ Grill' : selectedEvent.cateringStyle === 'HighTeaCanape' ? 'High Tea Canapé' : selectedEvent.cateringStyle === 'SriLankanHeritage' ? 'SL Heritage Feast' : 'International Buffet'}
+                      </span>
+                    )}
                     {selectedEvent.banquetHallName && (
                       <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center">
                         <MapPin className="w-3.5 h-3.5 mr-1 text-emerald-600" />
