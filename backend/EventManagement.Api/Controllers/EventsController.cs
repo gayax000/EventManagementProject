@@ -733,7 +733,17 @@ public class EventsController : ControllerBase
 
     private async Task<User> CreateFallbackCustomer()
     {
-        var customerRole = await _context.Roles.FirstAsync(r => r.RoleName == "Customer");
+        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer");
+        if (customerRole == null)
+        {
+            customerRole = new Role { RoleName = "Customer" };
+            _context.Roles.Add(customerRole);
+            await _context.SaveChangesAsync();
+        }
+
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == "kasun@example.com");
+        if (existingUser != null) return existingUser;
+
         var user = new User
         {
             FullName = "Kasun Customer",
