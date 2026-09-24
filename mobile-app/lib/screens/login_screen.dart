@@ -715,32 +715,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 12),
-
-                        // Portal Tag Pill
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A).withOpacity(0.85),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF2563EB).withOpacity(0.6)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF2563EB).withOpacity(0.2),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 13),
-                              SizedBox(width: 6),
-                              Text("Client Experience Portal", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.3)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
+                        // Shift topic & paragraph comfortably lower down
+                        const SizedBox(height: 38),
 
                         // Welcome Title
                         RichText(
@@ -752,7 +728,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
 
                         // Description
                         Container(
@@ -776,35 +752,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
                           ],
                         ),
-                        const SizedBox(height: 32),
-
-                        // Autonomous Weather Shield Glass Badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.55),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white12),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 15),
-                              SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  "5-Star Certified Venues & Autonomous Weather Shield",
-                                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         const SizedBox(height: 24),
-
-                        Text("SE3090 Frameworks • EventCraft AI", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
-                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
