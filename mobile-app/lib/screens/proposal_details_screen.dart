@@ -250,7 +250,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Visual Timeline Stepper Bar
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -259,14 +259,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStepItem("1. AI Plan", true, isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed),
-                _buildStepItem("2. Budget Review", isPendingBudgetApproval || isChoiceSubmitted, isApproved || isConfirmed),
-                _buildStepItem("3. Deposit", isApproved && !isConfirmed, isConfirmed),
-                _buildStepItem("4. Pass Issued", isConfirmed, isConfirmed),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildStepItem("1. AI Plan", true, isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed),
+                  const SizedBox(width: 14),
+                  _buildStepItem("2. Budget Review", isPendingBudgetApproval || isChoiceSubmitted, isApproved || isConfirmed),
+                  const SizedBox(width: 14),
+                  _buildStepItem("3. Deposit", isApproved && !isConfirmed, isConfirmed),
+                  const SizedBox(width: 14),
+                  _buildStepItem("4. Pass Issued", isConfirmed, isConfirmed),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -538,35 +544,51 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF1F2),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFFECDD3)),
+                color: const Color(0xFFEFF6FF), // Executive Soft Blue
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBFDBFE)), // Sky Blue Border
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
-                      const Icon(Icons.auto_awesome, color: Color(0xFFE11D48), size: 16),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'SPECIAL CLIENT REQUESTS & ADD-ONS',
-                          style: TextStyle(color: Color(0xFFE11D48), fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
+                      const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome, color: Color(0xFF2563EB), size: 16),
+                          SizedBox(width: 6),
+                          Text(
+                            'SPECIAL CLIENT REQUESTS & ADD-ONS',
+                            style: TextStyle(color: Color(0xFF1D4ED8), fontWeight: FontWeight.bold, fontSize: 11.5, letterSpacing: 0.3),
+                          ),
+                        ],
                       ),
-                      Text(
-                        proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
-                          ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
-                          : 'Priced by Manager',
-                        style: const TextStyle(color: Color(0xFFE11D48), fontSize: 11, fontWeight: FontWeight.bold),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDBEAFE),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF93C5FD)),
+                        ),
+                        child: Text(
+                          proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
+                            ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
+                            : 'Priced by Manager',
+                          style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     proposal.additionalDetails!,
-                    style: const TextStyle(color: Color(0xFF9F1239), fontSize: 13),
+                    softWrap: true,
+                    style: const TextStyle(color: Color(0xFF1E293B), fontSize: 13, height: 1.4),
                   ),
                 ],
               ),
@@ -1624,7 +1646,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     "${item['icon']} ${item['label']}".trim(), 
                     softWrap: true,
                     style: TextStyle(
-                      color: item['isSpecial'] == true ? const Color(0xFFE11D48) : const Color(0xFF475569), 
+                      color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF475569), 
                       fontSize: 11.5,
                       fontWeight: item['isSpecial'] == true ? FontWeight.w600 : FontWeight.normal,
                     ),
@@ -1634,7 +1656,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text(
                   item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
                   style: TextStyle(
-                    color: item['isSpecial'] == true ? const Color(0xFFE11D48) : const Color(0xFF0F172A), 
+                    color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A), 
                     fontWeight: FontWeight.bold, 
                     fontSize: 11.5,
                   ),

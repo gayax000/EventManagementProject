@@ -975,32 +975,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Special Requests */}
                 {selectedEvent.additionalDetails && (
-                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl space-y-3">
+                  <div className="p-4 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-xl space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
-                        <span className="text-base">💐</span>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
+                        <span className="text-base">✨</span>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
                           Special Client Custom Requests
                         </h4>
                       </div>
-                      <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
+                      <span className="text-[11px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-full border border-blue-200 font-mono">
                         Allocated: Rs. {alloc.otherCost.toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">
+                    <p className="text-xs text-blue-950 font-medium whitespace-pre-line pl-6 mb-3">
                       "{selectedEvent.additionalDetails}"
                     </p>
 
                     {!isApproved && selectedEvent.status !== 'PendingClientBudgetApproval' && selectedEvent.status !== 'ClientChoiceSubmitted' ? (
-                      <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between text-xs">
-                        <label className="font-bold text-rose-900">Set Manager Allocation (LKR):</label>
+                      <div className="pt-2 border-t border-sky-200/80 flex items-center justify-between text-xs">
+                        <label className="font-bold text-blue-900">Set Manager Allocation (LKR):</label>
                         <div className="flex items-center space-x-1">
-                          <span className="font-semibold text-rose-700">Rs.</span>
+                          <span className="font-semibold text-blue-700">Rs.</span>
                           <input
                             type="number"
                             value={specialAllocation}
                             onChange={(e) => setSpecialAllocation(Number(e.target.value))}
-                            className="w-28 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                            className="w-28 px-2 py-1 bg-white border border-sky-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-400"
                           />
                         </div>
                       </div>
@@ -1163,14 +1163,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     )}
 
                     {alloc.hasSpecialRequests && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
+                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-sky-50/80 rounded-lg border border-sky-200">
                         <div>
-                          <span className="text-rose-900 font-medium">
-                            💐 Special Client Request: {selectedEvent.additionalDetails}
+                          <span className="text-blue-900 font-medium">
+                            ✨ Special Client Request: {selectedEvent.additionalDetails}
                           </span>
-                          <p className="text-[11px] text-rose-500">Dedicated arrangement budget</p>
+                          <p className="text-[11px] text-sky-600">Dedicated arrangement budget</p>
                         </div>
-                        <span className="font-semibold text-rose-700">Rs. {alloc.otherCost.toLocaleString()}</span>
+                        <span className="font-semibold text-blue-700">Rs. {alloc.otherCost.toLocaleString()}</span>
                       </div>
                     )}
 
