@@ -65,7 +65,9 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
-// 6. Configure HTTP pipeline
+// 6. Configure HTTP pipeline (CORS first to ensure all responses & preflights have headers)
+app.UseCors("AllowAll");
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
@@ -77,9 +79,6 @@ app.MapGet("/", () => Results.Ok(new
     database = "Neon PostgreSQL (Connected)",
     timestamp = DateTime.UtcNow 
 }));
-
-// Use CORS (Must be before Authentication & Authorization)
-app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();

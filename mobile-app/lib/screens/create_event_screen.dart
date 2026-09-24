@@ -434,9 +434,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        final cleanMsg = e.toString().replaceAll('Exception: ', '');
+        var cleanMsg = e.toString().replaceAll('Exception: ', '');
+        if (cleanMsg.contains('ClientException') || cleanMsg.contains('Failed to fetch') || cleanMsg.contains('SocketException')) {
+          cleanMsg = "Cloud server connection timed out or is warming up. Please tap 'Submit Request' again in a few seconds.";
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Submission error: $cleanMsg'), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(
+            content: Text('Submission error: $cleanMsg'),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 6),
+          ),
         );
       }
     }
