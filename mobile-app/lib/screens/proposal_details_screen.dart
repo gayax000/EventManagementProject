@@ -247,10 +247,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
           const SizedBox(height: 12),
 
-          // Visual Timeline Stepper Bar
+          // Visual Responsive Timeline Stepper Bar
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
@@ -259,20 +259,49 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
               ],
             ),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: [
-                  _buildStepItem("1. AI Plan", true, isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed),
-                  const SizedBox(width: 14),
-                  _buildStepItem("2. Budget Review", isPendingBudgetApproval || isChoiceSubmitted, isApproved || isConfirmed),
-                  const SizedBox(width: 14),
-                  _buildStepItem("3. Deposit", isApproved && !isConfirmed, isConfirmed),
-                  const SizedBox(width: 14),
-                  _buildStepItem("4. Pass Issued", isConfirmed, isConfirmed),
-                ],
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTimelineStep(
+                  stepNumber: "1",
+                  title: "1. AI Plan",
+                  isActive: true,
+                  isDone: isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed,
+                  hasLineBefore: false,
+                  hasLineAfter: true,
+                  isLineAfterActive: isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed,
+                ),
+                _buildTimelineStep(
+                  stepNumber: "2",
+                  title: "2. Budget Review",
+                  isActive: isPendingBudgetApproval || isChoiceSubmitted,
+                  isDone: isApproved || isConfirmed,
+                  hasLineBefore: true,
+                  isLineBeforeActive: isPendingBudgetApproval || isChoiceSubmitted || isApproved || isConfirmed,
+                  hasLineAfter: true,
+                  isLineAfterActive: isApproved || isConfirmed,
+                ),
+                _buildTimelineStep(
+                  stepNumber: "3",
+                  title: "3. Deposit",
+                  isActive: isApproved && !isConfirmed,
+                  isDone: isConfirmed,
+                  hasLineBefore: true,
+                  isLineBeforeActive: isApproved || isConfirmed,
+                  hasLineAfter: true,
+                  isLineAfterActive: isConfirmed,
+                ),
+                _buildTimelineStep(
+                  stepNumber: "4",
+                  title: "4. Pass Issued",
+                  isActive: isConfirmed,
+                  isDone: isConfirmed,
+                  hasLineBefore: true,
+                  isLineBeforeActive: isConfirmed,
+                  hasLineAfter: false,
+                  isLineAfterActive: false,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -1083,27 +1112,94 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     );
   }
 
-  Widget _buildStepItem(String label, bool isActive, bool isDone) {
-    final Color color = isDone
-        ? const Color(0xFF059669)
-        : (isActive ? const Color(0xFF2563EB) : const Color(0xFF94A3B8));
-    return Row(
-      children: [
-        Icon(
-          isDone ? Icons.check_circle_rounded : (isActive ? Icons.radio_button_checked : Icons.radio_button_unchecked),
-          size: 14,
-          color: color,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.w500,
-            color: color,
+  Widget _buildTimelineStep({
+    required String stepNumber,
+    required String title,
+    required bool isActive,
+    required bool isDone,
+    required bool hasLineBefore,
+    bool isLineBeforeActive = false,
+    required bool hasLineAfter,
+    bool isLineAfterActive = false,
+  }) {
+    const Color activeColor = Color(0xFF2563EB);
+    const Color doneColor = Color(0xFF059669);
+    const Color inactiveColor = Color(0xFF64748B);
+    const Color inactiveLine = Color(0xFFE2E8F0);
+
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 2.5,
+                  color: hasLineBefore
+                      ? (isLineBeforeActive ? doneColor : inactiveLine)
+                      : Colors.transparent,
+                ),
+              ),
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDone
+                      ? doneColor
+                      : (isActive ? activeColor : const Color(0xFFF1F5F9)),
+                  border: Border.all(
+                    color: isDone
+                        ? doneColor
+                        : (isActive ? activeColor : const Color(0xFFCBD5E1)),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: isDone
+                      ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                      : Text(
+                          stepNumber,
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: isActive ? Colors.white : const Color(0xFF64748B),
+                          ),
+                        ),
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: 2.5,
+                  color: hasLineAfter
+                      ? (isLineAfterActive ? doneColor : inactiveLine)
+                      : Colors.transparent,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.0),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: isActive || isDone ? FontWeight.bold : FontWeight.w500,
+                color: isDone
+                    ? doneColor
+                    : (isActive ? activeColor : inactiveColor),
+                height: 1.15,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
