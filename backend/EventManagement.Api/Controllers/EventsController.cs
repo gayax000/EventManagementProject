@@ -139,6 +139,7 @@ public class EventsController : ControllerBase
 
             var newEvent = new Event
             {
+                EventId = Guid.NewGuid(),
                 CustomerId = customerId,
                 VenueId = venueId,
                 BanquetHallId = banquetHallId,
@@ -200,8 +201,9 @@ public class EventsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error occurred during CreateEvent.");
-            return StatusCode(500, new { message = $"Failed to create event: {ex.Message}" });
+            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            _logger.LogError(ex, "Error occurred during CreateEvent: {InnerMessage}", innerMsg);
+            return StatusCode(500, new { message = $"Failed to create event: {innerMsg}" });
         }
     }
 
@@ -746,6 +748,7 @@ public class EventsController : ControllerBase
 
         var user = new User
         {
+            UserId = Guid.NewGuid(),
             FullName = "Kasun Customer",
             Email = "kasun@example.com",
             PasswordHash = "SampleHashedPass",
