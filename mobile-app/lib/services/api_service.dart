@@ -118,12 +118,13 @@ class ApiService {
   }
 
   // 2.1 Fetch Banquet Halls for Hotels
-  static Future<List<BanquetHallItem>> getBanquetHalls({String? venueId, DateTime? date}) async {
+  static Future<List<BanquetHallItem>> getBanquetHalls({String? venueId, DateTime? date, String? session}) async {
     try {
       var urlStr = '$baseUrl/banquethalls';
       final params = <String>[];
       if (venueId != null && venueId.isNotEmpty) params.add('venueId=$venueId');
       if (date != null) params.add('date=${date.toIso8601String()}');
+      if (session != null && session.isNotEmpty) params.add('session=$session');
       if (params.isNotEmpty) urlStr += '?${params.join('&')}';
 
       final url = Uri.parse(urlStr);
@@ -195,16 +196,29 @@ class ApiService {
             headers: headers,
             body: payload,
           )
-          .timeout(const Duration(seconds: 30)); // Give AI time to run
+          .timeout(const Duration(seconds: 45)); // Give AI time to run
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> body = jsonDecode(response.body);
         return EventSummary.fromJson(body);
       } else {
-        throw Exception('Failed to create event: ${response.body}');
+        try {
+          final errJson = jsonDecode(response.body);
+          if (errJson is Map && errJson.containsKey('message')) {
+            throw Exception(errJson['message']);
+          }
+        } catch (e) {
+          if (e is Exception && !e.toString().contains('Failed to create event')) {
+            rethrow;
+          }
+        }
+        throw Exception('Failed to create event (${response.statusCode}): ${response.body}');
       }
     } catch (e) {
       debugPrint("API Error createEvent: $e");
+      if (e.toString().contains('ClientException') || e.toString().contains('Failed to fetch') || e.toString().contains('TimeoutException')) {
+        throw Exception("Server is starting up or network timed out. Please try submitting again in a few seconds.");
+      }
       rethrow;
     }
   }

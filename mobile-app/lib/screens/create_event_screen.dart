@@ -220,13 +220,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _fetchHalls() async {
     setState(() => _isLoadingHalls = true);
     try {
-      final halls = await ApiService.getBanquetHalls();
+      final halls = await ApiService.getBanquetHalls(date: _selectedDate, session: _selectedSession);
       if (mounted) {
         setState(() {
           _allHalls = halls;
           _isLoadingHalls = false;
-          if (_hotelNames.isNotEmpty && _selectedHotelName == null) {
-            _selectedHotelName = _hotelNames.first;
+          if (_hotelNames.isNotEmpty) {
+            if (_selectedHotelName == null || !_hotelNames.contains(_selectedHotelName)) {
+              _selectedHotelName = _hotelNames.first;
+            }
             final available = _hallsForSelectedHotel;
             if (available.isNotEmpty) {
               _selectedHall = available.firstWhere(
@@ -288,6 +290,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
+      _fetchHalls();
     }
   }
 
@@ -431,8 +434,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
+        final cleanMsg = e.toString().replaceAll('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Submission error: $e'), backgroundColor: const Color(0xFFEF4444)),
+          SnackBar(content: Text('Submission error: $cleanMsg'), backgroundColor: const Color(0xFFEF4444)),
         );
       }
     }
@@ -824,7 +828,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedSession = 'DayLunch'),
+                      onTap: () {
+                        setState(() => _selectedSession = 'DayLunch');
+                        _fetchHalls();
+                      },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
@@ -865,7 +872,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedSession = 'NightDinner'),
+                      onTap: () {
+                        setState(() => _selectedSession = 'NightDinner');
+                        _fetchHalls();
+                      },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
@@ -906,7 +916,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _selectedSession = 'EveningHighTea'),
+                      onTap: () {
+                        setState(() => _selectedSession = 'EveningHighTea');
+                        _fetchHalls();
+                      },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),

@@ -52,7 +52,7 @@ public class EventsController : ControllerBase
         Guid? banquetHallId = dto.BanquetHallId;
         BanquetHall? chosenHall = null;
 
-        // Check Banquet Hall & Date Availability (Double-Booking Prevention)
+        // Check Banquet Hall & Session Availability (Double-Booking Prevention per Session)
         if (banquetHallId.HasValue && banquetHallId.Value != Guid.Empty)
         {
             chosenHall = await _context.BanquetHalls.Include(h => h.Venue).FirstOrDefaultAsync(h => h.BanquetHallId == banquetHallId.Value);
@@ -62,15 +62,19 @@ public class EventsController : ControllerBase
 
                 var targetUtcDate = DateTime.SpecifyKind(dto.TargetDate.Date, DateTimeKind.Utc);
                 var nextUtcDate = targetUtcDate.AddDays(1);
+                var requestedSession = !string.IsNullOrWhiteSpace(dto.EventSession) ? dto.EventSession.Trim() : "DayLunch";
+
                 var isAlreadyBooked = await _context.Events.AnyAsync(e => 
                     e.BanquetHallId == banquetHallId.Value && 
                     e.Status != "Cancelled" && 
                     e.TargetDate >= targetUtcDate && 
-                    e.TargetDate < nextUtcDate);
+                    e.TargetDate < nextUtcDate &&
+                    (e.EventSession == requestedSession || string.IsNullOrEmpty(e.EventSession)));
 
                 if (isAlreadyBooked)
                 {
-                    return BadRequest(new { message = $"The banquet hall '{chosenHall.HallName}' is already reserved on {dto.TargetDate:yyyy-MM-dd}. Please choose another hall or date." });
+                    var sessionName = requestedSession == "NightDinner" ? "Night Dinner Session" : (requestedSession == "EveningHighTea" ? "High Tea Session" : "Day Lunch Session");
+                    return BadRequest(new { message = $"The banquet hall '{chosenHall.HallName}' is already reserved on {dto.TargetDate:yyyy-MM-dd} for the {sessionName}. Please choose another time slot, hall, or date." });
                 }
             }
         }

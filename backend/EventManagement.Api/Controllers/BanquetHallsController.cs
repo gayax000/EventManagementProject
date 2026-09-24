@@ -1,4 +1,4 @@
-﻿using EventManagement.Core.DTOs;
+using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -17,9 +17,9 @@ public class BanquetHallsController : ControllerBase
         _context = context;
     }
 
-    // 1. GET: api/banquethalls?venueId=...&date=...
+    // 1. GET: api/banquethalls?venueId=...&date=...&session=...
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<BanquetHallDto>>> GetBanquetHalls([FromQuery] Guid? venueId, [FromQuery] DateTime? date)
+    public async Task<ActionResult<IEnumerable<BanquetHallDto>>> GetBanquetHalls([FromQuery] Guid? venueId, [FromQuery] DateTime? date, [FromQuery] string? session)
     {
         var query = _context.BanquetHalls.Include(h => h.Venue).AsQueryable();
 
@@ -30,18 +30,20 @@ public class BanquetHallsController : ControllerBase
 
         var halls = await query.ToListAsync();
 
-        // If target date is provided, check which halls are already booked on that date
+        // If target date is provided, check which halls are already booked on that date for this session
         HashSet<Guid> bookedHallIds = new();
         if (date.HasValue)
         {
             var targetUtcDate = DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc);
             var nextUtcDate = targetUtcDate.AddDays(1);
+            var reqSession = !string.IsNullOrWhiteSpace(session) ? session.Trim() : null;
 
             var booked = await _context.Events
                 .Where(e => e.BanquetHallId.HasValue && 
                             e.Status != "Cancelled" && 
                             e.TargetDate >= targetUtcDate && 
-                            e.TargetDate < nextUtcDate)
+                            e.TargetDate < nextUtcDate &&
+                            (string.IsNullOrEmpty(reqSession) || e.EventSession == reqSession || string.IsNullOrEmpty(e.EventSession)))
                 .Select(e => e.BanquetHallId!.Value)
                 .ToListAsync();
 
