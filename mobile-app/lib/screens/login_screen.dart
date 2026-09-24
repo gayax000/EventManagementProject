@@ -707,53 +707,53 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const Divider(color: Colors.white12, height: 1),
 
-                // Middle & Bottom Responsive Content
+                // Middle Responsive Centered Content
                 Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Shift topic & paragraph comfortably lower down
-                        const SizedBox(height: 38),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Welcome Title
+                          RichText(
+                            textAlign: TextAlign.center,
+                            text: const TextSpan(
+                              children: [
+                                TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                                TextSpan(text: "EventCraft", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 30, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
 
-                        // Welcome Title
-                        RichText(
-                          textAlign: TextAlign.center,
-                          text: const TextSpan(
+                          // Description
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              "Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time weather contingency safeguards for unforgettable celebrations.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13.5, height: 1.55),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          // Feature Highlights Pills
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
                             children: [
-                              TextSpan(text: "Welcome to ", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                              TextSpan(text: "EventCraft", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                              _buildFeatureBadge(Icons.hotel_rounded, "5-Star Venues"),
+                              _buildFeatureBadge(Icons.cloud_done_rounded, "Weather Safeguard"),
+                              _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Description
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            "Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time weather contingency safeguards for unforgettable celebrations.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Feature Highlights Pills
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            _buildFeatureBadge(Icons.hotel_rounded, "5-Star Venues"),
-                            _buildFeatureBadge(Icons.cloud_done_rounded, "Weather Safeguard"),
-                            _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
