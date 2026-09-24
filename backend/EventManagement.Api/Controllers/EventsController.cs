@@ -201,9 +201,13 @@ public class EventsController : ControllerBase
         }
         catch (Exception ex)
         {
-            var innerMsg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-            _logger.LogError(ex, "Error occurred during CreateEvent: {InnerMessage}", innerMsg);
-            return StatusCode(500, new { message = $"Failed to create event: {innerMsg}" });
+            var rootEx = ex;
+            while (rootEx.InnerException != null)
+            {
+                rootEx = rootEx.InnerException;
+            }
+            _logger.LogError(ex, "Error occurred during CreateEvent: {InnerMessage}", rootEx.Message);
+            return StatusCode(500, new { message = $"Failed to create event: {rootEx.Message}" });
         }
     }
 
