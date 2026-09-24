@@ -818,27 +818,45 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               ],
 
               const SizedBox(height: 18),
-              const Text('Preferred Event Time Slot / Session', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Preferred Event Time Slot / Session', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
                     child: InkWell(
                       onTap: () => setState(() => _selectedSession = 'DayLunch'),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37) : Colors.white12),
+                          color: _selectedSession == 'DayLunch' ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _selectedSession == 'DayLunch' ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                            width: _selectedSession == 'DayLunch' ? 1.8 : 1,
+                          ),
                         ),
                         child: Column(
                           children: [
-                            const Text('☀️', style: TextStyle(fontSize: 16)),
+                            const Text('☀️', style: TextStyle(fontSize: 18)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Day Lunch',
+                              style: TextStyle(
+                                color: _selectedSession == 'DayLunch' ? const Color(0xFF1E40AF) : const Color(0xFF0F172A),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('Day Lunch', style: TextStyle(color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            const Text('10 AM - 3:30 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                            Text(
+                              '10 AM - 3:30 PM',
+                              style: TextStyle(
+                                color: _selectedSession == 'DayLunch' ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -848,20 +866,38 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Expanded(
                     child: InkWell(
                       onTap: () => setState(() => _selectedSession = 'NightDinner'),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37) : Colors.white12),
+                          color: _selectedSession == 'NightDinner' ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _selectedSession == 'NightDinner' ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                            width: _selectedSession == 'NightDinner' ? 1.8 : 1,
+                          ),
                         ),
                         child: Column(
                           children: [
-                            const Text('🌙', style: TextStyle(fontSize: 16)),
+                            const Text('🌙', style: TextStyle(fontSize: 18)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Night Dinner',
+                              style: TextStyle(
+                                color: _selectedSession == 'NightDinner' ? const Color(0xFF1E40AF) : const Color(0xFF0F172A),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('Night Dinner', style: TextStyle(color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            const Text('6 PM - 11:30 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                            Text(
+                              '6 PM - 11:30 PM',
+                              style: TextStyle(
+                                color: _selectedSession == 'NightDinner' ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -871,20 +907,38 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   Expanded(
                     child: InkWell(
                       onTap: () => setState(() => _selectedSession = 'EveningHighTea'),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37) : Colors.white12),
+                          color: _selectedSession == 'EveningHighTea' ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _selectedSession == 'EveningHighTea' ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                            width: _selectedSession == 'EveningHighTea' ? 1.8 : 1,
+                          ),
                         ),
                         child: Column(
                           children: [
-                            const Text('☕', style: TextStyle(fontSize: 16)),
+                            const Text('☕', style: TextStyle(fontSize: 18)),
+                            const SizedBox(height: 4),
+                            Text(
+                              'High Tea',
+                              style: TextStyle(
+                                color: _selectedSession == 'EveningHighTea' ? const Color(0xFF1E40AF) : const Color(0xFF0F172A),
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                             const SizedBox(height: 2),
-                            Text('High Tea', style: TextStyle(color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            const Text('3:30 PM - 7 PM', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                            Text(
+                              '3:30 PM - 7 PM',
+                              style: TextStyle(
+                                color: _selectedSession == 'EveningHighTea' ? const Color(0xFF2563EB) : const Color(0xFF64748B),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -1412,9 +1466,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.restaurant_rounded, color: Color(0xFFD4AF37), size: 18),
+                  Icon(Icons.restaurant_rounded, color: Color(0xFF2563EB), size: 18),
                   SizedBox(width: 8),
-                  Text('Catering Package & Culinary Style', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('Catering Package & Culinary Style', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -1434,24 +1488,34 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSel ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
+                        color: isSel ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isSel ? const Color(0xFFD4AF37) : Colors.white12),
+                        border: Border.all(
+                          color: isSel ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+                          width: isSel ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(c['icon']!, style: const TextStyle(fontSize: 14)),
                           const SizedBox(width: 6),
-                          Text(c['name']!, style: TextStyle(color: isSel ? const Color(0xFFD4AF37) : Colors.white, fontSize: 11.5, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                          Text(
+                            c['name']!,
+                            style: TextStyle(
+                              color: isSel ? const Color(0xFF1E40AF) : const Color(0xFF0F172A),
+                              fontSize: 11.5,
+                              fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 14),
-              const Text('Table Refreshments & Welcome Refreshments', style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(height: 16),
+              const Text('Table Refreshments & Welcome Refreshments', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
               const SizedBox(height: 6),
               Column(
                 children: [
@@ -1465,8 +1529,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   return CheckboxListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(item, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                    activeColor: const Color(0xFFD4AF37),
+                    title: Text(item, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                    activeColor: const Color(0xFF2563EB),
+                    checkColor: Colors.white,
                     value: checked,
                     onChanged: (val) {
                       setState(() {
@@ -1488,7 +1553,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tailored Event Services (Auto-Preset Engine)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const Text('Tailored Event Services (Auto-Preset Engine)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
