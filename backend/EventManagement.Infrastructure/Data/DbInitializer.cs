@@ -7,6 +7,22 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(AppDbContext context)
     {
+        // Ensure new schema columns exist in PostgreSQL database
+        try
+        {
+            await context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""EventSession"" text DEFAULT 'DayLunch';
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""CateringStyle"" text DEFAULT 'InternationalBuffet';
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""SelectedServicesJson"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""InspirationImageUrl"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AdditionalDetails"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""IsOutdoor"" boolean DEFAULT false;
+            ");
+        }
+        catch { }
+
         // 1. Roles Seed
         if (!await context.Roles.AnyAsync())
         {
