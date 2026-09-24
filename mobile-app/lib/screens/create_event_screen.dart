@@ -206,6 +206,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (newType == null) return;
     setState(() {
       _selectedEventType = newType;
+      _applyOccasionAutoPreset(newType);
       if (_titleController.text.isEmpty ||
           _titleController.text.endsWith('Celebration') ||
           _titleController.text.endsWith('Party') ||
@@ -256,36 +257,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
   }
 
-  void _onEventTypeChanged(String? newType) {
-    if (newType == null) return;
-    setState(() {
-      _selectedEventType = newType;
-      _applyOccasionAutoPreset(newType);
-      if (_isInherentlyIndoor) {
-        _isOutdoor = false;
-      }
-      // Auto suggest title
-      if (_selectedEventType == 'Wedding') {
-        _titleController.text = 'Grand Wedding Celebration';
-      } else if (_selectedEventType == 'Birthday Party') {
-        _titleController.text = 'Birthday Celebration Party';
-      } else if (_selectedEventType == 'Engagement Party') {
-        _titleController.text = 'Romantic Engagement Party';
-      } else if (_selectedEventType == 'Anniversary') {
-        _titleController.text = 'Silver Anniversary Celebration';
-      } else if (_selectedEventType == 'Award Ceremony') {
-        _titleController.text = 'Annual Corporate Awards Night';
-      } else if (_selectedEventType == 'Dinner/Gala') {
-        _titleController.text = 'Grand Gala Dinner';
-      } else if (_selectedEventType == 'Product Launch') {
-        _titleController.text = 'Tech Product Launch Event';
-      } else if (_selectedEventType == 'Family Gathering') {
-        _titleController.text = 'Family Reunion & Dinner';
-      } else if (_selectedEventType == 'Private Party') {
-        _titleController.text = 'Exclusive Private Party';
-      }
-    });
-  }
+
 
   String get _dynamicCakeLabel {
     if (_selectedEventType == 'Wedding') return 'Wedding Cake Tier';
@@ -857,7 +829,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: _selectedSession == 'DayLunch' ? const Color(0xFFD4AF37) : Colors.white12),
                         ),
@@ -880,7 +852,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: _selectedSession == 'NightDinner' ? const Color(0xFFD4AF37) : Colors.white12),
                         ),
@@ -903,7 +875,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
                         decoration: BoxDecoration(
-                          color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                          color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: _selectedSession == 'EveningHighTea' ? const Color(0xFFD4AF37) : Colors.white12),
                         ),
@@ -1462,7 +1434,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSel ? const Color(0xFFD4AF37).withValues(alpha: 0.18) : const Color(0xFF0A0F1D),
+                        color: isSel ? const Color(0xFFD4AF37).withOpacity(0.18) : const Color(0xFF0A0F1D),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: isSel ? const Color(0xFFD4AF37) : Colors.white12),
                       ),

@@ -177,7 +177,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(ok ? '⚠️ Revision request submitted to Manager!' : 'Failed to submit revision request.'),
-                    backgroundColor: ok ? Colors.rose : Colors.redAccent,
+                    backgroundColor: ok ? const Color(0xFFF43F5E) : Colors.redAccent,
                   ),
                 );
                 _loadProposal();
@@ -549,13 +549,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.rose.withOpacity(0.15),
+                        color: const Color(0xFFF43F5E).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.rose),
+                        border: Border.all(color: const Color(0xFFF43F5E)),
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.mark_chat_read, color: Colors.roseAccent, size: 28),
+                          const Icon(Icons.mark_chat_read, color: Color(0xFFF43F5E), size: 28),
                           const SizedBox(height: 6),
                           const Text(
                             "⚠️ Custom Revision Request Submitted to Manager",
