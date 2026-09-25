@@ -52,7 +52,7 @@ class ApiService {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/proposal');
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 35));
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = jsonDecode(response.body);

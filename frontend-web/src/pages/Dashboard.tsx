@@ -631,27 +631,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // View Event Proposal Details in Popup Modal Action
-  const handleViewEvent = async (e: React.MouseEvent, ev: EventItem) => {
+  const handleViewEvent = (e: React.MouseEvent, ev: EventItem) => {
     e.stopPropagation();
     setSelectedEvent(ev);
     setViewModalEvent(ev);
-    try {
-      const fullDetail = await eventService.getProposal(ev.eventId);
-      if (fullDetail) {
-        const merged: EventItem = {
-          ...ev,
-          inspirationImages: fullDetail.inspirationImages || ev.inspirationImages || [],
-          selectedServices: fullDetail.selectedServices || ev.selectedServices || [],
-          tableRefreshments: fullDetail.tableRefreshments || ev.tableRefreshments || [],
-          additionalDetails: fullDetail.additionalDetails || ev.additionalDetails,
-          weatherAssessment: fullDetail.weatherAssessment || ev.weatherAssessment,
-        };
-        setSelectedEvent(merged);
-        setViewModalEvent(merged);
-      }
-    } catch (err) {
-      console.error("Error fetching full proposal details", err);
-    }
   };
 
   const activeCount = events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length;

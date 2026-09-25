@@ -304,11 +304,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       return;
     }
-    final picked = await _picker.pickMultiImage(
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 70,
-    );
+    final picked = await _picker.pickMultiImage();
     if (picked.isNotEmpty) {
       setState(() {
         for (var img in picked) {
