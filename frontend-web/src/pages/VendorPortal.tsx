@@ -305,10 +305,9 @@ export const VendorPortal: React.FC = () => {
     e.preventDefault();
     if (!businessName || !contactNumber) return;
 
-    setSubmitting(true);
-    let newVendorData: any = null;
-
     try {
+      setSubmitting(true);
+
       // Save to backend API with packageName and packagePrice
       const registeredVendor = await vendorService.registerVendor({
         businessName,
@@ -319,38 +318,17 @@ export const VendorPortal: React.FC = () => {
         packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
       });
 
-      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id || `v-${Date.now()}`;
+      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
       
-      newVendorData = {
+      const newVendorData: any = {
         ...registeredVendor,
         id: newVendorId,
-        verificationStatus: (registeredVendor as any).verificationStatus || 'Pending',
-        status: (registeredVendor as any).status || 'Pending',
+        verificationStatus: 'Pending',
+        status: 'Pending',
         packageName: packageName || selectedCategoryConfig.defaultPackage,
         packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
       };
-    } catch (err) {
-      console.warn("Backend vendor registration failed or backend unreachable, falling back to local registration:", err);
-      // Seamless local fallback creation so vendor registration never fails
-      const fallbackId = `v-local-${Date.now()}`;
-      newVendorData = {
-        id: fallbackId,
-        businessName,
-        category,
-        contactNumber,
-        verificationStatus: 'Pending',
-        status: 'Pending',
-        adminRemarks: description || packageName || selectedCategoryConfig.defaultPackage,
-        packageName: packageName || selectedCategoryConfig.defaultPackage,
-        packagePrice: packagePrice || selectedCategoryConfig.defaultPrice,
-        createdAt: new Date().toISOString()
-      };
-    } finally {
-      setSubmitting(false);
-    }
 
-    if (newVendorData) {
-      const newVendorId = newVendorData.id;
       const updatedIds = [...vendorIds, newVendorId];
       setVendorIds(updatedIds);
       setMyVendors(prev => [...prev, newVendorData]);
@@ -367,6 +345,11 @@ export const VendorPortal: React.FC = () => {
       setContactNumber('');
       setDescription('');
       setPackageName('');
+    } catch (err) {
+      console.error("Backend vendor registration failed:", err);
+      alert("Failed to register vendor. Please ensure backend API is running.");
+    } finally {
+      setSubmitting(false);
     }
   };
 

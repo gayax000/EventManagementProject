@@ -73,7 +73,6 @@ public class VenuesController : ControllerBase
 
         var vendor = new Vendor
         {
-            VendorId = Guid.NewGuid(),
             BusinessName = dto.BusinessName,
             Category = dto.Category,
             ContactNumber = dto.ContactNumber,
@@ -81,20 +80,11 @@ public class VenuesController : ControllerBase
             AdminRemarks = dto.Description,
             PackageName = dto.PackageName ?? dto.Description,
             PackagePrice = dto.PackagePrice,
-            UserId = defaultUser != null ? defaultUser.UserId : Guid.Empty,
-            CreatedAt = DateTime.UtcNow
+            UserId = defaultUser != null ? defaultUser.UserId : Guid.Empty
         };
 
-        try
-        {
-            _context.Vendors.Add(vendor);
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            // If DB column save fails due to pending migration on remote server, still return Ok with vendor object
-            System.Console.WriteLine($"[RegisterVendor DB Warning] {ex.Message}");
-        }
+        _context.Vendors.Add(vendor);
+        await _context.SaveChangesAsync();
 
         return Ok(vendor);
     }
