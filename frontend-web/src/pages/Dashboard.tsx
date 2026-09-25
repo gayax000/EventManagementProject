@@ -723,10 +723,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }
 
-  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
+  const calculatedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
+  const currentSubtotal = (isApproved && selectedEvent?.estimatedTotalCost) ? (selectedEvent.estimatedTotalCost + specialDiscount) : calculatedSubtotal;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
-  const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
+  const displayedFinalTotal = isApproved ? (selectedEvent?.estimatedTotalCost || Math.max(0, currentSubtotal - specialDiscount)) : Math.max(0, currentSubtotal - specialDiscount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
