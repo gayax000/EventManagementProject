@@ -32,7 +32,8 @@ import {
   Mail,
   User,
   Phone,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 import { eventService, type EventItem } from '../services/api';
 import { authService } from '../services/authService';
@@ -127,6 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [viewModalEvent, setViewModalEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
@@ -559,11 +561,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
           : "Proposal approved successfully! Synchronized in PostgreSQL Database."
       );
       setSelectedEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal } : null);
+      setViewModalEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal } : null);
       loadEvents();
     } catch (err) {
       console.error("Approval failed", err);
       alert("Failed to approve proposal on backend.");
     }
+  };
+
+  // Delete Event Request Action
+  const handleDeleteEvent = async (e: React.MouseEvent, eventId: string, eventTitle: string) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${eventTitle}"? This action will permanently remove the proposal from the database.`)) {
+      try {
+        await eventService.deleteEvent(eventId);
+        setActionSuccess(`Event "${eventTitle}" deleted successfully!`);
+        if (selectedEvent?.eventId === eventId) {
+          setSelectedEvent(null);
+        }
+        if (viewModalEvent?.eventId === eventId) {
+          setViewModalEvent(null);
+        }
+        loadEvents();
+      } catch (err) {
+        console.error("Failed to delete event proposal", err);
+        alert("Failed to delete event proposal. Please try again.");
+      }
+    }
+  };
+
+  // View Event Proposal Details in Popup Modal Action
+  const handleViewEvent = (e: React.MouseEvent, ev: EventItem) => {
+    e.stopPropagation();
+    setSelectedEvent(ev);
+    setViewModalEvent(ev);
   };
 
   const activeCount = events.filter(e => e.status !== 'Completed' && e.status !== 'Cancelled').length;
@@ -837,572 +868,47 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         Rs. {(Number(ev.budgetLimit) / 1000000).toFixed(1)}M
                       </span>
                     </div>
+
+                    {/* View & Delete Quick Action Bar */}
+                    <div className="mt-2.5 pt-2 flex items-center justify-end space-x-2 border-t border-dashed border-slate-200/40">
+                      <button
+                        type="button"
+                        onClick={(e) => handleViewEvent(e, ev)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition ${
+                          isSelected 
+                            ? 'bg-sky-500 hover:bg-sky-400 text-white shadow-xs' 
+                            : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                        }`}
+                        title="View proposal details & AI analysis"
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>View</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteEvent(e, ev.eventId, ev.title)}
+                        className={`px-2 py-1 rounded-lg text-[11px] font-bold flex items-center space-x-1 transition ${
+                          isSelected 
+                            ? 'bg-rose-500/30 hover:bg-rose-500/50 text-rose-200 border border-rose-400/40' 
+                            : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                        }`}
+                        title="Delete event proposal"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
         </div>
-
-        {/* Selected Event Proposal Breakdown */}
-        {selectedEvent ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-sky-400" />
-                <h3 className="font-bold text-base">Human-in-the-Loop AI Proposal Review (Live DB)</h3>
-              </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full border flex items-center space-x-1.5 ${
-                isApproved
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-                  : selectedEvent.status === 'ClientChoiceSubmitted'
-                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30 animate-bounce'
-                  : selectedEvent.status === 'PendingClientBudgetApproval'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  : 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
-              }`}>
-                <span>
-                  {isApproved
-                    ? '✓ Proposal Approved'
-                    : selectedEvent.status === 'ClientChoiceSubmitted'
-                    ? '📩 Client Responded to Budget Request'
-                    : selectedEvent.status === 'PendingClientBudgetApproval'
-                    ? '⏳ Sent to Client for Budget Review'
-                    : '⏳ Awaiting Manager Approval'}
-                </span>
-              </span>
-            </div>
-
-            {selectedEvent.status === 'ClientChoiceSubmitted' && (
-              <div className="mx-6 mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xl shadow-sm flex-shrink-0">
-                    📩
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">
-                      Client Responded to Budget Request!
-                    </h4>
-                    <p className="text-xs text-indigo-900 mt-0.5">
-                      Client selected their preferred package total: <strong className="text-indigo-950">Rs. {Number(selectedEvent.estimatedTotalCost).toLocaleString()}</strong>. Click <strong>"Approve Finalized Proposal"</strong> below to confirm and unlock deposit slip upload for client.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Proposal Details */}
-              <div className="lg:col-span-2 space-y-6">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 flex items-center space-x-1">
-                      <span>{getEventTypeIcon(selectedEvent.eventType)}</span>
-                      <span>{selectedEvent.eventType || "Event"}</span>
-                    </span>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-md border flex items-center ${
-                      selectedEvent.isOutdoor 
-                        ? 'text-amber-800 bg-amber-50 border-amber-200' 
-                        : 'text-indigo-800 bg-indigo-50 border-indigo-200'
-                    }`}>
-                      {selectedEvent.isOutdoor ? '🌳 Outdoor Setting' : '🏛️ Indoor Setting'}
-                    </span>
-                    {selectedEvent.banquetHallName && (
-                      <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center">
-                        <MapPin className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        {selectedEvent.banquetHallName}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="text-xl font-black text-slate-900 mt-3">{selectedEvent.title}</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Event ID: <span className="font-mono text-xs text-slate-400">{selectedEvent.eventId}</span>
-                  </p>
-                  <p className="text-xs text-slate-600 mt-1 font-medium">
-                    Target Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString()}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
-                  </p>
-                </div>
-
-                {/* Client Inspiration Photos */}
-                {selectedEvent.inspirationImages && selectedEvent.inspirationImages.length > 0 && (
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center">
-                        <ImageIcon className="w-4 h-4 mr-1.5 text-sky-600" />
-                        Client Inspiration Photos ({selectedEvent.inspirationImages.length} Uploaded)
-                      </h4>
-                      <span className="text-[11px] text-slate-400">Click to zoom</span>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {selectedEvent.inspirationImages.map((imgUrl, idx) => (
-                        <div 
-                          key={idx} 
-                          onClick={() => setPreviewImage(imgUrl)}
-                          className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-300 aspect-video bg-slate-900 shadow-sm"
-                        >
-                          <img 
-                            src={imgUrl} 
-                            alt={`Inspiration ${idx + 1}`} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
-                            <Eye className="w-4 h-4 mr-1" /> Zoom
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Client Selected Services */}
-                {selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0 && (
-                  <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 mb-2">
-                      Client Selected Services & Preferences
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedEvent.selectedServices.map((service, idx) => (
-                        <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-xs">
-                          <Check className="w-3 h-3 text-emerald-600 mr-1" />
-                          {service}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Special Requests */}
-                {selectedEvent.additionalDetails && (
-                  <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-base">💐</span>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
-                          Special Client Custom Requests
-                        </h4>
-                      </div>
-                      <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
-                        Allocated: Rs. {alloc.otherCost.toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">
-                      "{selectedEvent.additionalDetails}"
-                    </p>
-
-                    {!isApproved && selectedEvent.status !== 'PendingClientBudgetApproval' && selectedEvent.status !== 'ClientChoiceSubmitted' ? (
-                      <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between text-xs">
-                        <label className="font-bold text-rose-900">Set Manager Allocation (LKR):</label>
-                        <div className="flex items-center space-x-1">
-                          <span className="font-semibold text-rose-700">Rs.</span>
-                          <input
-                            type="number"
-                            value={specialAllocation}
-                            onChange={(e) => setSpecialAllocation(Number(e.target.value))}
-                            className="w-28 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
-                          />
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Weather Contingency Assessment */}
-                {!isEventOutdoor ? (
-                  <div className="p-4 bg-emerald-50/90 border border-emerald-200 rounded-xl flex items-start space-x-3">
-                    <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="text-sm font-bold text-emerald-950">Weather Assessment: 0% Risk (Indoor Venue)</h4>
-                        <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                          Safe & Sheltered
-                        </span>
-                      </div>
-                      <p className="text-xs text-emerald-800 mt-1">
-                        Indoor climate-controlled banquet hall. Outdoor rain & monsoon risks do not apply.
-                      </p>
-                      <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
-                        <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        Safeguard: None required. Saved Rs. 150,000 marquee tent budget!
-                      </p>
-                    </div>
-                  </div>
-                ) : weatherTentCost > 0 ? (
-                  <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start space-x-3">
-                    <CloudRain className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="text-sm font-bold text-amber-900">
-                          Weather Agent Assessment: {rainPct}% Rain Risk ({weatherCondition})
-                        </h4>
-                        <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
-                          Outdoor Monsoon Alert
-                        </span>
-                      </div>
-                      <p className="text-xs text-amber-800 mt-1">
-                        {weatherAction || "Autonomous environmental contingency triggered on outdoor venue."}
-                      </p>
-                      <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
-                        <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        Auto Safeguard: {weatherTentName} (Rs. {weatherTentCost.toLocaleString()}) active.
-                      </p>
-
-                      <div className="mt-3 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <label className="text-xs font-bold text-amber-950">Weather Safeguard Tier:</label>
-                        <select
-                          value={selectedWeatherOptionId || (isBudgetAutoFitted ? ((selectedEvent?.guestCount || 0) >= 200 ? 'tent_large_std' : (selectedEvent?.guestCount || 0) >= 100 ? 'tent_med_std' : 'tent_compact_budget') : 'tent_large_premium')}
-                          onChange={(e) => setSelectedWeatherOptionId(e.target.value)}
-                          disabled={isApproved}
-                          className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
-                        >
-                          {WEATHER_SAFEGUARD_CATALOG.map(opt => (
-                            <option key={opt.id} value={opt.id}>
-                              {opt.name} — Rs. {opt.cost.toLocaleString()} ({opt.desc})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start space-x-3">
-                    <Sun className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h4 className="text-sm font-bold text-sky-950">
-                          Weather Forecast: {rainPct}% Rain Probability ({weatherCondition})
-                        </h4>
-                        <span className="text-[11px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200">
-                          Clear & Favorable
-                        </span>
-                      </div>
-                      <p className="text-xs text-sky-800 mt-1">
-                        {weatherAction || "Dry weather conditions predicted for outdoor setting. No heavy precipitation expected."}
-                      </p>
-                      <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
-                        <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                        Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Package Breakdown */}
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800 mb-3">AI Compiled Package Breakdown</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <div>
-                        <span className="text-slate-700 font-medium">
-                          🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
-                        </span>
-                        <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
-                      </div>
-                      <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <div>
-                        <span className="text-slate-700 font-medium">
-                          🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
-                        </span>
-                        <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
-                      </div>
-                      <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
-                    </div>
-
-                    {alloc.hasSounds && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-slate-700 font-medium">🔊 {alloc.soundsName}</span>
-                          <p className="text-[11px] text-slate-400">Pro audio, digital mixing & intelligent stage lights</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {alloc.hasDeco && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-slate-700 font-medium">🌸 {alloc.decoName}</span>
-                          <p className="text-[11px] text-slate-400">Custom theme stage styling & floral tablescapes</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {alloc.hasPhoto && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-sky-50/70 rounded-lg border border-sky-200">
-                        <div>
-                          <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
-                          <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {alloc.hasCake && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-slate-700 font-medium">🎂 {alloc.cakeLabel}</span>
-                          <p className="text-[11px] text-slate-400">Handcrafted bespoke celebration tier</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {alloc.hasTransport && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
-                        <div>
-                          <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
-                          <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {alloc.hasSpecialRequests && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
-                        <div>
-                          <span className="text-rose-900 font-medium">
-                            💐 Special Client Request: {selectedEvent.additionalDetails}
-                          </span>
-                          <p className="text-[11px] text-rose-500">Dedicated arrangement budget</p>
-                        </div>
-                        <span className="font-semibold text-rose-700">Rs. {alloc.otherCost.toLocaleString()}</span>
-                      </div>
-                    )}
-
-                    {weatherTentCost > 0 && (
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
-                        <div>
-                          <span className="text-slate-700 font-medium">🎪 {weatherTentName}</span>
-                          <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Box */}
-              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-base font-bold text-slate-900 mb-4">Pricing Summary & Actions</h4>
-                  
-                  {/* Smart Budget Overrun Guardrail Box */}
-                  {isBudgetAutoFitted && !isApproved ? (
-                    <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
-                      <div className="flex items-start space-x-2.5">
-                        <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                            ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
-                          </h5>
-                          <p className="text-xs text-emerald-900 mt-1">
-                            Optional services (Decor, Photography, Sound, Transport) scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
-                          </p>
-                          {weatherTentCost > 0 && (
-                            <p className="text-[11px] text-amber-900 bg-amber-100/80 p-2 rounded-lg border border-amber-200 mt-2 font-medium">
-                              💡 Weather Safeguard Active: Outdoor Rain Tent (+Rs. 150,000) added. Switch to Indoor Setting to save Rs. 150,000!
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
-                        <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
-                        <button
-                          type="button"
-                          onClick={() => setIsBudgetAutoFitted(false)}
-                          className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
-                        >
-                          🔄 Reset Packages
-                        </button>
-                      </div>
-                    </div>
-                  ) : overrunAmount > 0 && !isApproved && (
-                    <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
-                      <div className="flex items-start space-x-2.5">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
-                            ⚠️ Budget Overrun Triggered
-                          </h5>
-                          <p className="text-xs text-amber-900 mt-1">
-                            Compiled subtotal (<strong>Rs. {currentSubtotal.toLocaleString()}</strong>) exceeds client limit (<strong>Rs. {clientBudgetLimit.toLocaleString()}</strong>) by <strong className="text-rose-700">Rs. {overrunAmount.toLocaleString()}</strong>.
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Manager Guardrail Actions */}
-                      <div className="pt-2 border-t border-amber-200/80 space-y-2">
-                        <p className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
-                          Human-in-the-Loop Manager Guardrails:
-                        </p>
-
-                        {/* Action 1: Auto-Fit Packages */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsBudgetAutoFitted(true);
-                            setClientApprovalRequested(false);
-                            setSpecialDiscount(0);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
-                            isBudgetAutoFitted
-                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                              : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                          }`}
-                        >
-                          <span>⚡ 1. Auto-Fit Packages to Budget</span>
-                          <span className="text-[10px] opacity-90 font-mono">&lt;= Rs. 1.5M</span>
-                        </button>
-
-                        {/* Action 2: Request Client Budget Expansion */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setClientApprovalRequested(!clientApprovalRequested);
-                            setIsBudgetAutoFitted(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
-                            clientApprovalRequested
-                              ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
-                              : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                          }`}
-                        >
-                          <span>📩 {clientApprovalRequested ? '✓ Flagged: Awaiting Client Budget Increase' : '2. Keep Quality & Request Client Budget Increase'}</span>
-                          <span className="text-[10px] opacity-90">{clientApprovalRequested ? 'Active' : 'Notify Client'}</span>
-                        </button>
-
-                        {/* Action 3: Manager Discount with Cap Rule */}
-                        {overrunAmount <= 50000 ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSpecialDiscount(overrunAmount);
-                              setIsBudgetAutoFitted(false);
-                              setClientApprovalRequested(false);
-                            }}
-                            className="w-full text-left px-3 py-2 bg-white hover:bg-amber-100/50 text-slate-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-between transition"
-                          >
-                            <span>🎁 3. Apply Match Discount (Rs. {overrunAmount.toLocaleString()})</span>
-                            <span className="text-[10px] text-emerald-700 font-bold">Within Cap (≤ 50k)</span>
-                          </button>
-                        ) : (
-                          <div className="p-2 bg-rose-50 rounded-lg border border-rose-200 text-[11px] text-rose-900 flex items-center justify-between">
-                            <span className="font-medium">⛔ Discount Cap Exceeded (Max Rs. 50,000)</span>
-                            <span className="font-mono text-[10px] text-rose-700 font-bold">Over: Rs. {overrunAmount.toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-3 mb-6">
-                    <div className="flex justify-between text-sm text-slate-600">
-                      <span>Subtotal:</span>
-                      <span className="font-medium">Rs. {currentSubtotal.toLocaleString()}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-sm text-slate-600">
-                      <span>Special Discount:</span>
-                      <div className="flex items-center space-x-1">
-                        <span className="text-xs text-slate-400">Rs.</span>
-                        <input 
-                          type="number" 
-                          value={specialDiscount}
-                          onChange={(e) => setSpecialDiscount(Number(e.target.value))}
-                          disabled={isApproved}
-                          className="w-24 px-2 py-1 bg-white border border-slate-300 rounded text-right text-sm font-semibold text-slate-800 disabled:bg-slate-100"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-bold text-slate-900">
-                      <span>Final Total:</span>
-                      <span className="text-emerald-600">
-                        Rs. {displayedFinalTotal.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Approve Button */}
-                <div className="space-y-2">
-                  <button 
-                    onClick={handleApprove}
-                    disabled={isApproved || selectedEvent.status === 'PendingClientBudgetApproval'}
-                    className={`w-full py-2.5 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50 ${
-                      selectedEvent.status === 'ClientChoiceSubmitted'
-                        ? 'bg-emerald-600 hover:bg-emerald-700 font-bold'
-                        : clientApprovalRequested
-                        ? 'bg-indigo-600 hover:bg-indigo-700 font-bold'
-                        : isBudgetAutoFitted
-                        ? 'bg-emerald-600 hover:bg-emerald-700'
-                        : 'bg-emerald-600 hover:bg-emerald-700'
-                    }`}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>
-                      {isApproved 
-                        ? 'Approved & Ready for Signing' 
-                        : selectedEvent.status === 'PendingClientBudgetApproval'
-                        ? '⏳ Proposal Sent to Client (Awaiting Response)'
-                        : selectedEvent.status === 'ClientChoiceSubmitted'
-                        ? 'Approve Finalized Proposal (Unlock Client Deposit)'
-                        : clientApprovalRequested 
-                        ? 'Send Proposal with Client Budget Increase Request' 
-                        : isBudgetAutoFitted 
-                        ? 'Approve Auto-Fitted Proposal' 
-                        : 'Approve Proposal'}
-                    </span>
-                  </button>
-                </div>
-
-              </div>
-
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-500">
-            No active event selected. Click any event card above to review its full proposal!
-          </div>
-        )}
       </div>
 
       {/* ========================================================================= */}
-      {/* 5. LIGHTBOX / ZOOM MODAL FOR PHOTOS                                       */}
-      {/* ========================================================================= */}
-      {previewImage && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" 
-          onClick={() => setPreviewImage(null)}
-        >
-          <div 
-            className="relative max-w-5xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700" 
-            onClick={e => e.stopPropagation()}
-          >
-            <button 
-              onClick={() => setPreviewImage(null)}
-              className="absolute top-4 right-4 p-2.5 bg-black/70 hover:bg-black text-white rounded-full transition z-20 shadow-lg border border-white/20"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <img 
-              src={previewImage} 
-              alt="High Definition Preview" 
-              className="w-full h-auto max-h-[85vh] object-contain" 
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* 6. INSTANT CLIENT AUTHENTICATION MODAL (Log In / Sign Up)                */}
+      {/* 5. INSTANT CLIENT AUTHENTICATION MODAL (Log In / Sign Up)                */}
       {/* ========================================================================= */}
       {authModalTab && (
         <div 
@@ -1574,6 +1080,558 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </form>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. COMPLETE EVENT PROPOSAL DETAILS POPUP MODAL                            */}
+      {/* ========================================================================= */}
+      {viewModalEvent && selectedEvent && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+          onClick={() => setViewModalEvent(null)}
+        >
+          <div 
+            className="w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] relative animate-in zoom-in-95 duration-200 text-slate-800"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 flex-shrink-0">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center text-lg font-bold">
+                  {getEventTypeIcon(selectedEvent.eventType)}
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-sky-300 border border-white/20">
+                      {selectedEvent.eventType || "Event Proposal"}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      isApproved
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {isApproved ? '✓ Approved' : '⏳ Awaiting Manager Approval'}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-white mt-0.5 line-clamp-1">{selectedEvent.title}</h3>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setViewModalEvent(null)}
+                className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content (Full Parity with Main View) */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* Left 2 Columns: Event Details, Inspirations, Services, Weather, & Compiled Breakdown */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 flex items-center space-x-1">
+                        <span>{getEventTypeIcon(selectedEvent.eventType)}</span>
+                        <span>{selectedEvent.eventType || "Event"}</span>
+                      </span>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-md border flex items-center ${
+                        selectedEvent.isOutdoor 
+                          ? 'text-amber-800 bg-amber-50 border-amber-200' 
+                          : 'text-indigo-800 bg-indigo-50 border-indigo-200'
+                      }`}>
+                        {selectedEvent.isOutdoor ? '🌳 Outdoor Setting' : '🏛️ Indoor Setting'}
+                      </span>
+                      {selectedEvent.banquetHallName && (
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 flex items-center">
+                          <MapPin className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          {selectedEvent.banquetHallName}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-xl font-black text-slate-900 mt-3">{selectedEvent.title}</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Event ID: <span className="font-mono text-xs text-slate-400">{selectedEvent.eventId}</span>
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1 font-medium">
+                      Target Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString()}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
+                    </p>
+                  </div>
+
+                  {/* Client Inspiration Photos */}
+                  {selectedEvent.inspirationImages && selectedEvent.inspirationImages.length > 0 && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center">
+                          <ImageIcon className="w-4 h-4 mr-1.5 text-sky-600" />
+                          Client Inspiration Photos ({selectedEvent.inspirationImages.length} Uploaded)
+                        </h4>
+                        <span className="text-[11px] text-slate-400">Click to zoom</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {selectedEvent.inspirationImages.map((imgUrl, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => setPreviewImage(imgUrl)}
+                            className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-300 aspect-video bg-slate-900 shadow-xs"
+                          >
+                            <img 
+                              src={imgUrl} 
+                              alt={`Inspiration ${idx + 1}`} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
+                              <Eye className="w-4 h-4 mr-1" /> Zoom
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Client Selected Services */}
+                  {selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0 && (
+                    <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 mb-2">
+                        Client Selected Services & Preferences
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEvent.selectedServices.map((service, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-xs">
+                            <Check className="w-3 h-3 text-emerald-600 mr-1" />
+                            {service}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Requests */}
+                  {selectedEvent.additionalDetails && (
+                    <div className="p-4 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-base">💐</span>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-900">
+                            Special Client Custom Requests
+                          </h4>
+                        </div>
+                        <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
+                          Allocated: Rs. {alloc.otherCost.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">
+                        "{selectedEvent.additionalDetails}"
+                      </p>
+
+                      {!isApproved && selectedEvent.status !== 'PendingClientBudgetApproval' && selectedEvent.status !== 'ClientChoiceSubmitted' ? (
+                        <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between text-xs">
+                          <label className="font-bold text-rose-900">Set Manager Allocation (LKR):</label>
+                          <div className="flex items-center space-x-1">
+                            <span className="font-semibold text-rose-700">Rs.</span>
+                            <input
+                              type="number"
+                              value={specialAllocation}
+                              onChange={(e) => setSpecialAllocation(Number(e.target.value))}
+                              className="w-28 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Weather Contingency Assessment */}
+                  {!isEventOutdoor ? (
+                    <div className="p-4 bg-emerald-50/90 border border-emerald-200 rounded-xl flex items-start space-x-3">
+                      <ShieldCheck className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-emerald-950">Weather Assessment: 0% Risk (Indoor Venue)</h4>
+                          <span className="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                            Safe & Sheltered
+                          </span>
+                        </div>
+                        <p className="text-xs text-emerald-800 mt-1">
+                          Indoor climate-controlled banquet hall. Outdoor rain & monsoon risks do not apply.
+                        </p>
+                        <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
+                          <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          Safeguard: None required. Saved Rs. 150,000 marquee tent budget!
+                        </p>
+                      </div>
+                    </div>
+                  ) : weatherTentCost > 0 ? (
+                    <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start space-x-3">
+                      <CloudRain className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-amber-900">
+                            Weather Agent Assessment: {rainPct}% Rain Risk ({weatherCondition})
+                          </h4>
+                          <span className="text-[11px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                            Outdoor Monsoon Alert
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-800 mt-1">
+                          {weatherAction || "Autonomous environmental contingency triggered on outdoor venue."}
+                        </p>
+                        <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
+                          <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          Auto Safeguard: {weatherTentName} (Rs. {weatherTentCost.toLocaleString()}) active.
+                        </p>
+
+                        <div className="mt-3 pt-3 border-t border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                          <label className="text-xs font-bold text-amber-950">Weather Safeguard Tier:</label>
+                          <select
+                            value={selectedWeatherOptionId || (isBudgetAutoFitted ? ((selectedEvent?.guestCount || 0) >= 200 ? 'tent_large_std' : (selectedEvent?.guestCount || 0) >= 100 ? 'tent_med_std' : 'tent_compact_budget') : 'tent_large_premium')}
+                            onChange={(e) => setSelectedWeatherOptionId(e.target.value)}
+                            disabled={isApproved}
+                            className="px-2.5 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+                          >
+                            {WEATHER_SAFEGUARD_CATALOG.map(opt => (
+                              <option key={opt.id} value={opt.id}>
+                                {opt.name} — Rs. {opt.cost.toLocaleString()} ({opt.desc})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-sky-50/90 border border-sky-200 rounded-xl flex items-start space-x-3">
+                      <Sun className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-sky-950">
+                            Weather Forecast: {rainPct}% Rain Probability ({weatherCondition})
+                          </h4>
+                          <span className="text-[11px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded-full border border-sky-200">
+                            Clear & Favorable
+                          </span>
+                        </div>
+                        <p className="text-xs text-sky-800 mt-1">
+                          {weatherAction || "Dry weather conditions predicted for outdoor setting. No heavy precipitation expected."}
+                        </p>
+                        <p className="text-xs font-semibold text-emerald-700 mt-2 flex items-center">
+                          <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          Safeguard: Not required. Saved Rs. 150,000 marquee tent cost.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Compiled Package Breakdown List */}
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 mb-3">AI Compiled Package Breakdown</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div>
+                          <span className="text-slate-700 font-medium">
+                            🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
+                          </span>
+                          <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
+                        </div>
+                        <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                        <div>
+                          <span className="text-slate-700 font-medium">
+                            🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
+                          </span>
+                          <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
+                        </div>
+                        <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
+                      </div>
+
+                      {alloc.hasSounds && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div>
+                            <span className="text-slate-700 font-medium">🔊 {alloc.soundsName}</span>
+                            <p className="text-[11px] text-slate-400">Pro audio, digital mixing & intelligent stage lights</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {alloc.hasDeco && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div>
+                            <span className="text-slate-700 font-medium">🌸 {alloc.decoName}</span>
+                            <p className="text-[11px] text-slate-400">Custom theme stage styling & floral tablescapes</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {alloc.hasPhoto && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-sky-50/70 rounded-lg border border-sky-200">
+                          <div>
+                            <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
+                            <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {alloc.hasCake && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                          <div>
+                            <span className="text-slate-700 font-medium">🎂 {alloc.cakeLabel}</span>
+                            <p className="text-[11px] text-slate-400">Handcrafted bespoke celebration tier</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {alloc.hasTransport && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
+                          <div>
+                            <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
+                            <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {alloc.hasSpecialRequests && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
+                          <div>
+                            <span className="text-rose-900 font-medium">
+                              💐 Special Client Request: {selectedEvent.additionalDetails}
+                            </span>
+                            <p className="text-[11px] text-rose-500">Dedicated arrangement budget</p>
+                          </div>
+                          <span className="font-semibold text-rose-700">Rs. {alloc.otherCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {weatherTentCost > 0 && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                          <div>
+                            <span className="text-slate-700 font-medium">🎪 {weatherTentName}</span>
+                            <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Pricing Summary & Manager Action Box */}
+                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900 mb-4">Pricing Summary & Actions</h4>
+                    
+                    {/* Smart Budget Overrun Guardrail Box */}
+                    {isBudgetAutoFitted && !isApproved ? (
+                      <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
+                        <div className="flex items-start space-x-2.5">
+                          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                              ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
+                            </h5>
+                            <p className="text-xs text-emerald-900 mt-1">
+                              Optional services scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
+                          <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
+                          <button
+                            type="button"
+                            onClick={() => setIsBudgetAutoFitted(false)}
+                            className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
+                          >
+                            🔄 Reset Packages
+                          </button>
+                        </div>
+                      </div>
+                    ) : overrunAmount > 0 && !isApproved && (
+                      <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
+                        <div className="flex items-start space-x-2.5">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                              ⚠️ Budget Overrun Triggered
+                            </h5>
+                            <p className="text-xs text-amber-900 mt-1">
+                              Compiled subtotal (<strong>Rs. {currentSubtotal.toLocaleString()}</strong>) exceeds client limit (<strong>Rs. {clientBudgetLimit.toLocaleString()}</strong>) by <strong className="text-rose-700">Rs. {overrunAmount.toLocaleString()}</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Manager Guardrail Actions */}
+                        <div className="pt-2 border-t border-amber-200/80 space-y-2">
+                          <p className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
+                            Human-in-the-Loop Manager Guardrails:
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsBudgetAutoFitted(true);
+                              setClientApprovalRequested(false);
+                              setSpecialDiscount(0);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                              isBudgetAutoFitted
+                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                                : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                            }`}
+                          >
+                            <span>⚡ 1. Auto-Fit Packages to Budget</span>
+                            <span className="text-[10px] opacity-90 font-mono">&lt;= Rs. 1.5M</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setClientApprovalRequested(!clientApprovalRequested);
+                              setIsBudgetAutoFitted(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                              clientApprovalRequested
+                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                                : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                            }`}
+                          >
+                            <span>📩 {clientApprovalRequested ? '✓ Flagged: Awaiting Client Budget Increase' : '2. Keep Quality & Request Client Budget Increase'}</span>
+                            <span className="text-[10px] opacity-90">{clientApprovalRequested ? 'Active' : 'Notify Client'}</span>
+                          </button>
+
+                          {overrunAmount <= 50000 ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSpecialDiscount(overrunAmount);
+                                setIsBudgetAutoFitted(false);
+                                setClientApprovalRequested(false);
+                              }}
+                              className="w-full text-left px-3 py-2 bg-white hover:bg-amber-100/50 text-slate-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-between transition"
+                            >
+                              <span>🎁 3. Apply Match Discount (Rs. {overrunAmount.toLocaleString()})</span>
+                              <span className="text-[10px] text-emerald-700 font-bold">Within Cap (≤ 50k)</span>
+                            </button>
+                          ) : (
+                            <div className="p-2 bg-rose-50 rounded-lg border border-rose-200 text-[11px] text-rose-900 flex items-center justify-between">
+                              <span className="font-medium">⛔ Discount Cap Exceeded (Max Rs. 50,000)</span>
+                              <span className="font-mono text-[10px] text-rose-700 font-bold">Over: Rs. {overrunAmount.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between text-sm text-slate-600">
+                        <span>Subtotal:</span>
+                        <span className="font-medium">Rs. {currentSubtotal.toLocaleString()}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center text-sm text-slate-600">
+                        <span>Special Discount:</span>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs text-slate-400">Rs.</span>
+                          <input 
+                            type="number" 
+                            value={specialDiscount}
+                            onChange={(e) => setSpecialDiscount(Number(e.target.value))}
+                            disabled={isApproved}
+                            className="w-24 px-2 py-1 bg-white border border-slate-300 rounded text-right text-sm font-semibold text-slate-800 disabled:bg-slate-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-bold text-slate-900">
+                        <span>Final Total:</span>
+                        <span className="text-emerald-600">
+                          Rs. {displayedFinalTotal.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Approve Button */}
+                  <div className="space-y-2">
+                    <button 
+                      onClick={handleApprove}
+                      disabled={isApproved || selectedEvent.status === 'PendingClientBudgetApproval'}
+                      className={`w-full py-2.5 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50 ${
+                        selectedEvent.status === 'ClientChoiceSubmitted'
+                          ? 'bg-emerald-600 hover:bg-emerald-700 font-bold'
+                          : clientApprovalRequested
+                          ? 'bg-indigo-600 hover:bg-indigo-700 font-bold'
+                          : 'bg-emerald-600 hover:bg-emerald-700'
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>
+                        {isApproved 
+                          ? 'Approved & Ready for Signing' 
+                          : selectedEvent.status === 'PendingClientBudgetApproval'
+                          ? '⏳ Proposal Sent to Client (Awaiting Response)'
+                          : selectedEvent.status === 'ClientChoiceSubmitted'
+                          ? 'Approve Finalized Proposal (Unlock Client Deposit)'
+                          : clientApprovalRequested 
+                          ? 'Send Proposal with Client Budget Increase Request' 
+                          : isBudgetAutoFitted 
+                          ? 'Approve Auto-Fitted Proposal' 
+                          : 'Approve Proposal'}
+                      </span>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
+              <span className="text-[11px] text-slate-500 font-medium">EventCraft AI Management Workspace</span>
+              <button
+                onClick={() => setViewModalEvent(null)}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 7. HIGH PRIORITY TOP-OVERLAY LIGHTBOX MODAL FOR PHOTOS (z-[100])         */}
+      {/* ========================================================================= */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" 
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative max-w-5xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-700 animate-in zoom-in-95 duration-200" 
+            onClick={e => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 p-2.5 bg-black/70 hover:bg-black text-white rounded-full transition z-20 shadow-lg border border-white/20"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img 
+              src={previewImage} 
+              alt="High Definition Preview" 
+              className="w-full h-auto max-h-[85vh] object-contain" 
+            />
           </div>
         </div>
       )}
