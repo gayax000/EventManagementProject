@@ -434,67 +434,77 @@ public class EventsController : ControllerBase
     [HttpGet("my-events")]
     public async Task<ActionResult<IEnumerable<EventResponseDto>>> GetMyEvents([FromQuery] Guid? customerId)
     {
-        if (!customerId.HasValue && Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+        try
         {
-            customerId = parsedId;
-        }
+            await EnsureSchemaAsync();
 
-        var query = _context.Events.AsQueryable();
-
-        // If customerId is provided, filter strictly by this customer if they have events; otherwise fallback to all events in database
-        if (customerId.HasValue && customerId.Value != Guid.Empty)
-        {
-            var userEventsCount = await query.CountAsync(e => e.CustomerId == customerId.Value);
-            if (userEventsCount > 0)
+            if (!customerId.HasValue && Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
             {
-                query = query.Where(e => e.CustomerId == customerId.Value);
+                customerId = parsedId;
             }
-        }
 
-        var events = await query
-            .Include(e => e.Venue)
-            .Include(e => e.BanquetHall)
-            .Include(e => e.AIWorkflowState)
-            .OrderByDescending(e => e.CreatedAt)
-            .Select(ev => new EventResponseDto
-            {
-                EventId = ev.EventId,
-                Title = ev.Title,
-                EventType = ev.EventType,
-                TargetDate = ev.TargetDate,
-                GuestCount = ev.GuestCount,
-                BudgetLimit = ev.BudgetLimit,
-                IsOutdoor = ev.IsOutdoor,
-                AdditionalDetails = ev.AdditionalDetails,
-                EventSession = ev.EventSession,
-                CateringStyle = ev.CateringStyle,
-                TableRefreshments = null,
-                RevisionNotes = ev.RevisionNotes,
-                Status = ev.Status,
-                VenueId = ev.VenueId,
-                VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
-                BanquetHallId = ev.BanquetHallId,
-                BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
-                HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,
-                PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
-                InspirationImageUrl = ev.InspirationImageUrl,
-                EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
-                CreatedAt = ev.CreatedAt
-            })
-            .ToListAsync();
+            var query = _context.Events.AsQueryable();
 
-        foreach (var item in events)
-        {
-            item.InspirationImages = ParseInspirationImages(item.InspirationImageUrl);
-            var evEntity = await _context.Events.FindAsync(item.EventId);
-            if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+            // If customerId is provided, filter strictly by this customer if they have events; otherwise fallback to all events in database
+            if (customerId.HasValue && customerId.Value != Guid.Empty)
             {
-                try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
-                catch { }
+                var userEventsCount = await query.CountAsync(e => e.CustomerId == customerId.Value);
+                if (userEventsCount > 0)
+                {
+                    query = query.Where(e => e.CustomerId == customerId.Value);
+                }
             }
-        }
 
-        return Ok(events);
+            var events = await query
+                .Include(e => e.Venue)
+                .Include(e => e.BanquetHall)
+                .Include(e => e.AIWorkflowState)
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(ev => new EventResponseDto
+                {
+                    EventId = ev.EventId,
+                    Title = ev.Title,
+                    EventType = ev.EventType,
+                    TargetDate = ev.TargetDate,
+                    GuestCount = ev.GuestCount,
+                    BudgetLimit = ev.BudgetLimit,
+                    IsOutdoor = ev.IsOutdoor,
+                    AdditionalDetails = ev.AdditionalDetails,
+                    EventSession = ev.EventSession,
+                    CateringStyle = ev.CateringStyle,
+                    TableRefreshments = null,
+                    RevisionNotes = ev.RevisionNotes,
+                    Status = ev.Status,
+                    VenueId = ev.VenueId,
+                    VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
+                    BanquetHallId = ev.BanquetHallId,
+                    BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
+                    HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,
+                    PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
+                    InspirationImageUrl = ev.InspirationImageUrl,
+                    EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                    CreatedAt = ev.CreatedAt
+                })
+                .ToListAsync();
+
+            foreach (var item in events)
+            {
+                item.InspirationImages = ParseInspirationImages(item.InspirationImageUrl);
+                var evEntity = await _context.Events.FindAsync(item.EventId);
+                if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                {
+                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
+                    catch { }
+                }
+            }
+
+            return Ok(events);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching my-events for customer {CustomerId}", customerId);
+            return Ok(new List<EventResponseDto>());
+        }
     }
 
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
