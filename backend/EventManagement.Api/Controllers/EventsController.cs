@@ -439,20 +439,15 @@ public class EventsController : ControllerBase
             customerId = parsedId;
         }
 
-        var defaultCustomerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var query = _context.Events.AsQueryable();
 
-        // If customerId is provided, filter strictly by this customer, with graceful fallback to default customer events
+        // If customerId is provided, filter strictly by this customer if they have events; otherwise fallback to all events in database
         if (customerId.HasValue && customerId.Value != Guid.Empty)
         {
             var userEventsCount = await query.CountAsync(e => e.CustomerId == customerId.Value);
             if (userEventsCount > 0)
             {
                 query = query.Where(e => e.CustomerId == customerId.Value);
-            }
-            else
-            {
-                query = query.Where(e => e.CustomerId == customerId.Value || e.CustomerId == defaultCustomerId);
             }
         }
 
