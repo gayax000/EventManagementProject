@@ -110,6 +110,12 @@ export const eventService = {
     const response = await apiClient.post('/events', eventData);
     return response.data;
   },
+
+  // Delete Event Request
+  deleteEvent: async (eventId: string) => {
+    const response = await apiClient.delete(`/events/${eventId}`);
+    return response.data;
+  },
 };
 
 export const venueService = {
