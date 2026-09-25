@@ -1741,6 +1741,29 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               });
             }
           }
+
+          // Prepend Venue Rental if not already in items
+          final hasVenue = items.any((it) => it['label'].toString().toLowerCase().contains('rental') || it['label'].toString().toLowerCase().contains('venue'));
+          if (!hasVenue) {
+            final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
+            items.insert(0, {
+              'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
+              'cost': hallPrice,
+              'isSpecial': false,
+            });
+          }
+
+          // Append Special Client Request if missing
+          final hasSpecial = items.any((it) => it['isSpecial'] == true || it['label'].toString().toLowerCase().contains('special client request'));
+          if (!hasSpecial && proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
+            items.add({
+              'label': 'Special Client Request: ${proposal.additionalDetails}',
+              'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+                  ? proposal.specialRequestAllocation!.toDouble()
+                  : 35000.0,
+              'isSpecial': true,
+            });
+          }
         }
       } catch (_) {}
     }
@@ -1750,7 +1773,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
 
       items.add({
-        'label': '${proposal.banquetHallName ?? proposal.venueName} Rental',
+        'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
         'cost': hallPrice,
         'isSpecial': false,
       });
@@ -1808,6 +1831,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             'isSpecial': false,
           });
         }
+      }
+
+      if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
+        items.add({
+          'label': 'Special Client Request: ${proposal.additionalDetails}',
+          'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+              ? proposal.specialRequestAllocation!.toDouble()
+              : 35000.0,
+          'isSpecial': true,
+        });
       }
     }
 

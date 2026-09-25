@@ -330,7 +330,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const services = ev.selectedServices || ['Photography', 'Sound and Lighting', 'Decorations'];
 
     // 1. Sound & Lighting
-    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting'));
+    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio') || s.toLowerCase().includes('mixer'));
     let soundsCost = 0;
     let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
     if (hasSounds) {
@@ -353,7 +353,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 2. Decorations
-    const hasDeco = services.some(s => s.toLowerCase().includes('deco'));
+    const hasDeco = services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('stage') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('theme'));
     let decoCost = 0;
     let decoName = 'Floral Stage & Tablescape Theme Decoration';
     if (hasDeco) {
@@ -376,7 +376,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 3. Photography & Media
-    const hasPhoto = services.some(s => s.toLowerCase().includes('photo'));
+    const hasPhoto = services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('video') || s.toLowerCase().includes('media') || s.toLowerCase().includes('4k'));
     let photoCost = 0;
     let photoName = 'Professional Event Coverage';
     if (hasPhoto) {
@@ -399,7 +399,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 4. Celebration Cakes
-    const hasCake = services.some(s => s.toLowerCase().includes('cake'));
+    const hasCake = services.some(s => s.toLowerCase().includes('cake') || s.toLowerCase().includes('confectionery') || s.toLowerCase().includes('tier'));
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
     if (hasCake) {
@@ -451,7 +451,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const hasTransport = services.some(s => 
       s.toLowerCase().includes('transport') || 
       s.toLowerCase().includes('car') || 
-      s.toLowerCase().includes('bridal')
+      s.toLowerCase().includes('bridal') ||
+      s.toLowerCase().includes('sedan') ||
+      s.toLowerCase().includes('vehicle') ||
+      s.toLowerCase().includes('chauffeur')
     );
     let transportCost = 0;
     let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
@@ -1410,6 +1413,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                       </div>
+
+                      {selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0 && selectedEvent.tableRefreshments.map((item, idx) => {
+                        let itemPerHead = 0;
+                        const b = Number(selectedEvent.budgetLimit) || 1000000;
+                        if (item.includes('Mocktail') || item.includes('Drink')) {
+                          itemPerHead = b >= 2000000 ? 800 : (b >= 1000000 ? 500 : 350);
+                        } else if (item.includes('Snack') || item.includes('Savory')) {
+                          itemPerHead = b >= 2000000 ? 950 : (b >= 1000000 ? 650 : 450);
+                        } else if (item.includes('Dessert') || item.includes('Sweet')) {
+                          itemPerHead = b >= 2000000 ? 1200 : (b >= 1000000 ? 800 : 500);
+                        } else if (item.includes('Tea') || item.includes('Coffee')) {
+                          itemPerHead = b >= 2000000 ? 450 : (b >= 1000000 ? 300 : 200);
+                        } else if (item.includes('Midnight') || item.includes('Action')) {
+                          itemPerHead = b >= 2000000 ? 1100 : (b >= 1000000 ? 750 : 500);
+                        }
+                        const itemCost = selectedEvent.guestCount * itemPerHead;
+                        return (
+                          <div key={`ref-${idx}`} className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                            <div>
+                              <span className="text-slate-700 font-medium">
+                                🍹 {item} ({selectedEvent.guestCount} Guests @ Rs. {itemPerHead.toLocaleString()})
+                              </span>
+                              <p className="text-[11px] text-slate-400">Table Refreshments & Catering Add-on</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {itemCost.toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
 
                       {alloc.hasSounds && (
                         <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
