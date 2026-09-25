@@ -56,6 +56,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   bool _hasCoffeeBar = true;
   bool _hasMidnightSnack = false;
 
+  List<String> get _selectedTableRefreshments {
+    return [
+      if (_hasWelcomeMocktails) 'Welcome Mocktails & Refreshing Drinks Bar',
+      if (_hasTableRefreshments) 'Table Refreshments & Savory Snacks',
+      if (_hasDesserts) 'Desserts & Sweet Counters',
+      if (_hasCoffeeBar) 'Ceylon Tea & Artisanal Coffee Bar',
+      if (_hasMidnightSnack) 'Midnight Snack / Live Food Action Station',
+    ];
+  }
+
   void _applyOccasionAutoPreset(String occasion) {
     final occ = occasion.toLowerCase();
     _selectedServices.clear();
@@ -398,13 +408,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         customServiceNotes: customNotes.isNotEmpty ? customNotes : null,
         inspirationImages: base64Images.isNotEmpty ? base64Images : null,
         eventSession: _selectedSession,
-        tableRefreshments: [
-          if (_hasWelcomeMocktails) 'Welcome Mocktails & Refreshing Drinks Bar',
-          if (_hasTableRefreshments) 'Table Refreshments & Savory Snacks',
-          if (_hasDesserts) 'Desserts & Sweet Counters',
-          if (_hasCoffeeBar) 'Ceylon Tea & Artisanal Coffee Bar',
-          if (_hasMidnightSnack) 'Midnight Snack / Live Food Action Station',
-        ],
+        tableRefreshments: _selectedTableRefreshments,
       );
 
       if (mounted) {
