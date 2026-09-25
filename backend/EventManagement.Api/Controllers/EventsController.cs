@@ -706,4 +706,40 @@ public class EventsController : ControllerBase
         }
         return new List<string> { raw };
     }
+
+    // DELETE: api/events/{id} (Delete Event Request & Associated Resources/Workflow States)
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteEvent(Guid id)
+    {
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+        {
+            return NotFound(new { message = "Event proposal not found." });
+        }
+
+        // Delete associated AI Workflow States
+        var workflowStates = await _context.AIWorkflowStates.Where(w => w.EventId == id).ToListAsync();
+        if (workflowStates.Any())
+        {
+            _context.AIWorkflowStates.RemoveRange(workflowStates);
+        }
+
+        // Delete associated Event Resources
+        var eventResources = await _context.EventResources.Where(er => er.EventId == id).ToListAsync();
+        if (eventResources.Any())
+        {
+            _context.EventResources.RemoveRange(eventResources);
+        }
+
+        // Delete associated booking if present
+        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == id);
+        if (booking != null)
+        {
+            _context.Bookings.Remove(booking);
+        }
+
+        _context.Events.Remove(ev);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 }
