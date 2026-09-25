@@ -25,6 +25,22 @@ public class EventsController : ControllerBase
         _logger = logger;
     }
 
+    private static bool _schemaEnsured = false;
+    private async Task EnsureSchemaAsync()
+    {
+        if (_schemaEnsured) return;
+        try
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""PreferredLocation"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
+            ");
+            _schemaEnsured = true;
+        }
+        catch { }
+    }
+
     // 1. POST: api/events (Create Event Request & Auto-Trigger Agentic AI)
     [AllowAnonymous]
     [HttpPost]
@@ -32,6 +48,8 @@ public class EventsController : ControllerBase
     {
         try
         {
+            await EnsureSchemaAsync();
+
             // Extract customer ID securely from token, payload, or fallback
             Guid customerId = Guid.Empty;
             if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
