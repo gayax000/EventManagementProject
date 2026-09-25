@@ -445,14 +445,14 @@ public class EventsController : ControllerBase
 
             var query = _context.Events.AsQueryable();
 
-            // If customerId is provided, filter strictly by this customer if they have events; otherwise fallback to all events in database
+            // Include customer's specific events plus any sample/fallback customer events so created events are always visible
             if (customerId.HasValue && customerId.Value != Guid.Empty)
             {
-                var userEventsCount = await query.CountAsync(e => e.CustomerId == customerId.Value);
-                if (userEventsCount > 0)
-                {
-                    query = query.Where(e => e.CustomerId == customerId.Value);
-                }
+                var sampleCust = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
+                var sampleId = sampleCust?.UserId ?? Guid.Empty;
+                var defaultId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+                query = query.Where(e => e.CustomerId == customerId.Value || e.CustomerId == sampleId || e.CustomerId == defaultId || e.CustomerId == Guid.Empty);
             }
 
             var events = await query
