@@ -100,10 +100,30 @@ public class EventsController : ControllerBase
             }
             else if (!venueId.HasValue && !string.IsNullOrEmpty(dto.PreferredLocation))
             {
-                var targetLoc = dto.PreferredLocation.ToLower();
-                var matchedVenue = await _context.Venues.FirstOrDefaultAsync(v => 
-                    (v.Name != null && v.Name.ToLower().Contains(targetLoc)) ||
-                    (v.LocationAddress != null && v.LocationAddress.ToLower().Contains(targetLoc)));
+                var cleanTarget = System.Text.RegularExpressions.Regex.Replace(dto.PreferredLocation.ToLower(), @"[^\w\s]", "");
+                var keywords = cleanTarget.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Where(k => k.Length > 2 && k != "district" && k != "province" && k != "colombo" && k != "kandy" && k != "galle" && k != "hotel" && k != "resort")
+                    .ToList();
+
+                var allVenues = await _context.Venues.ToListAsync();
+                Venue? matchedVenue = null;
+
+                if (keywords.Count > 0)
+                {
+                    matchedVenue = allVenues.FirstOrDefault(v => {
+                        var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
+                        return keywords.All(k => vClean.Contains(k)) || keywords.Any(k => vClean.Contains(k));
+                    });
+                }
+
+                if (matchedVenue == null)
+                {
+                    matchedVenue = allVenues.FirstOrDefault(v => {
+                        var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
+                        return cleanTarget.Contains(vClean) || vClean.Contains(cleanTarget);
+                    });
+                }
+
                 if (matchedVenue != null)
                 {
                     venueId = matchedVenue.VenueId;

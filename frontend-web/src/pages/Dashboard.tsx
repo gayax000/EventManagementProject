@@ -474,6 +474,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const hasSpecialRequests = Boolean(ev.additionalDetails && ev.additionalDetails.trim().length > 0);
     const otherCost = hasSpecialRequests ? (customSpecialAllocation !== undefined ? customSpecialAllocation : specialAllocation) : 0;
 
+    let refreshmentsCost = 0;
+    const tableRefreshments = ev.tableRefreshments || [];
+    tableRefreshments.forEach(item => {
+      let itemPerHead = 0;
+      if (item.includes('Mocktail') || item.includes('Drink')) {
+        itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
+      } else if (item.includes('Snack') || item.includes('Savory')) {
+        itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
+      } else if (item.includes('Dessert') || item.includes('Sweet')) {
+        itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
+      } else if (item.includes('Tea') || item.includes('Coffee')) {
+        itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
+      } else if (item.includes('Midnight') || item.includes('Action')) {
+        itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
+      }
+      refreshmentsCost += (ev.guestCount || 100) * itemPerHead;
+    });
+
     return {
       hasSounds, soundsCost, soundsName,
       hasDeco, decoCost, decoName,
@@ -481,6 +499,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       hasCake, cakeCost, cakeLabel,
       hasTransport, transportCost, transportName,
       hasSpecialRequests, otherCost,
+      refreshmentsCost,
     };
   };
 
@@ -530,7 +549,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     }
 
-    const computedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
+    const computedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
 
     let computedFinalTotal = Math.max(0, computedSubtotal - specialDiscount);
     let targetStatus = 'ApprovedByManager';
@@ -543,6 +562,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
       `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
       `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
     ];
+
+    if (selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0) {
+      const budget = Number(selectedEvent.budgetLimit) || 1000000;
+      selectedEvent.tableRefreshments.forEach(item => {
+        let itemPerHead = 0;
+        if (item.includes('Mocktail') || item.includes('Drink')) {
+          itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
+        } else if (item.includes('Snack') || item.includes('Savory')) {
+          itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
+        } else if (item.includes('Dessert') || item.includes('Sweet')) {
+          itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
+        } else if (item.includes('Tea') || item.includes('Coffee')) {
+          itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
+        } else if (item.includes('Midnight') || item.includes('Action')) {
+          itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
+        }
+        const itemCost = selectedEvent.guestCount * itemPerHead;
+        planItems.push(`${item} (${selectedEvent.guestCount} guests @ Rs. ${itemPerHead.toLocaleString()}) = Rs. ${itemCost.toLocaleString()}`);
+      });
+    }
+
     if (alloc.hasSounds) planItems.push(`${alloc.soundsName} (Rs. ${alloc.soundsCost.toLocaleString()})`);
     if (alloc.hasDeco) planItems.push(`${alloc.decoName} (Rs. ${alloc.decoCost.toLocaleString()})`);
     if (alloc.hasPhoto) planItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
@@ -1145,7 +1185,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
                       <div>
                         <span className="text-slate-700 font-medium">
-                          🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
+                          🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : (selectedEvent.venueName ? `${selectedEvent.venueName} Rental` : "Selected Venue Rental")}
                         </span>
                         <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
                       </div>
@@ -1161,6 +1201,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                       <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                     </div>
+
+                    {selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.map((item, idx) => {
+                      const budget = Number(selectedEvent.budgetLimit) || 1000000;
+                      let itemPerHead = 0;
+                      if (item.includes('Mocktail') || item.includes('Drink')) {
+                        itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
+                      } else if (item.includes('Snack') || item.includes('Savory')) {
+                        itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
+                      } else if (item.includes('Dessert') || item.includes('Sweet')) {
+                        itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
+                      } else if (item.includes('Tea') || item.includes('Coffee')) {
+                        itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
+                      } else if (item.includes('Midnight') || item.includes('Action')) {
+                        itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
+                      }
+                      const itemCost = (selectedEvent.guestCount || 100) * itemPerHead;
+                      return (
+                        <div key={idx} className="flex justify-between items-center text-sm py-2 px-3 bg-purple-50/70 rounded-lg border border-purple-200">
+                          <div>
+                            <span className="text-purple-950 font-medium">🍹 {item} ({selectedEvent.guestCount} Guests x Rs. {itemPerHead.toLocaleString()})</span>
+                            <p className="text-[11px] text-purple-700">Selected Food Menu Refreshment Station</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {itemCost.toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
 
                     {alloc.hasSounds && (
                       <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">

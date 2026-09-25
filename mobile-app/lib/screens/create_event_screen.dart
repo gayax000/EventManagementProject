@@ -1787,6 +1787,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               if (_selectedServices.isNotEmpty)
                 _buildSummaryRow('Services (${_selectedServices.length}):', _selectedServices.join(' • ')),
 
+              if (_selectedTableRefreshments.isNotEmpty)
+                _buildSummaryRow('Food Refreshments (${_selectedTableRefreshments.length}):', _selectedTableRefreshments.join(' • ')),
+
               if (_selectedImages.isNotEmpty)
                 _buildSummaryRow('Inspiration Photos:', '${_selectedImages.length} photo(s) attached'),
 

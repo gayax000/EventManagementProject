@@ -1708,160 +1708,105 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   }
 
   Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
-    final Map<String, double> parsedCosts = {};
+    final List<Map<String, dynamic>> items = [];
+
     if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
       try {
         final dynamic decoded = jsonDecode(proposal.generatedPlan!);
         if (decoded is List) {
-          for (var item in decoded) {
-            final str = item.toString();
-            final matches = RegExp(r'(?:Rs\.|LKR)\s*([\d,]+)').allMatches(str);
-            if (matches.isNotEmpty) {
-              final val = double.tryParse(matches.last.group(1)!.replaceAll(',', '')) ?? 0.0;
-              final lower = str.toLowerCase();
-              if (lower.contains('photo')) {
-                parsedCosts['photo'] = val;
-              } else if (lower.contains('sound') || lower.contains('audio')) {
-                parsedCosts['sound'] = val;
-              } else if (lower.contains('deco') || lower.contains('floral') || lower.contains('stage')) {
-                parsedCosts['deco'] = val;
-              } else if (lower.contains('cake') || lower.contains('gateau')) {
-                parsedCosts['cake'] = val;
-              } else if (lower.contains('transport') || lower.contains('sedan') || lower.contains('car') || lower.contains('van')) {
-                parsedCosts['transport'] = val;
-              } else if (lower.contains('special') || lower.contains('request')) {
-                parsedCosts['special'] = val;
-              } else if (lower.contains('tent') || lower.contains('safeguard') || lower.contains('canopy') || lower.contains('marquee')) {
-                parsedCosts['tent'] = val;
-              } else if (lower.contains('venue') || lower.contains('hall')) {
-                parsedCosts['hall'] = val;
-              } else if (lower.contains('buffet') || lower.contains('catering')) {
-                parsedCosts['catering'] = val;
+          for (var rawItem in decoded) {
+            final str = rawItem.toString();
+            if (str.startsWith('Weather Assessment') || str.startsWith('No Marquee Tent') || str.startsWith('Event Session')) {
+              continue;
+            }
+
+            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*([\d,]+)|\((?:Rs\.|LKR)\s*([\d,]+)\)').firstMatch(str);
+            if (match != null) {
+              final valStr = match.group(1) ?? match.group(2);
+              final cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
+
+              String label = str
+                  .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*[\d,]+'), '')
+                  .replaceAll(RegExp(r'\((?:Rs\.|LKR)\s*[\d,]+\)'), '')
+                  .trim();
+
+              if (label.startsWith('Catering Style:')) {
+                label = label.replaceFirst('Catering Style:', '').trim();
               }
+
+              items.add({
+                'label': label,
+                'cost': cost,
+                'isSpecial': label.toLowerCase().contains('special client request'),
+              });
             }
           }
         }
       } catch (_) {}
     }
 
-    final double hallPrice = parsedCosts['hall'] ?? proposal.hallRentalPrice ?? 350000.0;
-    double cateringPrice = parsedCosts['catering'] ?? ((proposal.perPlatePrice ?? 5000.0) * proposal.guestCount);
-    if (cateringPrice < 20000 && proposal.guestCount > 1) {
-      cateringPrice = cateringPrice * proposal.guestCount;
-    }
-    
-    final bool isAutoFit = proposal.status == 'ApprovedByManager' || proposal.status == 'Confirmed' || proposal.estimatedTotalCost <= proposal.budgetLimit;
+    if (items.isEmpty) {
+      final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
+      double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
 
-    final List<Map<String, dynamic>> items = [];
-
-    // 1. Venue Rental
-    items.add({
-      'icon': '',
-      'label': '${proposal.banquetHallName ?? proposal.venueName} Rental',
-      'cost': hallPrice,
-      'isSpecial': false,
-    });
-
-    // 2. Hotel Catering
-    items.add({
-      'icon': '',
-      'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
-      'cost': cateringPrice,
-      'isSpecial': false,
-    });
-
-    // 3. Selected Services
-    for (var s in proposal.selectedServices) {
-      String desc = s;
-      double cost = 100000;
-      String icon = '';
-      if (s.toLowerCase().contains('photo')) {
-        icon = '';
-        desc = 'Photography & 4K Video';
-        cost = parsedCosts['photo'] ?? (isAutoFit ? 60000.0 : (proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0));
-      } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-        icon = '';
-        desc = 'Sound & Intelligent Lighting';
-        cost = parsedCosts['sound'] ?? (isAutoFit ? 80000.0 : (proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0));
-      } else if (s.toLowerCase().contains('deco')) {
-        icon = '';
-        desc = 'Stage Styling & Theme Decor';
-        cost = parsedCosts['deco'] ?? (isAutoFit ? 50000.0 : (proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0));
-      } else if (s.toLowerCase().contains('cake')) {
-        icon = '';
-        desc = 'Luxury Celebration Cake';
-        cost = parsedCosts['cake'] ?? (isAutoFit ? 20000.0 : (proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0));
-      } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-        icon = '';
-        desc = 'Chauffeur VIP Transport';
-        cost = parsedCosts['transport'] ?? (isAutoFit ? 35000.0 : (proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0));
-      }
       items.add({
-        'icon': icon,
-        'label': desc,
-        'cost': cost,
+        'label': '${proposal.banquetHallName ?? proposal.venueName} Rental',
+        'cost': hallPrice,
         'isSpecial': false,
       });
-    }
 
-    // 3.5 Food Menu Refreshments & Add-ons
-    if (proposal.tableRefreshments.isNotEmpty) {
-      for (var r in proposal.tableRefreshments) {
-        double rCostPerHead = 0.0;
-        if (r.contains('Mocktail') || r.contains('Drink')) {
-          rCostPerHead = proposal.budgetLimit >= 2000000 ? 800.0 : (proposal.budgetLimit >= 1000000 ? 500.0 : 350.0);
-        } else if (r.contains('Snack') || r.contains('Savory')) {
-          rCostPerHead = proposal.budgetLimit >= 2000000 ? 950.0 : (proposal.budgetLimit >= 1000000 ? 650.0 : 450.0);
-        } else if (r.contains('Dessert') || r.contains('Sweet')) {
-          rCostPerHead = proposal.budgetLimit >= 2000000 ? 1200.0 : (proposal.budgetLimit >= 1000000 ? 800.0 : 500.0);
-        } else if (r.contains('Tea') || r.contains('Coffee')) {
-          rCostPerHead = proposal.budgetLimit >= 2000000 ? 450.0 : (proposal.budgetLimit >= 1000000 ? 300.0 : 200.0);
-        } else if (r.contains('Midnight') || r.contains('Action')) {
-          rCostPerHead = proposal.budgetLimit >= 2000000 ? 1100.0 : (proposal.budgetLimit >= 1000000 ? 750.0 : 500.0);
-        }
-
-        double totalRCost = rCostPerHead * proposal.guestCount;
-        items.add({
-          'icon': '🍹',
-          'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
-          'cost': totalRCost,
-          'isSpecial': false,
-        });
-      }
-    }
-
-    // 4. Special Client Request
-    if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
-      double specialCost = parsedCosts['special'] ?? proposal.specialRequestAllocation ?? 0.0;
       items.add({
-        'icon': '',
-        'label': 'Special Request (${proposal.additionalDetails})',
-        'cost': specialCost,
-        'isSpecial': true,
+        'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
+        'cost': cateringPrice,
+        'isSpecial': false,
       });
-    }
 
-    // 5. Outdoor Weather Safeguard Tent
-    if (proposal.isOutdoor) {
-      double tentCost = parsedCosts['tent'] ?? (isAutoFit ? 100000.0 : 150000.0);
-      if (tentCost > 0) {
+      for (var s in proposal.selectedServices) {
+        String desc = s;
+        double cost = 100000;
+        if (s.toLowerCase().contains('photo')) {
+          desc = 'Master Photography & 4K Highlights Video';
+          cost = proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0;
+        } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
+          desc = 'Concert Line-Array Sound & Digital Mixer';
+          cost = proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0;
+        } else if (s.toLowerCase().contains('deco')) {
+          desc = 'Stage Styling & Theme Decor';
+          cost = proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0;
+        } else if (s.toLowerCase().contains('cake')) {
+          desc = 'Luxury Celebration Cake';
+          cost = proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0;
+        } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
+          desc = 'Chauffeur VIP Transport';
+          cost = proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0;
+        }
         items.add({
-          'icon': '',
-          'label': 'Waterproof Weather Safeguard Tent',
-          'cost': tentCost,
+          'label': desc,
+          'cost': cost,
           'isSpecial': false,
         });
       }
-    }
 
-    // Balance check against estimatedTotalCost if target total is set
-    double currentItemsSum = items.fold(0.0, (sum, item) => sum + (item['cost'] as double));
-    if (proposal.estimatedTotalCost > 0 && (currentItemsSum - proposal.estimatedTotalCost).abs() > 0.01) {
-      double diff = proposal.estimatedTotalCost - currentItemsSum;
-      for (var item in items) {
-        if ((item['label'] as String).contains('Sound') || (item['label'] as String).contains('Photography') || (item['label'] as String).contains('Decor')) {
-          item['cost'] = (item['cost'] as double) + diff;
-          break;
+      if (proposal.tableRefreshments.isNotEmpty) {
+        for (var r in proposal.tableRefreshments) {
+          double rCostPerHead = 0.0;
+          if (r.contains('Mocktail') || r.contains('Drink')) {
+            rCostPerHead = proposal.budgetLimit >= 2000000 ? 800.0 : (proposal.budgetLimit >= 1000000 ? 500.0 : 350.0);
+          } else if (r.contains('Snack') || r.contains('Savory')) {
+            rCostPerHead = proposal.budgetLimit >= 2000000 ? 950.0 : (proposal.budgetLimit >= 1000000 ? 650.0 : 450.0);
+          } else if (r.contains('Dessert') || r.contains('Sweet')) {
+            rCostPerHead = proposal.budgetLimit >= 2000000 ? 1200.0 : (proposal.budgetLimit >= 1000000 ? 800.0 : 500.0);
+          } else if (r.contains('Tea') || r.contains('Coffee')) {
+            rCostPerHead = proposal.budgetLimit >= 2000000 ? 450.0 : (proposal.budgetLimit >= 1000000 ? 300.0 : 200.0);
+          } else if (r.contains('Midnight') || r.contains('Action')) {
+            rCostPerHead = proposal.budgetLimit >= 2000000 ? 1100.0 : (proposal.budgetLimit >= 1000000 ? 750.0 : 500.0);
+          }
+
+          items.add({
+            'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
+            'cost': rCostPerHead * proposal.guestCount,
+            'isSpecial': false,
+          });
         }
       }
     }
@@ -1882,7 +1827,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    "${item['icon']} ${item['label']}".trim(), 
+                    item['label'].toString().trim(),
                     softWrap: true,
                     style: TextStyle(
                       color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF475569), 
