@@ -301,26 +301,21 @@ public class AiWorkflowService : IAiWorkflowService
             }
         }
 
-        // 5. Luxury Bridal & VIP Transport
+        // 5. Luxury Bridal Transport (Strictly 4-Seater Executive Sedan for Weddings)
         decimal transportCost = 0m;
-        string transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan";
+        string transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan (4-Seater)";
         if (hasTransport)
         {
-            if (eventType.Contains("wedding"))
+            if (eventType.Contains("wedding") || eventType.Contains("engagement"))
             {
-                if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / Jaguar Bridal Car"; }
-                else if (budget >= 1000000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan"; }
-                else { transportCost = 50000m; transportName = "BMW 5-Series Executive Bridal Sedan"; }
-            }
-            else if (eventType.Contains("gala") || eventType.Contains("award") || eventType.Contains("launch"))
-            {
-                transportCost = 50000m;
-                transportName = "BMW 5-Series Executive VIP Sedan";
+                if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / Jaguar Executive Sedan (4-Seater)"; }
+                else if (budget >= 1000000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan (4-Seater)"; }
+                else { transportCost = 50000m; transportName = "BMW 5-Series Executive Bridal Sedan (4-Seater)"; }
             }
             else
             {
-                transportCost = 35000m;
-                transportName = "Luxury High-Roof VIP Passenger Van (14-Seater)";
+                transportCost = 0m;
+                transportName = "Not Applicable (Bridal Transport reserved for Weddings)";
             }
         }
 

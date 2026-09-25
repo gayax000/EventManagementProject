@@ -46,53 +46,43 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _budgetController = TextEditingController(text: '1500000');
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 45));
 
-  // Dynamic Session & Catering Options
+  // Dynamic Session, Catering & Food Checkbox Options
   String _selectedSession = 'DayLunch'; // DayLunch, NightDinner, EveningHighTea
   String _selectedCateringStyle = 'InternationalBuffet'; // InternationalBuffet, OutdoorBBQ, HighTeaCanape, SriLankanHeritage
-  final Set<String> _selectedTableRefreshments = {
-    'Welcome Mocktails',
-    'Boiled Chickpeas (Kadala)',
-    'Fresh Sliced Apple Platter',
-    'Salted Cashews & Roasted Nuts'
-  };
+  
+  bool _hasWelcomeMocktails = true;
+  bool _hasTableRefreshments = true;
+  bool _hasDesserts = true;
+  bool _hasCoffeeBar = true;
+  bool _hasMidnightSnack = false;
 
   void _applyOccasionAutoPreset(String occasion) {
     final occ = occasion.toLowerCase();
     _selectedServices.clear();
-    _selectedTableRefreshments.clear();
+
+    // Reset Food Addon Checkboxes
+    _hasWelcomeMocktails = true;
+    _hasTableRefreshments = true;
+    _hasDesserts = true;
+    _hasCoffeeBar = true;
+    _hasMidnightSnack = _selectedSession == 'NightDinner';
 
     if (occ.contains('wedding')) {
       _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering', 'Bridal Transport'});
       _selectedCateringStyle = 'InternationalBuffet';
-      _selectedTableRefreshments.addAll({
-        'Welcome Mocktails',
-        'Boiled Chickpeas (Kadala)',
-        'Fresh Sliced Apple Platter',
-        'Salted Cashews & Roasted Nuts'
-      });
     } else if (occ.contains('birthday')) {
       _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting', 'Cake Tiering'});
+      _selectedServices.remove('Bridal Transport');
       _selectedCateringStyle = 'OutdoorBBQ';
-      _selectedTableRefreshments.addAll({
-        'Welcome Mocktails',
-        'Finger Sandwiches & Savory Bites',
-        'Salted Cashews & Roasted Nuts'
-      });
     } else if (occ.contains('engagement') || occ.contains('anniversary')) {
       _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering'});
+      if (occ.contains('engagement')) _selectedServices.add('Bridal Transport');
+      else _selectedServices.remove('Bridal Transport');
       _selectedCateringStyle = 'HighTeaCanape';
-      _selectedTableRefreshments.addAll({
-        'Welcome Mocktails',
-        'Fresh Sliced Apple Platter',
-        'Finger Sandwiches & Savory Bites'
-      });
     } else {
       _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting'});
+      _selectedServices.remove('Bridal Transport');
       _selectedCateringStyle = 'InternationalBuffet';
-      _selectedTableRefreshments.addAll({
-        'Welcome Mocktails',
-        'Salted Cashews & Roasted Nuts'
-      });
     }
   }
 
@@ -408,8 +398,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         customServiceNotes: customNotes.isNotEmpty ? customNotes : null,
         inspirationImages: base64Images.isNotEmpty ? base64Images : null,
         eventSession: _selectedSession,
-        cateringStyle: _selectedCateringStyle,
-        tableRefreshments: _selectedTableRefreshments.toList(),
+        tableRefreshments: [
+          if (_hasWelcomeMocktails) 'Welcome Mocktails & Refreshing Drinks Bar',
+          if (_hasTableRefreshments) 'Table Refreshments & Savory Snacks',
+          if (_hasDesserts) 'Desserts & Sweet Counters',
+          if (_hasCoffeeBar) 'Ceylon Tea & Artisanal Coffee Bar',
+          if (_hasMidnightSnack) 'Midnight Snack / Live Food Action Station',
+        ],
       );
 
       if (mounted) {
@@ -1535,32 +1530,52 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 }).toList(),
               ),
               const SizedBox(height: 16),
-              const Text('Table Refreshments & Welcome Refreshments', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
+              const Text('Event Food & Refreshment Add-Ons (Smart Budget Engine)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
               const SizedBox(height: 6),
-              Column(
-                children: [
-                  'Welcome Mocktails',
-                  'Boiled Chickpeas (Kadala)',
-                  'Fresh Sliced Apple Platter',
-                  'Salted Cashews & Roasted Nuts',
-                  'Finger Sandwiches & Savory Bites'
-                ].map((item) {
-                  final checked = _selectedTableRefreshments.contains(item);
-                  return CheckboxListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(item, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
-                    activeColor: const Color(0xFF2563EB),
-                    checkColor: Colors.white,
-                    value: checked,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == true) _selectedTableRefreshments.add(item);
-                        else _selectedTableRefreshments.remove(item);
-                      });
-                    },
-                  );
-                }).toList(),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('🍹 Welcome Mocktails & Refreshing Drinks Bar', style: TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                activeColor: const Color(0xFF2563EB),
+                checkColor: Colors.white,
+                value: _hasWelcomeMocktails,
+                onChanged: (val) => setState(() => _hasWelcomeMocktails = val ?? false),
+              ),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('🥪 Table Refreshments & Savory Snacks', style: TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                activeColor: const Color(0xFF2563EB),
+                checkColor: Colors.white,
+                value: _hasTableRefreshments,
+                onChanged: (val) => setState(() => _hasTableRefreshments = val ?? false),
+              ),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('🍨 Desserts & Sweet Counters', style: TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                activeColor: const Color(0xFF2563EB),
+                checkColor: Colors.white,
+                value: _hasDesserts,
+                onChanged: (val) => setState(() => _hasDesserts = val ?? false),
+              ),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('☕ Ceylon Tea & Artisanal Coffee Bar', style: TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                activeColor: const Color(0xFF2563EB),
+                checkColor: Colors.white,
+                value: _hasCoffeeBar,
+                onChanged: (val) => setState(() => _hasCoffeeBar = val ?? false),
+              ),
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('🍕 Midnight Snack / Live Food Action Station', style: TextStyle(color: Color(0xFF0F172A), fontSize: 12.5, fontWeight: FontWeight.w500)),
+                activeColor: const Color(0xFF2563EB),
+                checkColor: Colors.white,
+                value: _hasMidnightSnack,
+                onChanged: (val) => setState(() => _hasMidnightSnack = val ?? false),
               ),
             ],
           ),
@@ -1583,7 +1598,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   _buildServiceFilterChip('Sound and Lighting', Icons.speaker),
                   _buildServiceFilterChip('Decorations', Icons.park),
                   _buildServiceFilterChip(_dynamicCakeLabel, Icons.cake),
-                  _buildServiceFilterChip('Bridal Transport', Icons.directions_car),
+                  if (_selectedEventType == 'Wedding' || _selectedEventType == 'Engagement')
+                    _buildServiceFilterChip('Bridal Transport', Icons.directions_car),
                 ],
               ),
             ],
