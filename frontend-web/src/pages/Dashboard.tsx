@@ -327,10 +327,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
-    const services = ev.selectedServices || ['Photography', 'Sound and Lighting', 'Decorations'];
+    const services = ev.selectedServices || [];
+    const planText = (ev.generatedPlan || (ev.planItems ? ev.planItems.join(' ') : '') || '').toLowerCase();
 
     // 1. Sound & Lighting
-    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio') || s.toLowerCase().includes('mixer'));
+    const hasSounds = services.length === 0 || 
+      services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio') || s.toLowerCase().includes('mixer')) ||
+      planText.includes('sound') || planText.includes('audio') || planText.includes('mixer');
     let soundsCost = 0;
     let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
     if (hasSounds) {
@@ -353,7 +356,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 2. Decorations
-    const hasDeco = services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('stage') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('theme'));
+    const hasDeco = services.length === 0 ||
+      services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('stage') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('theme')) ||
+      planText.includes('deco') || planText.includes('stage') || planText.includes('floral');
     let decoCost = 0;
     let decoName = 'Floral Stage & Tablescape Theme Decoration';
     if (hasDeco) {
@@ -376,7 +381,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 3. Photography & Media
-    const hasPhoto = services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('video') || s.toLowerCase().includes('media') || s.toLowerCase().includes('4k'));
+    const hasPhoto = services.length === 0 ||
+      services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('video') || s.toLowerCase().includes('media') || s.toLowerCase().includes('4k')) ||
+      planText.includes('photo') || planText.includes('video') || planText.includes('media');
     let photoCost = 0;
     let photoName = 'Professional Event Coverage';
     if (hasPhoto) {
@@ -399,7 +406,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 4. Celebration Cakes
-    const hasCake = services.some(s => s.toLowerCase().includes('cake') || s.toLowerCase().includes('confectionery') || s.toLowerCase().includes('tier'));
+    const hasCake = services.some(s => s.toLowerCase().includes('cake') || s.toLowerCase().includes('confectionery') || s.toLowerCase().includes('tier')) ||
+      planText.includes('cake') || planText.includes('gateau') || planText.includes('tier') ||
+      (eventType.includes('wedding') || eventType.includes('birthday') || eventType.includes('anniversary') || eventType.includes('engagement'));
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
     if (hasCake) {
@@ -455,7 +464,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       s.toLowerCase().includes('sedan') ||
       s.toLowerCase().includes('vehicle') ||
       s.toLowerCase().includes('chauffeur')
-    );
+    ) || planText.includes('transport') || planText.includes('sedan') || planText.includes('chauffeur') || planText.includes('car') || planText.includes('vehicle') ||
+      (eventType.includes('wedding') || eventType.includes('engagement') || eventType.includes('gala'));
     let transportCost = 0;
     let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
     if (hasTransport) {
