@@ -32,20 +32,56 @@ class EventSummary {
   });
 
   factory EventSummary.fromJson(Map<String, dynamic> json) {
+    int parsedGuestCount = 0;
+    final rawGuests = json['guestCount'];
+    if (rawGuests is int) {
+      parsedGuestCount = rawGuests;
+    } else if (rawGuests != null) {
+      parsedGuestCount = int.tryParse(rawGuests.toString()) ?? 0;
+    }
+
+    double parsedBudget = 0.0;
+    final rawBudget = json['budgetLimit'];
+    if (rawBudget is num) {
+      parsedBudget = rawBudget.toDouble();
+    } else if (rawBudget != null) {
+      parsedBudget = double.tryParse(rawBudget.toString()) ?? 0.0;
+    }
+
+    double? parsedEstCost;
+    final rawEstCost = json['estimatedTotalCost'];
+    if (rawEstCost is num) {
+      parsedEstCost = rawEstCost.toDouble();
+    } else if (rawEstCost != null) {
+      parsedEstCost = double.tryParse(rawEstCost.toString());
+    }
+
+    DateTime parsedTarget = DateTime.now();
+    final rawTarget = json['targetDate']?.toString();
+    if (rawTarget != null && rawTarget.isNotEmpty) {
+      parsedTarget = DateTime.tryParse(rawTarget) ?? DateTime.now();
+    }
+
+    DateTime parsedCreated = DateTime.now();
+    final rawCreated = json['createdAt']?.toString();
+    if (rawCreated != null && rawCreated.isNotEmpty) {
+      parsedCreated = DateTime.tryParse(rawCreated) ?? DateTime.now();
+    }
+
     return EventSummary(
       eventId: json['eventId']?.toString() ?? '',
-      title: json['title'] ?? 'Untitled Event',
+      title: json['title']?.toString() ?? 'Untitled Event',
       eventType: json['eventType']?.toString(),
-      targetDate: DateTime.tryParse(json['targetDate'] ?? '') ?? DateTime.now(),
-      guestCount: json['guestCount'] ?? 0,
-      budgetLimit: (json['budgetLimit'] as num?)?.toDouble() ?? 0.0,
-      isOutdoor: json['isOutdoor'] == true,
+      targetDate: parsedTarget,
+      guestCount: parsedGuestCount,
+      budgetLimit: parsedBudget,
+      isOutdoor: json['isOutdoor'] == true || json['isOutdoor']?.toString().toLowerCase() == 'true',
       additionalDetails: json['additionalDetails']?.toString(),
-      status: json['status'] ?? 'UnderReview',
-      venueName: json['venueName'],
-      banquetHallName: json['banquetHallName'],
-      estimatedTotalCost: (json['estimatedTotalCost'] as num?)?.toDouble(),
-      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      status: json['status']?.toString() ?? 'UnderReview',
+      venueName: json['venueName']?.toString(),
+      banquetHallName: json['banquetHallName']?.toString(),
+      estimatedTotalCost: parsedEstCost,
+      createdAt: parsedCreated,
     );
   }
 }

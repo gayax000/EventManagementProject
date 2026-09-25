@@ -106,7 +106,9 @@ class AuthService {
       if (email != null && email.isNotEmpty) {
         await _secureStorage.write(key: _userEmailKey, value: email);
       }
-    } catch (_) {
+    } catch (_) {}
+
+    try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
       await prefs.setString(_userRoleKey, role);
@@ -117,7 +119,7 @@ class AuthService {
       if (email != null && email.isNotEmpty) {
         await prefs.setString(_userEmailKey, email);
       }
-    }
+    } catch (_) {}
   }
 
   static Future<String?> getToken() async {
