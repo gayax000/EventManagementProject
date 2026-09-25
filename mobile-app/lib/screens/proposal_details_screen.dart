@@ -269,7 +269,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Failed to load proposal details.", style: TextStyle(color: Colors.white70)),
+                      const Text("Failed to load proposal details.", style: TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 6),
+                      const Text("Please check network or tap Retry below.", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
                       const SizedBox(height: 12),
                       ElevatedButton(onPressed: _loadProposal, child: const Text("Retry")),
                     ],

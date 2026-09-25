@@ -179,37 +179,91 @@ class EventProposalDetail {
       }
     }
 
+    int parsedGuestCount = 0;
+    final rawGuests = json['guestCount'];
+    if (rawGuests is int) {
+      parsedGuestCount = rawGuests;
+    } else if (rawGuests != null) {
+      parsedGuestCount = int.tryParse(rawGuests.toString()) ?? 0;
+    }
+
+    double parsedBudget = 0.0;
+    final rawBudget = json['budgetLimit'];
+    if (rawBudget is num) {
+      parsedBudget = rawBudget.toDouble();
+    } else if (rawBudget != null) {
+      parsedBudget = double.tryParse(rawBudget.toString()) ?? 0.0;
+    }
+
+    double parsedEstCost = 0.0;
+    final rawEstCost = json['estimatedTotalCost'];
+    if (rawEstCost is num) {
+      parsedEstCost = rawEstCost.toDouble();
+    } else if (rawEstCost != null) {
+      parsedEstCost = double.tryParse(rawEstCost.toString()) ?? 0.0;
+    }
+
+    double? parsedHallRental;
+    final rawHallRental = json['hallRentalPrice'];
+    if (rawHallRental is num) {
+      parsedHallRental = rawHallRental.toDouble();
+    } else if (rawHallRental != null) {
+      parsedHallRental = double.tryParse(rawHallRental.toString());
+    }
+
+    double? parsedPerPlate;
+    final rawPerPlate = json['perPlatePrice'];
+    if (rawPerPlate is num) {
+      parsedPerPlate = rawPerPlate.toDouble();
+    } else if (rawPerPlate != null) {
+      parsedPerPlate = double.tryParse(rawPerPlate.toString());
+    }
+
+    double? parsedSpecialAlloc;
+    final rawSpecialAlloc = json['specialRequestAllocation'];
+    if (rawSpecialAlloc is num) {
+      parsedSpecialAlloc = rawSpecialAlloc.toDouble();
+    } else if (rawSpecialAlloc != null) {
+      parsedSpecialAlloc = double.tryParse(rawSpecialAlloc.toString());
+    }
+
+    DateTime parsedTarget = DateTime.now();
+    final rawTarget = json['targetDate']?.toString();
+    if (rawTarget != null && rawTarget.isNotEmpty) {
+      parsedTarget = DateTime.tryParse(rawTarget) ?? DateTime.now();
+    }
+
     return EventProposalDetail(
       eventId: json['eventId']?.toString() ?? '',
-      title: json['title'] ?? 'Untitled Event',
+      title: json['title']?.toString() ?? 'Untitled Event',
       eventType: json['eventType']?.toString() ?? 'Wedding',
-      targetDate: DateTime.tryParse(json['targetDate'] ?? '') ?? DateTime.now(),
-      guestCount: json['guestCount'] ?? 0,
-      budgetLimit: (json['budgetLimit'] as num?)?.toDouble() ?? 0.0,
-      isOutdoor: json['isOutdoor'] == true,
+      targetDate: parsedTarget,
+      guestCount: parsedGuestCount,
+      budgetLimit: parsedBudget,
+      isOutdoor: json['isOutdoor'] == true || json['isOutdoor']?.toString().toLowerCase() == 'true',
       additionalDetails: json['additionalDetails']?.toString(),
       eventSession: json['eventSession']?.toString(),
       cateringStyle: json['cateringStyle']?.toString(),
       tableRefreshments: refreshments,
       revisionNotes: json['revisionNotes']?.toString(),
-      status: json['status'] ?? 'PendingManagerApproval',
-      venueName: json['venueName'] ?? 'Selected Luxury Resort',
+      status: json['status']?.toString() ?? 'PendingManagerApproval',
+      venueName: json['venueName']?.toString() ?? 'Selected Luxury Resort',
       banquetHallName: json['banquetHallName']?.toString(),
-      hallRentalPrice: (json['hallRentalPrice'] as num?)?.toDouble(),
-      perPlatePrice: (json['perPlatePrice'] as num?)?.toDouble(),
+      hallRentalPrice: parsedHallRental,
+      perPlatePrice: parsedPerPlate,
       selectedServices: services,
       inspirationImages: images,
-      estimatedTotalCost: (json['estimatedTotalCost'] as num?)?.toDouble() ?? 0.0,
+      estimatedTotalCost: parsedEstCost,
       weatherAssessment: json['weatherAssessment']?.toString(),
       generatedPlan: json['generatedPlan']?.toString(),
       bookingRef: json['bookingRef']?.toString(),
       qrCodeData: json['qrCodeData']?.toString(),
-      isConfirmed: json['isConfirmed'] == true,
+      isConfirmed: json['isConfirmed'] == true || json['isConfirmed']?.toString().toLowerCase() == 'true',
       bookingId: json['bookingId']?.toString(),
       paymentStatus: json['paymentStatus']?.toString(),
       slipImageUrl: json['slipImageUrl']?.toString(),
       invoiceNumber: json['invoiceNumber']?.toString(),
-      specialRequestAllocation: (json['specialRequestAllocation'] as num?)?.toDouble(),
+      specialRequestAllocation: parsedSpecialAlloc,
     );
   }
 }

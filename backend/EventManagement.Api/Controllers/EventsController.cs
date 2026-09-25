@@ -367,7 +367,7 @@ public class EventsController : ControllerBase
             perPlatePrice = ev.BanquetHall?.PerPlatePrice,
             selectedServices = selectedServices,
             inspirationImages = inspirationImages,
-            inspirationImageUrl = ev.InspirationImageUrl,
+            inspirationImageUrl = (string?)null,
             estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
             weatherAssessment = aiState?.WeatherAssessmentJson,
             generatedPlan = aiState?.GeneratedPlanJson,
