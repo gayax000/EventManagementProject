@@ -466,7 +466,7 @@ public class EventsController : ControllerBase
                     BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
                     HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,
                     PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
-                    InspirationImageUrl = ev.InspirationImageUrl,
+                    InspirationImageUrl = null,
                     EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                     CreatedAt = ev.CreatedAt
                 })
@@ -474,7 +474,7 @@ public class EventsController : ControllerBase
 
             foreach (var item in events)
             {
-                item.InspirationImages = ParseInspirationImages(item.InspirationImageUrl);
+                item.InspirationImages = new List<string>();
                 var evEntity = await _context.Events.FindAsync(item.EventId);
                 if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
                 {

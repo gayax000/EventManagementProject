@@ -33,7 +33,7 @@ class ApiService {
       }
       final url = Uri.parse(urlStr);
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = jsonDecode(response.body);
