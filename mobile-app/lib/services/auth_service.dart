@@ -13,13 +13,6 @@ class AuthResult {
 
 class AuthService {
   static String get baseUrl {
-    if (kIsWeb) {
-      if (Uri.base.host.contains('vercel.app')) {
-        return 'https://eventmanagementproject-production.up.railway.app/api';
-      }
-      final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
-      return 'http://$host:5147/api';
-    }
     return 'https://eventmanagementproject-production.up.railway.app/api';
   }
 
