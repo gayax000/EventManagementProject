@@ -60,6 +60,7 @@ public class EventResponseDto
     public string? EventSession { get; set; }
     public string? CateringStyle { get; set; }
     public List<string>? TableRefreshments { get; set; }
+    public string? PreferredLocation { get; set; }
     public string? RevisionNotes { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public DateTime CreatedAt { get; set; }

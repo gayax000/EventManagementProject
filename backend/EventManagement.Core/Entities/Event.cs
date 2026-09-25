@@ -31,9 +31,10 @@ public class Event : BaseEntity
 
     public string? SelectedServicesJson { get; set; }
 
-    public string EventSession { get; set; } = "DayLunch";
-    public string CateringStyle { get; set; } = "InternationalBuffet";
+    public string? EventSession { get; set; } = "DayLunch";
+    public string? CateringStyle { get; set; } = "InternationalBuffet";
     public string? TableRefreshmentsJson { get; set; }
+    public string? PreferredLocation { get; set; }
     public string? RevisionNotes { get; set; }
 
     // Draft, UnderReview, ApprovedByManager, RevisionRequested, Confirmed, Rejected, Cancelled

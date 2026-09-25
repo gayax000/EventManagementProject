@@ -155,6 +155,7 @@ public class EventsController : ControllerBase
                 EventSession = eventSession,
                 CateringStyle = cateringStyle,
                 TableRefreshmentsJson = refreshmentsJson,
+                PreferredLocation = dto.PreferredLocation,
                 Status = "UnderReview"
             };
 
@@ -236,7 +237,7 @@ public class EventsController : ControllerBase
             AdditionalDetails = ev.AdditionalDetails,
             Status = ev.Status,
             VenueId = ev.VenueId,
-            VenueName = ev.Venue?.Name,
+            VenueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation,
             BanquetHallId = ev.BanquetHallId,
             BanquetHallName = ev.BanquetHall?.HallName,
             HallRentalPrice = ev.BanquetHall?.HallRentalPrice,
@@ -322,7 +323,7 @@ public class EventsController : ControllerBase
             revisionNotes = ev.RevisionNotes,
             specialRequestAllocation = specialRequestAlloc,
             status = ev.Status,
-            venueName = ev.Venue?.Name ?? "Selected Luxury Resort",
+            venueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation ?? "Selected Luxury Resort",
             banquetHallName = ev.BanquetHall?.HallName,
             hallRentalPrice = ev.BanquetHall?.HallRentalPrice,
             perPlatePrice = ev.BanquetHall?.PerPlatePrice,
@@ -429,7 +430,7 @@ public class EventsController : ControllerBase
                 RevisionNotes = ev.RevisionNotes,
                 Status = ev.Status,
                 VenueId = ev.VenueId,
-                VenueName = ev.Venue != null ? ev.Venue.Name : null,
+                VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
                 BanquetHallId = ev.BanquetHallId,
                 BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
                 HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,

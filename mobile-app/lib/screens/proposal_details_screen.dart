@@ -1804,6 +1804,32 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       });
     }
 
+    // 3.5 Food Menu Refreshments & Add-ons
+    if (proposal.tableRefreshments.isNotEmpty) {
+      for (var r in proposal.tableRefreshments) {
+        double rCostPerHead = 0.0;
+        if (r.contains('Mocktail') || r.contains('Drink')) {
+          rCostPerHead = proposal.budgetLimit >= 2000000 ? 800.0 : (proposal.budgetLimit >= 1000000 ? 500.0 : 350.0);
+        } else if (r.contains('Snack') || r.contains('Savory')) {
+          rCostPerHead = proposal.budgetLimit >= 2000000 ? 950.0 : (proposal.budgetLimit >= 1000000 ? 650.0 : 450.0);
+        } else if (r.contains('Dessert') || r.contains('Sweet')) {
+          rCostPerHead = proposal.budgetLimit >= 2000000 ? 1200.0 : (proposal.budgetLimit >= 1000000 ? 800.0 : 500.0);
+        } else if (r.contains('Tea') || r.contains('Coffee')) {
+          rCostPerHead = proposal.budgetLimit >= 2000000 ? 450.0 : (proposal.budgetLimit >= 1000000 ? 300.0 : 200.0);
+        } else if (r.contains('Midnight') || r.contains('Action')) {
+          rCostPerHead = proposal.budgetLimit >= 2000000 ? 1100.0 : (proposal.budgetLimit >= 1000000 ? 750.0 : 500.0);
+        }
+
+        double totalRCost = rCostPerHead * proposal.guestCount;
+        items.add({
+          'icon': '🍹',
+          'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
+          'cost': totalRCost,
+          'isSpecial': false,
+        });
+      }
+    }
+
     // 4. Special Client Request
     if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
       double specialCost = parsedCosts['special'] ?? proposal.specialRequestAllocation ?? 0.0;

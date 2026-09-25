@@ -987,20 +987,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 )}
 
-                {/* Client Selected Services */}
-                {selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0 && (
-                  <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 mb-2">
-                      Client Selected Services & Preferences
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedEvent.selectedServices.map((service, idx) => (
-                        <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-xs">
-                          <Check className="w-3 h-3 text-emerald-600 mr-1" />
-                          {service}
-                        </span>
-                      ))}
-                    </div>
+                {/* Client Selected Services & Table Refreshments */}
+                {((selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0) || (selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0)) && (
+                  <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl space-y-3">
+                    {selectedEvent.selectedServices && selectedEvent.selectedServices.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-sky-900 mb-2">
+                          Client Selected Tailored Services
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedEvent.selectedServices.map((service, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-white text-slate-700 border border-slate-200 shadow-xs">
+                              <Check className="w-3 h-3 text-emerald-600 mr-1" />
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-purple-900 mb-2">
+                          Selected Food Menu & Table Refreshments
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedEvent.tableRefreshments.map((item, idx) => (
+                            <span key={idx} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-950 border border-purple-200 shadow-xs">
+                              <span className="mr-1">🍹</span>
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

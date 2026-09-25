@@ -160,7 +160,7 @@ public class AiWorkflowService : IAiWorkflowService
 
         string eventLocation = ev.BanquetHall != null 
             ? $"{ev.BanquetHall.Venue?.Name ?? "Selected Hotel"} ({ev.BanquetHall.HallName})" 
-            : (ev.Venue != null ? $"{ev.Venue.Name}, {ev.Venue.LocationAddress}" : "Colombo");
+            : (ev.Venue != null ? $"{ev.Venue.Name}, {ev.Venue.LocationAddress}" : (!string.IsNullOrWhiteSpace(ev.PreferredLocation) ? ev.PreferredLocation : "Colombo"));
 
         // 1. Evaluate Dynamic Date-Aware & Location-Aware Weather
         var weather = EvaluateWeatherRisk(ev.TargetDate, eventLocation, ev.IsOutdoor);
@@ -319,10 +319,69 @@ public class AiWorkflowService : IAiWorkflowService
             }
         }
 
+        // 6. Food Menu Refreshments & Add-ons Calculation
+        List<string> selectedRefreshments = new();
+        if (!string.IsNullOrEmpty(ev.TableRefreshmentsJson))
+        {
+            try { selectedRefreshments = JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson) ?? new(); }
+            catch { }
+        }
+
+        decimal refreshmentsTotal = 0m;
+        var refreshmentsPlanEntries = new List<string>();
+
+        foreach (var item in selectedRefreshments)
+        {
+            decimal itemPerHead = 0m;
+            string itemLabel = item;
+
+            if (item.Contains("Mocktail") || item.Contains("Drink"))
+            {
+                if (budget >= 2000000m) { itemPerHead = 800m; itemLabel = "Welcome Mocktails & Fresh Fruit Fusion Bar"; }
+                else if (budget >= 1000000m) { itemPerHead = 500m; itemLabel = "Tropical Fresh Fruit Juice & Chilled Mocktail Station"; }
+                else { itemPerHead = 350m; itemLabel = "Welcome Mint Lime Chilled Refreshments"; }
+            }
+            else if (item.Contains("Snack") || item.Contains("Savory") || item.Contains("Table Refreshment"))
+            {
+                if (budget >= 2000000m) { itemPerHead = 950m; itemLabel = "Gourmet Savory Snack Platter & Artisanal Canapés"; }
+                else if (budget >= 1000000m) { itemPerHead = 650m; itemLabel = "Assorted Mini Pastry & Savory Snack Platter"; }
+                else { itemPerHead = 450m; itemLabel = "Classic Tea Time Savory Snack Selection"; }
+            }
+            else if (item.Contains("Dessert") || item.Contains("Sweet"))
+            {
+                if (budget >= 2000000m) { itemPerHead = 1200m; itemLabel = "Luxury Dessert Counter (Chocolate Fountain, French Pastries, Ice Cream & Watalappan Bar)"; }
+                else if (budget >= 1000000m) { itemPerHead = 800m; itemLabel = "Deluxe Dessert Corner (Watalappan, Caramel Pudding & Ice Cream Bar)"; }
+                else { itemPerHead = 500m; itemLabel = "Classic Dessert Selection (Caramel Pudding & Ice Cream Bar)"; }
+            }
+            else if (item.Contains("Tea") || item.Contains("Coffee"))
+            {
+                if (budget >= 2000000m) { itemPerHead = 450m; itemLabel = "Artisanal Ceylon Tea & Espresso Coffee Lounge"; }
+                else if (budget >= 1000000m) { itemPerHead = 300m; itemLabel = "Premium Ceylon Milk Tea & Brewed Coffee Counter"; }
+                else { itemPerHead = 200m; itemLabel = "Traditional Ceylon Tea & Coffee Station"; }
+            }
+            else if (item.Contains("Midnight") || item.Contains("Action"))
+            {
+                if (budget >= 2000000m) { itemPerHead = 1100m; itemLabel = "Live Action Midnight Street Food Station (Kottu, Hopper & Satay Bar)"; }
+                else if (budget >= 1000000m) { itemPerHead = 750m; itemLabel = "Live Kottu & Mini Burger Midnight Station"; }
+                else { itemPerHead = 500m; itemLabel = "Midnight Hot Savory Snack Station"; }
+            }
+
+            decimal itemCost = ev.GuestCount * itemPerHead;
+            refreshmentsTotal += itemCost;
+            if (itemCost > 0m)
+            {
+                refreshmentsPlanEntries.Add($"{itemLabel} ({ev.GuestCount} guests @ Rs. {itemPerHead:N0}) = Rs. {itemCost:N0}");
+            }
+            else
+            {
+                refreshmentsPlanEntries.Add($"{item} = Included");
+            }
+        }
+
         decimal othersCost = 0m;
         decimal weatherTentCost = weather.SafeguardCost; // 0 if indoor or clear weather!
 
-        decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + othersCost + weatherTentCost;
+        decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + refreshmentsTotal + othersCost + weatherTentCost;
 
         var planItems = new List<string>();
 
@@ -353,6 +412,11 @@ public class AiWorkflowService : IAiWorkflowService
             _ => "International Hotel Buffet"
         };
         planItems.Add($"Catering Style: {cateringStyleLabel} ({ev.GuestCount} guests @ Rs. {cateringPrice:N0}) = Rs. {cateringCost:N0}");
+
+        foreach (var rEntry in refreshmentsPlanEntries)
+        {
+            planItems.Add(rEntry);
+        }
 
         if (ev.EventSession == "NightDinner" && hasSounds)
         {
