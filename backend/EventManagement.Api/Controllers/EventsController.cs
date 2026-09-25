@@ -438,22 +438,7 @@ public class EventsController : ControllerBase
         {
             await EnsureSchemaAsync();
 
-            if (!customerId.HasValue && Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
-            {
-                customerId = parsedId;
-            }
-
             var query = _context.Events.AsQueryable();
-
-            // Include customer's specific events plus any sample/fallback customer events so created events are always visible
-            if (customerId.HasValue && customerId.Value != Guid.Empty)
-            {
-                var sampleCust = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
-                var sampleId = sampleCust?.UserId ?? Guid.Empty;
-                var defaultId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-
-                query = query.Where(e => e.CustomerId == customerId.Value || e.CustomerId == sampleId || e.CustomerId == defaultId || e.CustomerId == Guid.Empty);
-            }
 
             var events = await query
                 .Include(e => e.Venue)
