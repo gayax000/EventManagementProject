@@ -78,6 +78,8 @@ public class VenuesController : ControllerBase
             ContactNumber = dto.ContactNumber,
             VerificationStatus = "Pending",
             AdminRemarks = dto.Description,
+            PackageName = dto.PackageName ?? dto.Description,
+            PackagePrice = dto.PackagePrice,
             UserId = defaultUser != null ? defaultUser.UserId : Guid.Empty
         };
 

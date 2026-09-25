@@ -92,18 +92,23 @@ export const ResourcesPage: React.FC = () => {
           const category = v.category || 'General';
           const name = v.businessName || v.name;
           const remarks = v.adminRemarks ? ` - ${v.adminRemarks}` : '';
-          return {
-            id: `v-res-${v.vendorId || v.id}`,
-            name: `${name}${remarks}`,
-            type: category.includes('Catering') ? 'CateringPackage' : category,
-            unitPrice: category.includes('Sound') ? 120000 
+          
+          const defaultCatPrice = category.includes('Sound') ? 120000 
                      : category.includes('Decor') ? 130000 
                      : category.includes('Photo') ? 150000 
                      : category.includes('Cake') ? 45000 
                      : category.includes('Transport') ? 65000 
                      : category.includes('Cater') ? 5500 
                      : category.includes('Tent') ? 150000 
-                     : 90000,
+                     : 90000;
+
+          const actualPrice = (v.packagePrice && Number(v.packagePrice) > 0) ? Number(v.packagePrice) : defaultCatPrice;
+
+          return {
+            id: `v-res-${v.vendorId || v.id}`,
+            name: `${name}${remarks}`,
+            type: category.includes('Catering') ? 'CateringPackage' : category,
+            unitPrice: actualPrice,
             available: 'Active Partner',
             isPartnerVendor: true,
             vendorName: name,

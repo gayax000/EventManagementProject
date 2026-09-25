@@ -73,4 +73,6 @@ public class RegisterVendorDto
     public string ContactNumber { get; set; } = string.Empty;
 
     public string? Description { get; set; }
+    public string? PackageName { get; set; }
+    public decimal? PackagePrice { get; set; }
 }

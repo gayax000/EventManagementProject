@@ -14,5 +14,7 @@ public class Vendor : BaseEntity
     public string ContactNumber { get; set; } = string.Empty;
     public string VerificationStatus { get; set; } = "Pending"; // Pending, Verified, Rejected
     public string? AdminRemarks { get; set; }
+    public string? PackageName { get; set; }
+    public decimal? PackagePrice { get; set; }
 }
  
