@@ -514,7 +514,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
-    const weatherData = selectedEvent.weatherAssessment;
+    let weatherData = selectedEvent.weatherAssessment;
+    if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
+      try { weatherData = JSON.parse(weatherData); } catch (e) {}
+    }
     const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
     const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
 
@@ -665,11 +668,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
-  const weatherData = selectedEvent?.weatherAssessment;
+  let weatherData = selectedEvent?.weatherAssessment;
+  if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
+    try { weatherData = JSON.parse(weatherData); } catch (e) {}
+  }
   const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
   const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
   const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? "Monsoon Showers" : "Indoor Climate Controlled");
-  const weatherAction = weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
+  const weatherAction = weatherData?.description || weatherData?.Description || weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
 
   let weatherTentCost = 0;
   let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';

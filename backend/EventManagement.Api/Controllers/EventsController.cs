@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
@@ -292,6 +293,7 @@ public class EventsController : ControllerBase
                 : new List<string>(),
             RevisionNotes = ev.RevisionNotes,
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
+            WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
             CreatedAt = ev.CreatedAt
         });
     }
@@ -438,7 +440,40 @@ public class EventsController : ControllerBase
         {
             await EnsureSchemaAsync();
 
+            Guid targetCustomerId = Guid.Empty;
+            if (customerId.HasValue && customerId.Value != Guid.Empty)
+            {
+                targetCustomerId = customerId.Value;
+            }
+            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+            {
+                targetCustomerId = parsedId;
+            }
+            else
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+                var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+                bool isManager = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Manager");
+
+                if (!isManager && !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var claimId))
+                {
+                    var userEntity = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == claimId);
+                    if (userEntity != null && string.Equals(userEntity.Role?.RoleName, "Manager", StringComparison.OrdinalIgnoreCase))
+                    {
+                        isManager = true;
+                    }
+                    else
+                    {
+                        targetCustomerId = claimId;
+                    }
+                }
+            }
+
             var query = _context.Events.AsQueryable();
+            if (targetCustomerId != Guid.Empty)
+            {
+                query = query.Where(e => e.CustomerId == targetCustomerId);
+            }
 
             var events = await query
                 .Include(e => e.Venue)
@@ -468,6 +503,7 @@ public class EventsController : ControllerBase
                     PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
                     InspirationImageUrl = null,
                     EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                    WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
                     CreatedAt = ev.CreatedAt
                 })
                 .ToListAsync();

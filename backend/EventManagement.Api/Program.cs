@@ -89,9 +89,16 @@ app.MapControllers();
 // 8. Seed Realistic Sri Lankan Venues, Hotels and Resources on Startup
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await context.Database.MigrateAsync();
-    await DbInitializer.SeedAsync(context);
+    try
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync();
+        await DbInitializer.SeedAsync(context);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database Migration / Seeding notice: {ex.Message}");
+    }
 }
 
 app.Run();

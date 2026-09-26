@@ -63,6 +63,7 @@ public class EventResponseDto
     public string? PreferredLocation { get; set; }
     public string? RevisionNotes { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
+    public string? WeatherAssessment { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
