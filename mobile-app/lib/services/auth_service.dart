@@ -13,7 +13,7 @@ class AuthResult {
 
 class AuthService {
   static String get baseUrl {
-    return 'https://eventmanagementproject-production.up.railway.app/api';
+    return 'https://eventmanagementproject-production-19c1.up.railway.app/api';
   }
 
   static const String _tokenKey = 'jwt_token';
