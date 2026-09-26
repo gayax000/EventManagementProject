@@ -8,6 +8,13 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Railway dynamic PORT binding support
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 // 1. Configure CORS (Allows React Web & Flutter to communicate with ASP.NET Core)
 builder.Services.AddCors(options =>
 {
