@@ -472,7 +472,10 @@ public class EventsController : ControllerBase
             var query = _context.Events.AsQueryable();
             if (targetCustomerId != Guid.Empty)
             {
-                query = query.Where(e => e.CustomerId == targetCustomerId);
+                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
+                Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
+
+                query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
             }
 
             var events = await query
