@@ -614,7 +614,7 @@ public class EventsController : ControllerBase
                 ? booking.BookingReferenceCode 
                 : $"EV-2026-{new Random().Next(1000, 9999)}";
 
-            var qrData = $"https://eventmanagementproject-production.up.railway.app/verify?ref={referenceCode}";
+            var qrData = $"https://eventmanagementproject-production-19c1.up.railway.app/verify?ref={referenceCode}";
 
             booking.BookingReferenceCode = referenceCode;
             booking.DigitalSignatureUrl = dto.DigitalSignatureUrl;
