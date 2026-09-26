@@ -515,10 +515,18 @@ public class EventsController : ControllerBase
             {
                 item.InspirationImages = new List<string>();
                 var evEntity = await _context.Events.FindAsync(item.EventId);
-                if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                if (evEntity != null)
                 {
-                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
-                    catch { }
+                    if (!string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                    {
+                        try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
+                        catch { }
+                    }
+                    if (!string.IsNullOrEmpty(evEntity.SelectedServicesJson))
+                    {
+                        try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(evEntity.SelectedServicesJson); }
+                        catch { }
+                    }
                 }
             }
 

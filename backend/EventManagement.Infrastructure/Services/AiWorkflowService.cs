@@ -230,8 +230,8 @@ public class AiWorkflowService : IAiWorkflowService
             catch { }
         }
 
-        bool hasSounds = selectedServices.Count == 0 || selectedServices.Any(s => s.Contains("Sound"));
-        bool hasDeco = selectedServices.Count == 0 || selectedServices.Any(s => s.Contains("Deco"));
+        bool hasSounds = selectedServices.Any(s => s.Contains("Sound") || s.Contains("Lighting"));
+        bool hasDeco = selectedServices.Any(s => s.Contains("Deco"));
         bool hasPhoto = selectedServices.Any(s => s.Contains("Photo"));
         bool hasCake = selectedServices.Any(s => s.ToLower().Contains("cake"));
         bool hasTransport = selectedServices.Any(s => s.ToLower().Contains("transport") || s.ToLower().Contains("car") || s.ToLower().Contains("bridal"));
@@ -403,6 +403,8 @@ public class AiWorkflowService : IAiWorkflowService
 
         var sessionTitle = ev.EventSession == "NightDinner" ? "Night Dinner Session (6:00 PM - 11:30 PM)" : (ev.EventSession == "EveningHighTea" ? "Evening High Tea (3:30 PM - 7:00 PM)" : "Day Lunch Session (10:00 AM - 3:30 PM)");
         planItems.Add($"Event Session: {sessionTitle}");
+        string venueRentalLabel = ev.BanquetHall != null ? $"{ev.BanquetHall.HallName} Hall Rental" : $"{ev.Venue?.Name ?? "Selected Venue"} Rental";
+        planItems.Add($"{venueRentalLabel} = Rs. {hallRental:N0}");
 
         var cateringStyleLabel = ev.CateringStyle switch
         {
