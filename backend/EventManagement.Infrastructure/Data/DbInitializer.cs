@@ -20,6 +20,8 @@ public static class DbInitializer
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""InspirationImageUrl"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AdditionalDetails"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""IsOutdoor"" boolean DEFAULT false;
+                ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackageName"" text;
+                ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackagePrice"" numeric;
             ");
         }
         catch { }
