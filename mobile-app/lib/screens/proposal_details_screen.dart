@@ -726,7 +726,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         child: Text(
                           proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
                             ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
-                            : 'Priced by Manager',
+                            : 'Pending Manager Quote',
                           style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -1847,11 +1847,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Append Special Client Request if missing
           final hasSpecial = items.any((it) => it['isSpecial'] == true || it['label'].toString().toLowerCase().contains('special client request'));
           if (!hasSpecial && proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
+            final double specialCost = (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+                ? proposal.specialRequestAllocation!.toDouble()
+                : 0.0;
             items.add({
               'label': 'Special Client Request: ${proposal.additionalDetails}',
-              'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
-                  ? proposal.specialRequestAllocation!.toDouble()
-                  : 35000.0,
+              'cost': specialCost,
               'isSpecial': true,
             });
           }
@@ -1925,11 +1926,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
 
       if (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty) {
+        final double specialCost = (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+            ? proposal.specialRequestAllocation!.toDouble()
+            : 0.0;
         items.add({
           'label': 'Special Client Request: ${proposal.additionalDetails}',
-          'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
-              ? proposal.specialRequestAllocation!.toDouble()
-              : 35000.0,
+          'cost': specialCost,
           'isSpecial': true,
         });
       }
@@ -1943,6 +1945,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         const SizedBox(height: 6),
         ...items.map((item) {
           final costStr = (item['cost'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+          final isPendingQuote = (item['cost'] as double) <= 0;
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(
@@ -1962,17 +1965,27 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
+                  !isPendingQuote ? "LKR $costStr" : "Pending Manager Quote", 
                   style: TextStyle(
-                    color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A), 
+                    color: !isPendingQuote
+                        ? (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A))
+                        : const Color(0xFF2563EB), 
                     fontWeight: FontWeight.bold, 
-                    fontSize: 11.5,
+                    fontSize: !isPendingQuote ? 11.5 : 11.0,
+                    fontStyle: !isPendingQuote ? FontStyle.normal : FontStyle.italic,
                   ),
                 ),
               ],
             ),
           );
         }),
+        if (items.any((it) => it['isSpecial'] == true && (it['cost'] as double) <= 0)) ...[
+          const SizedBox(height: 6),
+          const Text(
+            "* Note: Special client requests are reviewed and quoted by the Hotel Manager upon final proposal approval.",
+            style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontStyle: FontStyle.italic),
+          ),
+        ],
       ],
     );
   }
