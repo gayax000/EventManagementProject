@@ -6,6 +6,9 @@ import 'auth_service.dart';
 
 class ApiService {
   static String get baseUrl {
+    if (kIsWeb && Uri.base.host == 'localhost') {
+      return 'http://localhost:8080/api';
+    }
     return 'https://eventmanagementproject-production-19c1.up.railway.app/api';
   }
 
