@@ -137,8 +137,6 @@ export interface VendorItem {
   status?: string;
   verificationStatus?: string;
   adminRemarks?: string;
-  packageName?: string;
-  packagePrice?: number;
 }
 
 export const vendorService = {
@@ -146,7 +144,7 @@ export const vendorService = {
     const res = await apiClient.get('/venues/vendors');
     return res.data;
   },
-  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string; packageName?: string; packagePrice?: number }) => {
+  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string }) => {
     const res = await apiClient.post('/venues/vendors/register', data);
     return res.data;
   },

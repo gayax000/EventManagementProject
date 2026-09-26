@@ -38,7 +38,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
   // Register Form States
   const [regFullName, setRegFullName] = useState('');
-  const [regBusinessName, setRegBusinessName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -86,12 +85,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError('');
     setSuccessMsg('');
     
-    const displayName = regBusinessName.trim() 
-      ? `${regBusinessName.trim()} (${regFullName.trim()})` 
-      : regFullName.trim();
-
     // Strictly register as 'Vendor'
-    const success = await authService.register(displayName, regEmail, regPassword, regPhone, 'Vendor');
+    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
     setRegLoading(false);
 
     if (success) {
@@ -321,7 +316,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name (Owner / Representative)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Full Name</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
@@ -329,21 +324,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       required
                       value={regFullName}
                       onChange={(e) => setRegFullName(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      placeholder="e.g. Kasun Perera"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Company Name</label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      required
-                      value={regBusinessName}
-                      onChange={(e) => setRegBusinessName(e.target.value)}
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="e.g. Royal Blooms Floral Decor"
                     />

@@ -153,7 +153,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [regFullName, setRegFullName] = useState('');
-  const [regBusinessName, setRegBusinessName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -280,13 +279,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     setAuthLoading(true);
     setAuthError(null);
-
-    const displayName = regBusinessName.trim()
-      ? `${regBusinessName.trim()} (${regFullName.trim()})`
-      : regFullName.trim();
-
     // Strictly register as 'Vendor'
-    const success = await authService.register(displayName, regEmail, regPassword, regPhone, 'Vendor');
+    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
     setAuthLoading(false);
     if (success) {
       // Auto-login or navigate to login tab
@@ -294,7 +288,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (loginSuccess) {
         refreshAuthStatus();
         setAuthModalTab(null);
-        setActionSuccess(`Registration successful! Welcome to EventCraft, ${displayName}!`);
+        setActionSuccess(`Registration successful! Welcome to EventCraft, ${regFullName}!`);
         loadEvents();
         if (onAuthChange) onAuthChange();
       } else {
@@ -327,13 +321,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
-    const services = ev.selectedServices || [];
-    const planText = (ev.generatedPlan || (ev.planItems ? ev.planItems.join(' ') : '') || '').toLowerCase();
+    const services = ev.selectedServices || ['Photography', 'Sound and Lighting', 'Decorations'];
 
     // 1. Sound & Lighting
-    const hasSounds = services.length === 0 || 
-      services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio') || s.toLowerCase().includes('mixer')) ||
-      planText.includes('sound') || planText.includes('audio') || planText.includes('mixer');
+    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting'));
     let soundsCost = 0;
     let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
     if (hasSounds) {
@@ -356,9 +347,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 2. Decorations
-    const hasDeco = services.length === 0 ||
-      services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('stage') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('theme')) ||
-      planText.includes('deco') || planText.includes('stage') || planText.includes('floral');
+    const hasDeco = services.some(s => s.toLowerCase().includes('deco'));
     let decoCost = 0;
     let decoName = 'Floral Stage & Tablescape Theme Decoration';
     if (hasDeco) {
@@ -381,9 +370,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 3. Photography & Media
-    const hasPhoto = services.length === 0 ||
-      services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('video') || s.toLowerCase().includes('media') || s.toLowerCase().includes('4k')) ||
-      planText.includes('photo') || planText.includes('video') || planText.includes('media');
+    const hasPhoto = services.some(s => s.toLowerCase().includes('photo'));
     let photoCost = 0;
     let photoName = 'Professional Event Coverage';
     if (hasPhoto) {
@@ -406,9 +393,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 4. Celebration Cakes
-    const hasCake = services.some(s => s.toLowerCase().includes('cake') || s.toLowerCase().includes('confectionery') || s.toLowerCase().includes('tier')) ||
-      planText.includes('cake') || planText.includes('gateau') || planText.includes('tier') ||
-      (eventType.includes('wedding') || eventType.includes('birthday') || eventType.includes('anniversary') || eventType.includes('engagement'));
+    const hasCake = services.some(s => s.toLowerCase().includes('cake'));
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
     if (hasCake) {
@@ -460,12 +445,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const hasTransport = services.some(s => 
       s.toLowerCase().includes('transport') || 
       s.toLowerCase().includes('car') || 
-      s.toLowerCase().includes('bridal') ||
-      s.toLowerCase().includes('sedan') ||
-      s.toLowerCase().includes('vehicle') ||
-      s.toLowerCase().includes('chauffeur')
-    ) || planText.includes('transport') || planText.includes('sedan') || planText.includes('chauffeur') || planText.includes('car') || planText.includes('vehicle') ||
-      (eventType.includes('wedding') || eventType.includes('engagement') || eventType.includes('gala'));
+      s.toLowerCase().includes('bridal')
+    );
     let transportCost = 0;
     let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
     if (hasTransport) {
@@ -723,11 +704,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }
 
-  const calculatedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
-  const currentSubtotal = (isApproved && selectedEvent?.estimatedTotalCost) ? (selectedEvent.estimatedTotalCost + specialDiscount) : calculatedSubtotal;
+  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
-  const displayedFinalTotal = isApproved ? (selectedEvent?.estimatedTotalCost || Math.max(0, currentSubtotal - specialDiscount)) : Math.max(0, currentSubtotal - specialDiscount);
+  const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -1070,7 +1050,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name (Owner / Representative)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Full Name</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
@@ -1078,21 +1058,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       required
                       value={regFullName}
                       onChange={e => setRegFullName(e.target.value)}
-                      placeholder="e.g. Kasun Perera"
-                      className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Company Name</label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={regBusinessName}
-                      onChange={e => setRegBusinessName(e.target.value)}
                       placeholder="e.g. Royal Blooms Floral Decor"
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
@@ -1424,34 +1389,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                       </div>
-
-                      {selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0 && selectedEvent.tableRefreshments.map((item, idx) => {
-                        let itemPerHead = 0;
-                        const b = Number(selectedEvent.budgetLimit) || 1000000;
-                        if (item.includes('Mocktail') || item.includes('Drink')) {
-                          itemPerHead = b >= 2000000 ? 800 : (b >= 1000000 ? 500 : 350);
-                        } else if (item.includes('Snack') || item.includes('Savory')) {
-                          itemPerHead = b >= 2000000 ? 950 : (b >= 1000000 ? 650 : 450);
-                        } else if (item.includes('Dessert') || item.includes('Sweet')) {
-                          itemPerHead = b >= 2000000 ? 1200 : (b >= 1000000 ? 800 : 500);
-                        } else if (item.includes('Tea') || item.includes('Coffee')) {
-                          itemPerHead = b >= 2000000 ? 450 : (b >= 1000000 ? 300 : 200);
-                        } else if (item.includes('Midnight') || item.includes('Action')) {
-                          itemPerHead = b >= 2000000 ? 1100 : (b >= 1000000 ? 750 : 500);
-                        }
-                        const itemCost = selectedEvent.guestCount * itemPerHead;
-                        return (
-                          <div key={`ref-${idx}`} className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <div>
-                              <span className="text-slate-700 font-medium">
-                                🍹 {item} ({selectedEvent.guestCount} Guests @ Rs. {itemPerHead.toLocaleString()})
-                              </span>
-                              <p className="text-[11px] text-slate-400">Table Refreshments & Catering Add-on</p>
-                            </div>
-                            <span className="font-semibold text-slate-900">Rs. {itemCost.toLocaleString()}</span>
-                          </div>
-                        );
-                      })}
 
                       {alloc.hasSounds && (
                         <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">

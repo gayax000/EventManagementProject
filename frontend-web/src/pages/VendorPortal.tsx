@@ -227,61 +227,49 @@ export const VendorPortal: React.FC = () => {
   }, []);
 
   // Active vendor strictly tied to the logged-in user
-  // Support multiple registered vendor services for the logged in user
-  const [vendorIds, setVendorIds] = useState<string[]>(() => {
+  const [currentVendor, setCurrentVendor] = useState<VendorItem | null>(() => {
     try {
       if (userKey) {
-        const savedIds = localStorage.getItem(`eventcraft_vendor_ids_${userKey}`);
-        if (savedIds) return JSON.parse(savedIds);
-        const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-        if (singleId) return [singleId];
+        const savedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+        if (savedId) {
+          // Placeholder until fetched from API
+          return { id: savedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' } as any;
+        }
       }
     } catch {}
-    return [];
+    return null;
   });
 
-  const [myVendors, setMyVendors] = useState<any[]>([]);
-
-  // Sync with Backend API for all vendors registered by this user
-  const syncVendors = async () => {
-    try {
-      const allVendors = await vendorService.getVendors();
-      if (Array.isArray(allVendors)) {
-        let matched = allVendors.filter(v => {
-          const vId = (v as any).vendorId || v.id;
-          return vendorIds.includes(vId);
-        });
-
-        // Fallback: if vendorIds is empty but allVendors exist, match by name
-        if (matched.length === 0 && userKey) {
-          matched = allVendors.filter(v => (v.contactNumber || v.contact || '').toLowerCase().includes(userKey) || (v.businessName || v.name || '').toLowerCase().includes(userKey));
-        }
-
-        // Standardize properties
-        const standardized = (matched.length > 0 ? matched : allVendors.slice(0, 3)).map(v => ({
-          ...v,
-          id: (v as any).vendorId || v.id,
-          verificationStatus: (v as any).verificationStatus || v.status || 'Pending',
-          businessName: v.businessName || v.name,
-          contactNumber: v.contactNumber || v.contact,
-          packageName: (v as any).packageName || v.adminRemarks,
-          packagePrice: (v as any).packagePrice
-        }));
-
-        setMyVendors(standardized);
-      }
-    } catch (e) {
-      console.error('Sync error', e);
-    }
-  };
-
+  // Sync with Backend API
   useEffect(() => {
-    syncVendors();
-    const interval = setInterval(syncVendors, 5000);
-    return () => clearInterval(interval);
-  }, [vendorIds.length]);
+    const syncStatus = async () => {
+      if (!currentVendor || !currentVendor.id) return;
+      try {
+        const allVendors = await vendorService.getVendors();
+        const matched = allVendors.find(v => (v as any).vendorId === currentVendor.id || v.id === currentVendor.id);
+        if (matched) {
+          const updatedStatus = (matched as any).verificationStatus || matched.status;
+          if (updatedStatus !== currentVendor.status && updatedStatus !== (currentVendor as any).verificationStatus) {
+            setCurrentVendor({ 
+              ...matched, 
+              id: (matched as any).vendorId || matched.id, 
+              verificationStatus: updatedStatus,
+              status: updatedStatus 
+            } as any);
+          }
+        }
+      } catch (e) {
+        console.error('Sync error', e);
+      }
+    };
 
-  const currentVendor = myVendors.length > 0 ? myVendors[myVendors.length - 1] : null;
+    if (currentVendor?.id && currentVendor.businessName === 'Loading...') {
+      syncStatus();
+    }
+
+    const interval = setInterval(syncStatus, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [currentVendor?.id, currentVendor?.status]);
 
   const handleCategoryChange = (newCat: string) => {
     setCategory(newCat);
@@ -305,67 +293,44 @@ export const VendorPortal: React.FC = () => {
     e.preventDefault();
     if (!businessName || !contactNumber) return;
 
-    let newVendorData: any = null;
-
     try {
       setSubmitting(true);
 
-      // Save to backend API with packageName and packagePrice
+      // Save to backend API
       const registeredVendor = await vendorService.registerVendor({
         businessName,
         category,
         contactNumber,
-        description: description || packageName || selectedCategoryConfig.defaultPackage,
-        packageName: packageName || selectedCategoryConfig.defaultPackage,
-        packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
+        description: description || packageName || selectedCategoryConfig.defaultPackage
       });
 
-      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id || `v-${Date.now()}`;
+      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
       
-      newVendorData = {
+      const newVendorData: any = {
         ...registeredVendor,
         id: newVendorId,
-        verificationStatus: (registeredVendor as any).verificationStatus || 'Pending',
-        status: (registeredVendor as any).status || 'Pending',
+        verificationStatus: 'Pending',
+        status: 'Pending',
         packageName: packageName || selectedCategoryConfig.defaultPackage,
         packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
       };
-    } catch (err) {
-      console.warn("Backend vendor registration failed or backend unreachable, falling back to local registration:", err);
-      // Seamless local fallback creation so vendor registration never fails
-      const fallbackId = `v-local-${Date.now()}`;
-      newVendorData = {
-        id: fallbackId,
-        businessName,
-        category,
-        contactNumber,
-        verificationStatus: 'Pending',
-        status: 'Pending',
-        adminRemarks: description || packageName || selectedCategoryConfig.defaultPackage,
-        packageName: packageName || selectedCategoryConfig.defaultPackage,
-        packagePrice: packagePrice || selectedCategoryConfig.defaultPrice,
-        createdAt: new Date().toISOString()
-      };
-    } finally {
-      if (newVendorData) {
-        const newVendorId = newVendorData.id;
-        const updatedIds = [...vendorIds, newVendorId];
-        setVendorIds(updatedIds);
-        setMyVendors(prev => [...prev, newVendorData]);
 
-        if (userKey) {
-          localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(updatedIds));
-          localStorage.setItem(`eventcraft_vendor_id_${userKey}`, newVendorId);
-        }
-
-        setRegisteredSuccess(true);
-        setActiveTab('dashboard');
-        // Reset form
-        setBusinessName('');
-        setContactNumber('');
-        setDescription('');
-        setPackageName('');
+      setCurrentVendor(newVendorData);
+      if (userKey) {
+        localStorage.setItem(`eventcraft_vendor_id_${userKey}`, newVendorId);
       }
+
+      setRegisteredSuccess(true);
+      setActiveTab('dashboard');
+      // Reset form
+      setBusinessName('');
+      setContactNumber('');
+      setDescription('');
+      setPackageName('');
+    } catch (err) {
+      console.error("Backend vendor registration failed:", err);
+      alert("Failed to register vendor. Please ensure backend API is running.");
+    } finally {
       setSubmitting(false);
     }
   };
@@ -513,33 +478,26 @@ export const VendorPortal: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(myVendors.length > 0 ? myVendors : [currentVendor]).map((vItem, idx) => {
-                  const catInfo = getCategoryInfo(vItem.category);
-                  return (
-                    <div key={vItem.id || idx} className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start justify-between shadow-xs">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{catInfo?.icon || '📦'}</span>
-                          <h4 className="font-bold text-slate-900 text-sm">
-                            {vItem.packageName || vItem.adminRemarks || catInfo?.defaultPackage || 'Standard Service Package'}
-                          </h4>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-1.5 flex items-center space-x-1">
-                          <Tag className="w-3 h-3 text-slate-400" />
-                          <span>{catInfo?.label || vItem.category}</span>
-                        </p>
-                        <p className="text-xs font-bold text-indigo-600 mt-2">
-                          Price: Rs. {Number(vItem.packagePrice || catInfo?.defaultPrice || 5000).toLocaleString()}
-                        </p>
-                      </div>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                        (vItem.verificationStatus || vItem.status) === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {(vItem.verificationStatus || vItem.status) === 'Verified' ? 'Active in AI Catalog' : 'Pending Verification'}
-                      </span>
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg">{activeCategoryInfo?.icon || '📦'}</span>
+                      <h4 className="font-bold text-slate-900 text-sm">{currentVendor.adminRemarks || (currentVendor as any).packageName || activeCategoryInfo?.defaultPackage || 'Standard Service Package'}</h4>
                     </div>
-                  );
-                })}
+                    <p className="text-xs text-slate-500 mt-1.5 flex items-center space-x-1">
+                      <Tag className="w-3 h-3 text-slate-400" />
+                      <span>{activeCategoryInfo?.label || currentVendor.category}</span>
+                    </p>
+                    <p className="text-xs font-bold text-indigo-600 mt-2">
+                      Price: Rs. {Number((currentVendor as any).packagePrice || activeCategoryInfo?.defaultPrice || 5000).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    currentVendor.verificationStatus === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {currentVendor.verificationStatus === 'Verified' ? 'Active in AI Catalog' : 'Pending Verification'}
+                  </span>
+                </div>
               </div>
             </div>
 
