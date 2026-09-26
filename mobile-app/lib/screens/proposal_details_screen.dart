@@ -973,8 +973,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     }
                   },
                 ),
-                if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty))
-                  _buildItemizedBreakdown(proposal),
+                _buildItemizedBreakdown(proposal),
                 const Divider(color: Color(0xFFE2E8F0), height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1718,18 +1717,24 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         if (decoded is List) {
           for (var rawItem in decoded) {
             final str = rawItem.toString();
-            if (str.startsWith('Weather Assessment') || str.startsWith('No Marquee Tent') || str.startsWith('Event Session')) {
+            if (str.startsWith('Weather Assessment') || str.startsWith('No Marquee Tent') || str.startsWith('Event Session') || str.startsWith('Weather Forecast')) {
               continue;
             }
 
-            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*([\d,]+)|\((?:Rs\.|LKR)\s*([\d,]+)\)').firstMatch(str);
+            final bool isDiscount = str.toLowerCase().contains('discount') || str.contains('-Rs.') || str.contains('- LKR') || str.contains('(-Rs.');
+
+            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
             if (match != null) {
-              final valStr = match.group(1) ?? match.group(2);
-              final cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
+              final valStr = match.group(1) ?? match.group(2) ?? match.group(4);
+              double cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
+              if (isDiscount && cost > 0) {
+                cost = -cost;
+              }
 
               String label = str
-                  .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*[\d,]+'), '')
-                  .replaceAll(RegExp(r'\((?:Rs\.|LKR)\s*[\d,]+\)'), '')
+                  .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*-?[\d,]+'), '')
+                  .replaceAll(RegExp(r'\((?:Rs\.|LKR|-Rs\.|-LKR)\s*-?[\d,]+\)'), '')
+                  .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
                   .trim();
 
               if (label.startsWith('Catering Style:')) {
@@ -1739,6 +1744,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               items.add({
                 'label': label,
                 'cost': cost,
+                'isDiscount': isDiscount,
                 'isSpecial': label.toLowerCase().contains('special client request'),
               });
             }
@@ -1751,6 +1757,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             items.insert(0, {
               'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
               'cost': hallPrice,
+              'isDiscount': false,
               'isSpecial': false,
             });
           }
@@ -1762,7 +1769,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               'label': 'Special Client Request: ${proposal.additionalDetails}',
               'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                   ? proposal.specialRequestAllocation!.toDouble()
-                  : 35000.0,
+                  : 0.0,
+              'isDiscount': false,
               'isSpecial': true,
             });
           }
@@ -1777,12 +1785,14 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       items.add({
         'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
         'cost': hallPrice,
+        'isDiscount': false,
         'isSpecial': false,
       });
 
       items.add({
         'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
         'cost': cateringPrice,
+        'isDiscount': false,
         'isSpecial': false,
       });
 
@@ -1808,6 +1818,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         items.add({
           'label': desc,
           'cost': cost,
+          'isDiscount': false,
           'isSpecial': false,
         });
       }
@@ -1830,6 +1841,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           items.add({
             'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
             'cost': rCostPerHead * proposal.guestCount,
+            'isDiscount': false,
             'isSpecial': false,
           });
         }
@@ -1840,7 +1852,29 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           'label': 'Special Client Request: ${proposal.additionalDetails}',
           'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
               ? proposal.specialRequestAllocation!.toDouble()
-              : 35000.0,
+              : 0.0,
+          'isDiscount': false,
+          'isSpecial': true,
+        });
+      }
+    }
+
+    // Exact Synchronized Balance Guardrail between breakdown items and proposal.estimatedTotalCost
+    if (proposal.estimatedTotalCost > 0) {
+      double currentSum = items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+      final double diff = currentSum - proposal.estimatedTotalCost;
+      if (diff > 100 && !items.any((it) => it['isDiscount'] == true)) {
+        items.add({
+          'label': 'Manager Courtesy Discount',
+          'cost': -diff,
+          'isDiscount': true,
+          'isSpecial': false,
+        });
+      } else if (diff < -100 && !items.any((it) => it['isSpecial'] == true)) {
+        items.add({
+          'label': 'Special Custom Add-ons / Manager Allocation',
+          'cost': -diff,
+          'isDiscount': false,
           'isSpecial': true,
         });
       }
@@ -1853,7 +1887,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         const Text("Itemized Package Breakdown:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12)),
         const SizedBox(height: 6),
         ...items.map((item) {
-          final costStr = (item['cost'] as double).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+          final double cost = ((item['cost'] as num?)?.toDouble() ?? 0.0);
+          final bool isDiscount = item['isDiscount'] == true || cost < 0;
+          final costStr = cost.abs().toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Row(
@@ -1865,17 +1901,23 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     item['label'].toString().trim(),
                     softWrap: true,
                     style: TextStyle(
-                      color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF475569), 
+                      color: isDiscount 
+                          ? const Color(0xFF16A34A) 
+                          : (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF475569)), 
                       fontSize: 11.5,
-                      fontWeight: item['isSpecial'] == true ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: (item['isSpecial'] == true || isDiscount) ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  item['cost'] > 0 ? "LKR $costStr" : "Priced by Manager", 
+                  isDiscount 
+                      ? "- LKR $costStr" 
+                      : (cost > 0 ? "LKR $costStr" : "Priced by Manager"), 
                   style: TextStyle(
-                    color: item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A), 
+                    color: isDiscount 
+                        ? const Color(0xFF16A34A) 
+                        : (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A)), 
                     fontWeight: FontWeight.bold, 
                     fontSize: 11.5,
                   ),

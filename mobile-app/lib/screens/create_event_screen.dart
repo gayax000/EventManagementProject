@@ -451,6 +451,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         customServiceNotes: customNotes.isNotEmpty ? customNotes : null,
         inspirationImages: base64Images.isNotEmpty ? base64Images : null,
         eventSession: _selectedSession,
+        cateringStyle: _selectedCateringStyle,
         tableRefreshments: _selectedTableRefreshments,
       );
 

@@ -235,6 +235,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               additionalDetails: p.additionalDetails || prev.additionalDetails,
               weatherAssessment: weatherObj || prev.weatherAssessment,
               selectedServices: p.selectedServices || prev.selectedServices,
+              tableRefreshments: p.tableRefreshments || prev.tableRefreshments,
               inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
             } : prev);
           }
@@ -321,7 +322,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
-    const services = ev.selectedServices || ['Photography', 'Sound and Lighting', 'Decorations'];
+    const services = ev.selectedServices || [];
 
     // 1. Sound & Lighting
     const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting'));
@@ -477,21 +478,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const otherCost = hasSpecialRequests ? (customSpecialAllocation !== undefined ? customSpecialAllocation : specialAllocation) : 0;
 
     let refreshmentsCost = 0;
+    const refreshmentsItems: { name: string; itemPerHead: number; cost: number }[] = [];
     const tableRefreshments = ev.tableRefreshments || [];
     tableRefreshments.forEach(item => {
       let itemPerHead = 0;
+      let itemLabel = item;
       if (item.includes('Mocktail') || item.includes('Drink')) {
         itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
-      } else if (item.includes('Snack') || item.includes('Savory')) {
+        itemLabel = budget >= 2000000 ? "Welcome Mocktails & Fresh Fruit Fusion Bar" : (budget >= 1000000 ? "Tropical Fresh Fruit Juice & Chilled Mocktail Station" : "Welcome Mint Lime Chilled Refreshments");
+      } else if (item.includes('Snack') || item.includes('Savory') || item.includes('Table Refreshment')) {
         itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
+        itemLabel = budget >= 2000000 ? "Gourmet Savory Snack Platter & Artisanal Canapés" : (budget >= 1000000 ? "Assorted Mini Pastry & Savory Snack Platter" : "Classic Tea Time Savory Snack Selection");
       } else if (item.includes('Dessert') || item.includes('Sweet')) {
         itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
+        itemLabel = budget >= 2000000 ? "Luxury Dessert Counter (Chocolate Fountain & Pastries)" : (budget >= 1000000 ? "Deluxe Dessert Corner (Watalappan & Ice Cream Bar)" : "Classic Dessert Selection");
       } else if (item.includes('Tea') || item.includes('Coffee')) {
         itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
+        itemLabel = budget >= 2000000 ? "Artisanal Ceylon Tea & Espresso Coffee Lounge" : (budget >= 1000000 ? "Premium Ceylon Milk Tea & Brewed Coffee Counter" : "Traditional Ceylon Tea & Coffee Station");
       } else if (item.includes('Midnight') || item.includes('Action')) {
         itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
+        itemLabel = budget >= 2000000 ? "Live Action Midnight Street Food Station" : (budget >= 1000000 ? "Live Kottu & Mini Burger Midnight Station" : "Midnight Hot Savory Snack Station");
       }
-      refreshmentsCost += (ev.guestCount || 100) * itemPerHead;
+      const itemCost = (ev.guestCount || 100) * itemPerHead;
+      refreshmentsCost += itemCost;
+      refreshmentsItems.push({
+        name: itemLabel,
+        itemPerHead,
+        cost: itemCost
+      });
     });
 
     return {
@@ -502,6 +516,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       hasTransport, transportCost, transportName,
       hasSpecialRequests, otherCost,
       refreshmentsCost,
+      refreshmentsItems,
     };
   };
 
@@ -565,23 +580,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
     ];
 
-    if (selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0) {
-      const budget = Number(selectedEvent.budgetLimit) || 1000000;
-      selectedEvent.tableRefreshments.forEach(item => {
-        let itemPerHead = 0;
-        if (item.includes('Mocktail') || item.includes('Drink')) {
-          itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
-        } else if (item.includes('Snack') || item.includes('Savory')) {
-          itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
-        } else if (item.includes('Dessert') || item.includes('Sweet')) {
-          itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
-        } else if (item.includes('Tea') || item.includes('Coffee')) {
-          itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
-        } else if (item.includes('Midnight') || item.includes('Action')) {
-          itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
-        }
-        const itemCost = selectedEvent.guestCount * itemPerHead;
-        planItems.push(`${item} (${selectedEvent.guestCount} guests @ Rs. ${itemPerHead.toLocaleString()}) = Rs. ${itemCost.toLocaleString()}`);
+    if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
+      alloc.refreshmentsItems.forEach(r => {
+        planItems.push(`${r.name} (${selectedEvent.guestCount} guests @ Rs. ${r.itemPerHead.toLocaleString()}) = Rs. ${r.cost.toLocaleString()}`);
       });
     }
 
@@ -592,6 +593,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (alloc.hasTransport) planItems.push(`${alloc.transportName} (Rs. ${alloc.transportCost.toLocaleString()})`);
     if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()})`);
+    if (specialDiscount > 0) planItems.push(`Manager Courtesy Discount (-Rs. ${specialDiscount.toLocaleString()})`);
 
     try {
       await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation, planItems);
@@ -704,7 +706,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }
 
-  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + weatherTentCost + alloc.otherCost;
+  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
   const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
@@ -1390,6 +1392,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                       </div>
 
+                      {alloc.refreshmentsItems && alloc.refreshmentsItems.map((r, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm py-2 px-3 bg-emerald-50/60 rounded-lg border border-emerald-100">
+                          <div>
+                            <span className="text-emerald-950 font-medium">🍹 {r.name}</span>
+                            <p className="text-[11px] text-emerald-600">{selectedEvent.guestCount} Guests x Rs. {r.itemPerHead.toLocaleString()}</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
+                        </div>
+                      ))}
+
                       {alloc.hasSounds && (
                         <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
                           <div>
@@ -1459,6 +1471,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
                           </div>
                           <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {specialDiscount > 0 && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <div>
+                            <span className="text-emerald-800 font-medium">🏷️ Manager Courtesy Discount</span>
+                            <p className="text-[11px] text-emerald-600">Special courtesy deduction applied</p>
+                          </div>
+                          <span className="font-semibold text-emerald-700">- Rs. {specialDiscount.toLocaleString()}</span>
                         </div>
                       )}
                     </div>
