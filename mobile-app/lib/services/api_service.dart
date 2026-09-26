@@ -6,7 +6,7 @@ import 'auth_service.dart';
 
 class ApiService {
   static String get baseUrl {
-    return 'https://eventmanagementproject-production.up.railway.app/api';
+    return 'http://localhost:8080/api';
   }
 
   // Helper method to build headers with Bearer Token and Customer Id
