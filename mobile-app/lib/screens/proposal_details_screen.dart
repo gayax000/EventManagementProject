@@ -976,14 +976,103 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 if (proposal.selectedServices.isNotEmpty || (proposal.additionalDetails != null && proposal.additionalDetails!.trim().isNotEmpty))
                   _buildItemizedBreakdown(proposal),
                 const Divider(color: Color(0xFFE2E8F0), height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5)),
-                    ),
-                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 17)),
-                  ],
+                Builder(
+                  builder: (context) {
+                    final bool isOverBudget = proposal.budgetLimit > 0 && proposal.estimatedTotalCost > proposal.budgetLimit;
+                    final double overrunDiff = isOverBudget ? (proposal.estimatedTotalCost - proposal.budgetLimit) : 0.0;
+                    final String formattedOverrun = overrunDiff.toStringAsFixed(0).replaceAllMapped(
+                      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                      (Match m) => '${m[1]},',
+                    );
+
+                    final String totalLabel = isConfirmed
+                        ? "FINAL AGREED AMOUNT:"
+                        : (isApproved ? "APPROVED PACKAGE TOTAL:" : "ESTIMATED PACKAGE TOTAL:");
+
+                    final Color costColor = (isConfirmed || isApproved)
+                        ? const Color(0xFF059669)
+                        : (isOverBudget ? const Color(0xFFD97706) : const Color(0xFF059669));
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                totalLabel,
+                                style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5),
+                              ),
+                            ),
+                            Text(
+                              "LKR $formattedCost",
+                              style: TextStyle(color: costColor, fontWeight: FontWeight.bold, fontSize: 17),
+                            ),
+                          ],
+                        ),
+                        if (proposal.budgetLimit > 0) ...[
+                          const SizedBox(height: 8),
+                          if (isOverBudget)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFFCD34D)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFD97706)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF92400E)),
+                                        children: [
+                                          const TextSpan(text: "Exceeds Stated Budget by "),
+                                          TextSpan(
+                                            text: "+LKR $formattedOverrun",
+                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                          ),
+                                          TextSpan(
+                                            text: " (Budget: LKR $formattedBudget)",
+                                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFECFDF5),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFFA7F3D0)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_outline_rounded, size: 16, color: Color(0xFF059669)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Fits within your stated budget limit (LKR $formattedBudget)",
+                                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF065F46), fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
