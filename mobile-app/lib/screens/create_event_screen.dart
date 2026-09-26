@@ -244,13 +244,55 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  int get _currentGuestCount {
+    return int.tryParse(_guestController.text.trim()) ?? 0;
+  }
+
+  List<BanquetHallItem> get _filteredHalls {
+    final guests = _currentGuestCount;
+    return _allHalls.where((h) {
+      // 1. Capacity check: Must accommodate the client's guest count
+      if (guests > 0 && h.maxCapacity < guests) {
+        return false;
+      }
+      // 2. Setting check: Indoor vs Outdoor
+      if (_isOutdoor != h.isOutdoor) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  void _syncSelectedHall() {
+    final hotels = _hotelNames;
+    if (hotels.isNotEmpty) {
+      if (_selectedHotelName == null || !hotels.contains(_selectedHotelName)) {
+        _selectedHotelName = hotels.first;
+      }
+      final available = _hallsForSelectedHotel;
+      if (available.isNotEmpty) {
+        if (_selectedHall == null || !available.any((h) => h.banquetHallId == _selectedHall?.banquetHallId)) {
+          _selectedHall = available.firstWhere(
+            (h) => h.isAvailable,
+            orElse: () => available.first,
+          );
+        }
+      } else {
+        _selectedHall = null;
+      }
+    } else {
+      _selectedHotelName = null;
+      _selectedHall = null;
+    }
+  }
+
   List<String> get _hotelNames {
-    return _allHalls.map((h) => h.venueName).toSet().toList();
+    return _filteredHalls.map((h) => h.venueName).toSet().toList();
   }
 
   List<BanquetHallItem> get _hallsForSelectedHotel {
     if (_selectedHotelName == null) return [];
-    return _allHalls.where((h) => h.venueName == _selectedHotelName).toList();
+    return _filteredHalls.where((h) => h.venueName == _selectedHotelName).toList();
   }
 
   double get _calculatedVenueTotal {
@@ -325,6 +367,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   void _nextStep() {
     if (_currentStep == 0) {
       if (!_formKey.currentState!.validate()) return;
+      _syncSelectedHall();
     }
     if (_currentStep == 1 && _locationMode == 'hotel' && _selectedHall == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1152,7 +1195,28 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                   )
                 else if (_hotelNames.isEmpty)
-                  const Text('No hotel halls found.', style: TextStyle(color: Color(0xFF64748B)))
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFECACA)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline, color: Color(0xFFDC2626), size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'No ${_isOutdoor ? "outdoor venues" : "indoor banquet halls"} found with capacity for ${_currentGuestCount > 0 ? "$_currentGuestCount guests" : "your event"}.\n\nPlease go back to Step 1 to adjust your guest count or switch setting to ${_isOutdoor ? "Indoor" : "Outdoor"}.',
+                            style: const TextStyle(color: Color(0xFF991B1B), fontSize: 13, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 else ...[
                   const Text('Select Luxury Hotel / Resort', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                   const SizedBox(height: 8),
