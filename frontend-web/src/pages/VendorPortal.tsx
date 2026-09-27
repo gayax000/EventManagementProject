@@ -226,50 +226,94 @@ export const VendorPortal: React.FC = () => {
     return () => window.removeEventListener('user_profile_updated', handleProfileUpdate);
   }, []);
 
-  // Active vendor strictly tied to the logged-in user
-  const [currentVendor, setCurrentVendor] = useState<VendorItem | null>(() => {
+  // Active vendors strictly tied to the logged-in user
+  const [myVendors, setMyVendors] = useState<VendorItem[]>(() => {
     try {
       if (userKey) {
-        const savedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-        if (savedId) {
-          // Placeholder until fetched from API
-          return { id: savedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' } as any;
+        const saved = localStorage.getItem(`eventcraft_vendor_list_${userKey}`);
+        if (saved) return JSON.parse(saved);
+        const singleSavedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+        if (singleSavedId) {
+          return [{ id: singleSavedId, vendorId: singleSavedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' }] as any;
         }
       }
+    } catch {}
+    return [];
+  });
+
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(`eventcraft_active_vendor_id_${userKey}`) || null;
     } catch {}
     return null;
   });
 
+  const currentVendor = (myVendors.length > 0)
+    ? (myVendors.find(v => (v.vendorId || v.id) === selectedVendorId) || myVendors[0])
+    : null;
+
   // Sync with Backend API
-  useEffect(() => {
-    const syncStatus = async () => {
-      if (!currentVendor || !currentVendor.id) return;
-      try {
-        const allVendors = await vendorService.getVendors();
-        const matched = allVendors.find(v => (v as any).vendorId === currentVendor.id || v.id === currentVendor.id);
-        if (matched) {
-          const updatedStatus = (matched as any).verificationStatus || matched.status;
-          if (updatedStatus !== currentVendor.status && updatedStatus !== (currentVendor as any).verificationStatus) {
-            setCurrentVendor({ 
-              ...matched, 
-              id: (matched as any).vendorId || matched.id, 
-              verificationStatus: updatedStatus,
-              status: updatedStatus 
-            } as any);
+  const syncMyVendors = async () => {
+    try {
+      const currentUserId = authService.getUserId();
+      // Fetch all vendors from API
+      const allVendors = await vendorService.getVendors();
+      if (Array.isArray(allVendors)) {
+        const savedIds: string[] = [];
+        try {
+          const rawIds = localStorage.getItem(`eventcraft_vendor_ids_${userKey}`);
+          if (rawIds) savedIds.push(...JSON.parse(rawIds));
+          const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+          if (singleId && !savedIds.includes(singleId)) savedIds.push(singleId);
+        } catch {}
+
+        const userPhone = (authService.getUserPhone() || '').replace(/\D/g, '');
+        const normUserName = (userName || '').toLowerCase().trim();
+
+        const userBusinesses = allVendors.filter(v => {
+          const vId = (v.vendorId || v.id || '').toString();
+          const matchesUserId = !!(currentUserId && v.userId && v.userId.toLowerCase() === currentUserId.toLowerCase());
+          const matchesSavedId = savedIds.includes(vId);
+          const vPhone = (v.contactNumber || v.contact || '').replace(/\D/g, '');
+          const matchesPhone = !!(userPhone && vPhone && (vPhone.includes(userPhone) || userPhone.includes(vPhone)));
+          const vName = (v.businessName || v.name || '').toLowerCase();
+          const matchesName = !!(normUserName && (vName.includes(normUserName) || (normUserName.includes('sumane') && vName.includes('sumane'))));
+
+          return matchesUserId || matchesSavedId || matchesPhone || matchesName;
+        });
+
+        if (userBusinesses.length > 0) {
+          const mapped = userBusinesses.map(v => ({
+            ...v,
+            id: v.vendorId || v.id,
+            vendorId: v.vendorId || v.id,
+            status: v.verificationStatus || v.status || 'Pending',
+            verificationStatus: v.verificationStatus || v.status || 'Pending',
+          }));
+          setMyVendors(mapped);
+          try {
+            localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(mapped));
+            const ids = mapped.map(v => v.id || v.vendorId);
+            localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
+          } catch {}
+
+          if (!selectedVendorId && mapped.length > 0) {
+            const firstId = mapped[0].id || mapped[0].vendorId || null;
+            setSelectedVendorId(firstId);
+            if (firstId) localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, firstId);
           }
         }
-      } catch (e) {
-        console.error('Sync error', e);
       }
-    };
-
-    if (currentVendor?.id && currentVendor.businessName === 'Loading...') {
-      syncStatus();
+    } catch (e) {
+      console.error('Sync error', e);
     }
+  };
 
-    const interval = setInterval(syncStatus, 5000); // Check every 5 seconds
+  useEffect(() => {
+    syncMyVendors();
+    const interval = setInterval(syncMyVendors, 4000); // Check every 4 seconds
     return () => clearInterval(interval);
-  }, [currentVendor?.id, currentVendor?.status]);
+  }, [userKey, selectedVendorId]);
 
   const handleCategoryChange = (newCat: string) => {
     setCategory(newCat);
@@ -295,13 +339,17 @@ export const VendorPortal: React.FC = () => {
 
     try {
       setSubmitting(true);
+      const currentUserId = authService.getUserId();
 
       // Save to backend API
       const registeredVendor = await vendorService.registerVendor({
         businessName,
         category,
         contactNumber,
-        description: description || packageName || selectedCategoryConfig.defaultPackage
+        description: description || packageName || selectedCategoryConfig.defaultPackage,
+        packageName: packageName || selectedCategoryConfig.defaultPackage,
+        packagePrice: Number(packagePrice) || selectedCategoryConfig.defaultPrice,
+        userId: currentUserId || undefined
       });
 
       const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
@@ -309,15 +357,28 @@ export const VendorPortal: React.FC = () => {
       const newVendorData: any = {
         ...registeredVendor,
         id: newVendorId,
-        verificationStatus: 'Pending',
-        status: 'Pending',
+        vendorId: newVendorId,
+        verificationStatus: (registeredVendor as any).verificationStatus || 'Pending',
+        status: (registeredVendor as any).verificationStatus || 'Pending',
         packageName: packageName || selectedCategoryConfig.defaultPackage,
-        packagePrice: packagePrice || selectedCategoryConfig.defaultPrice
+        packagePrice: Number(packagePrice) || selectedCategoryConfig.defaultPrice,
+        userId: currentUserId
       };
 
-      setCurrentVendor(newVendorData);
+      setMyVendors(prev => {
+        const filtered = prev.filter(v => (v.vendorId || v.id) !== newVendorId);
+        const updated = [newVendorData, ...filtered];
+        try {
+          localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(updated));
+          const ids = updated.map(v => v.id || (v as any).vendorId);
+          localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
+        } catch {}
+        return updated;
+      });
+
+      setSelectedVendorId(newVendorId);
       if (userKey) {
-        localStorage.setItem(`eventcraft_vendor_id_${userKey}`, newVendorId);
+        localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, newVendorId);
       }
 
       setRegisteredSuccess(true);
@@ -362,7 +423,7 @@ export const VendorPortal: React.FC = () => {
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            <span>My Business Status</span>
+            <span>My Business Status {myVendors.length > 0 ? `(${myVendors.length})` : ''}</span>
           </button>
           <button
             onClick={() => setActiveTab('register')}
@@ -392,6 +453,49 @@ export const VendorPortal: React.FC = () => {
       {activeTab === 'dashboard' && (
         currentVendor ? (
           <div className="space-y-6">
+
+            {/* Multiple Business Switcher Bar */}
+            {myVendors.length > 1 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center gap-3">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center mr-1">
+                  <Building2 className="w-4 h-4 mr-1 text-indigo-600" />
+                  Your Businesses ({myVendors.length}):
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {myVendors.map(v => {
+                    const isSelected = (v.vendorId || v.id) === (currentVendor?.vendorId || currentVendor?.id);
+                    const cat = getCategoryInfo(v.category);
+                    return (
+                      <button
+                        key={v.vendorId || v.id}
+                        onClick={() => {
+                          const id = v.vendorId || v.id;
+                          if (id) {
+                            setSelectedVendorId(id);
+                            localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, id);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center space-x-2 border transition ${
+                          isSelected 
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm ring-2 ring-indigo-500/30' 
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span>{cat?.icon || '🏪'}</span>
+                        <span>{v.businessName || v.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          v.verificationStatus === 'Verified' 
+                            ? (isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-800')
+                            : (isSelected ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800')
+                        }`}>
+                          {v.verificationStatus === 'Verified' ? 'Active' : 'Pending'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             
             {/* Status Hero Card */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
@@ -467,37 +571,77 @@ export const VendorPortal: React.FC = () => {
               </div>
             </div>
 
-            {/* Catalog & Equipment Breakdown */}
+            {/* Catalog & Equipment Breakdown - All Registered Businesses */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
-                  <Layers className="w-4 h-4 text-indigo-600" />
-                  <span>My Registered Services & Equipment</span>
-                </h3>
-                <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-semibold">Live Service Sync</span>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-indigo-600" />
+                    <span>My Registered Services & Businesses ({myVendors.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">All registered commercial profiles and equipment rate-cards under your account.</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md font-semibold">Cloud DB Live Sync</span>
+                  <button
+                    onClick={() => setActiveTab('register')}
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 transition"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>+ Add Service</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg">{activeCategoryInfo?.icon || '📦'}</span>
-                      <h4 className="font-bold text-slate-900 text-sm">{currentVendor.adminRemarks || (currentVendor as any).packageName || activeCategoryInfo?.defaultPackage || 'Standard Service Package'}</h4>
+                {myVendors.map(vendor => {
+                  const catInfo = getCategoryInfo(vendor.category);
+                  const isFocus = (vendor.vendorId || vendor.id) === (currentVendor?.vendorId || currentVendor?.id);
+                  return (
+                    <div
+                      key={vendor.vendorId || vendor.id}
+                      onClick={() => {
+                        const id = vendor.vendorId || vendor.id;
+                        if (id) {
+                          setSelectedVendorId(id);
+                          localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, id);
+                        }
+                      }}
+                      className={`p-4 rounded-xl border cursor-pointer transition ${
+                        isFocus ? 'border-indigo-400 bg-indigo-50/20 ring-2 ring-indigo-400/20 shadow-sm' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg">{catInfo?.icon || '📦'}</span>
+                            <h4 className="font-bold text-slate-900 text-sm">{vendor.businessName || vendor.name}</h4>
+                            {isFocus && (
+                              <span className="text-[10px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded">Active Focus</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-indigo-600 font-semibold mt-1">
+                            Package: {vendor.packageName || vendor.adminRemarks || catInfo?.defaultPackage || 'Standard Service Package'}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1 flex items-center space-x-1">
+                            <Tag className="w-3 h-3 text-slate-400" />
+                            <span>{catInfo?.label || vendor.category}</span>
+                            <span className="text-slate-300">|</span>
+                            <span>📞 {vendor.contactNumber || vendor.contact}</span>
+                          </p>
+                          <p className="text-xs font-bold text-slate-900 mt-2">
+                            Starting Price: <span className="text-indigo-600 font-bold">Rs. {Number(vendor.packagePrice || catInfo?.defaultPrice || 5000).toLocaleString()}</span>
+                          </p>
+                        </div>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          vendor.verificationStatus === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {vendor.verificationStatus === 'Verified' ? 'Active in AI Catalog' : 'Pending Verification'}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1.5 flex items-center space-x-1">
-                      <Tag className="w-3 h-3 text-slate-400" />
-                      <span>{activeCategoryInfo?.label || currentVendor.category}</span>
-                    </p>
-                    <p className="text-xs font-bold text-indigo-600 mt-2">
-                      Price: Rs. {Number((currentVendor as any).packagePrice || activeCategoryInfo?.defaultPrice || 5000).toLocaleString()}
-                    </p>
-                  </div>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                    currentVendor.verificationStatus === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                  }`}>
-                    {currentVendor.verificationStatus === 'Verified' ? 'Active in AI Catalog' : 'Pending Verification'}
-                  </span>
-                </div>
+                  );
+                })}
               </div>
             </div>
 
