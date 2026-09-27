@@ -78,7 +78,9 @@ export const VendorsPage: React.FC = () => {
           contactNumber: v.contactNumber || v.contact,
           status: v.verificationStatus || v.status,
           category: v.category,
-          adminRemarks: v.adminRemarks
+          adminRemarks: v.adminRemarks,
+          packageName: v.packageName,
+          packagePrice: v.packagePrice
         }));
         
         setVendors(mapped);
@@ -224,9 +226,12 @@ export const VendorsPage: React.FC = () => {
                       <span className="text-lg">{badge.icon}</span>
                       <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                     </div>
-                    {vendor.adminRemarks && (
+                    {(vendor.packageName || vendor.adminRemarks) && (
                       <p className="text-xs text-slate-600 mt-1 font-medium">
-                        Package: <span className="text-indigo-600 font-semibold">{vendor.adminRemarks}</span>
+                        Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
+                        {vendor.packagePrice && (
+                          <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
+                        )}
                       </p>
                     )}
                     <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
@@ -343,9 +348,12 @@ export const VendorsPage: React.FC = () => {
                       <span className="text-lg">{badge.icon}</span>
                       <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                     </div>
-                    {vendor.adminRemarks && (
+                    {(vendor.packageName || vendor.adminRemarks) && (
                       <p className="text-xs text-slate-600 mt-1 font-medium">
-                        Package: <span className="text-indigo-600 font-semibold">{vendor.adminRemarks}</span>
+                        Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
+                        {vendor.packagePrice && (
+                          <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
+                        )}
                       </p>
                     )}
                     <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
@@ -430,10 +438,13 @@ export const VendorsPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Service Package / Description</span>
-                <p className="font-medium text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/80">
-                  {selectedVendorForView.adminRemarks || 'No additional package details provided.'}
-                </p>
+                <span className="text-xs uppercase tracking-wider font-semibold text-slate-400 block mb-1">Service Package / Rate</span>
+                <div className="font-medium text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                  <p>{selectedVendorForView.packageName || selectedVendorForView.adminRemarks || 'No additional package details provided.'}</p>
+                  {selectedVendorForView.packagePrice && (
+                    <p className="mt-1 font-bold text-indigo-600 text-sm">Starting Unit Price: Rs. {Number(selectedVendorForView.packagePrice).toLocaleString()}</p>
+                  )}
+                </div>
               </div>
 
               <div>
