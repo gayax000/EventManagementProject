@@ -219,8 +219,9 @@ public class AiWorkflowService : IAiWorkflowService
         }
 
         // 2. Intelligent Proposal Engine (Native in .NET for High Availability & Zero Failure)
-        decimal hallRental = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 350000m;
-        decimal cateringPrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : 5000m;
+        bool isPrivateVenue = ev.BanquetHall == null;
+        decimal hallRental = isPrivateVenue ? 0m : ev.BanquetHall!.HallRentalPrice;
+        decimal cateringPrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : 4500m;
         decimal cateringCost = ev.GuestCount * cateringPrice;
 
         List<string> selectedServices = new();
@@ -403,8 +404,17 @@ public class AiWorkflowService : IAiWorkflowService
 
         var sessionTitle = ev.EventSession == "NightDinner" ? "Night Dinner Session (6:00 PM - 11:30 PM)" : (ev.EventSession == "EveningHighTea" ? "Evening High Tea (3:30 PM - 7:00 PM)" : "Day Lunch Session (10:00 AM - 3:30 PM)");
         planItems.Add($"Event Session: {sessionTitle}");
-        string venueRentalLabel = ev.BanquetHall != null ? $"{ev.BanquetHall.HallName} Hall Rental" : $"{ev.Venue?.Name ?? "Selected Venue"} Rental";
-        planItems.Add($"{venueRentalLabel} = Rs. {hallRental:N0}");
+        string venueRentalLabel = isPrivateVenue
+            ? $"Private Residence ({ev.PreferredLocation ?? "Client Premises"})"
+            : (ev.BanquetHall != null ? $"{ev.BanquetHall.HallName} Hall Rental" : $"{ev.Venue?.Name ?? "Selected Venue"} Rental");
+        if (isPrivateVenue)
+        {
+            planItems.Add($"{venueRentalLabel} = Rs. 0 (Venue rental waived - Client owned property)");
+        }
+        else
+        {
+            planItems.Add($"{venueRentalLabel} = Rs. {hallRental:N0}");
+        }
 
         var cateringStyleLabel = ev.CateringStyle switch
         {

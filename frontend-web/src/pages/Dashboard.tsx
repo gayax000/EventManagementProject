@@ -616,7 +616,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const basePerPlate = selectedEvent.perPlatePrice || 5000;
     const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
     const cateringCost = selectedEvent.guestCount * perPlate;
-    const baseHallRental = selectedEvent.hallRentalPrice || 350000;
+    const isPrivateVenue = !selectedEvent.banquetHallId && (
+      !selectedEvent.venueId ||
+      (selectedEvent.venueName?.toLowerCase().includes('private') ?? false) ||
+      (selectedEvent.preferredLocation?.toLowerCase().includes('private') ?? false)
+    );
+    const baseHallRental = selectedEvent.hallRentalPrice !== null && selectedEvent.hallRentalPrice !== undefined
+      ? selectedEvent.hallRentalPrice
+      : (isPrivateVenue ? 0 : 350000);
     const hallRental = customHallCost !== null ? customHallCost : baseHallRental;
     const alloc = getAllocations(
       selectedEvent, 
@@ -768,7 +775,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const basePerPlate = selectedEvent?.perPlatePrice || 5000;
   const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
-  const baseHallRental = selectedEvent?.hallRentalPrice || 350000;
+  const isPrivateVenue = !selectedEvent?.banquetHallId && (
+    !selectedEvent?.venueId ||
+    (selectedEvent?.venueName?.toLowerCase().includes('private') ?? false) ||
+    (selectedEvent?.preferredLocation?.toLowerCase().includes('private') ?? false)
+  );
+  const baseHallRental = selectedEvent?.hallRentalPrice !== null && selectedEvent?.hallRentalPrice !== undefined
+    ? selectedEvent.hallRentalPrice
+    : (isPrivateVenue ? 0 : 350000);
   const hallRental = customHallCost !== null ? customHallCost : baseHallRental;
   const alloc = getAllocations(
     selectedEvent, 
@@ -1539,36 +1553,74 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="flex justify-between items-center">
                           <div>
                             <span className="text-slate-800 font-medium">
-                              🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
+                              {isPrivateVenue 
+                                ? "🏡 Private Residence / Client Venue"
+                                : (selectedEvent.banquetHallName ? `🏨 ${selectedEvent.banquetHallName} Rental` : "🏨 Selected Venue Rental")
+                              }
                             </span>
-                            <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
+                            <p className="text-[11px] text-slate-500">
+                              {isPrivateVenue 
+                                ? `📍 ${selectedEvent.preferredLocation ? selectedEvent.preferredLocation.replace(/Private Residence -? ?/i, '').replace(/\|/g, '•') : selectedEvent.venueName || "Private Grounds"} — Venue fee waived`
+                                : "Exclusive venue access & setup"
+                              }
+                            </p>
                           </div>
-                          <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
+                          <span className="font-semibold text-slate-900">
+                            {hallRental === 0 ? "Rs. 0 (Waived)" : `Rs. ${hallRental.toLocaleString()}`}
+                          </span>
                         </div>
                         {!isApproved && (
                           <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
                             <span className="text-[11px] font-bold text-slate-700">Adjust Venue:</span>
-                            <button
-                              type="button"
-                              onClick={() => setCustomHallCost(350000)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 350000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Standard (350k)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCustomHallCost(300000)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 300000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Partner (300k)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCustomHallCost(250000)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 250000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Rebate (250k)
-                            </button>
+                            {isPrivateVenue ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(0)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 0 ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Waived (Rs. 0)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(30000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 30000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Logistics (30k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(50000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 50000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Logistics (50k)
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(350000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 350000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Standard (350k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(300000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 300000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Partner (300k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomHallCost(250000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 250000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                                >
+                                  Rebate (250k)
+                                </button>
+                              </>
+                            )}
                             <div className="flex items-center space-x-1 ml-auto">
                               <span className="text-[10px] text-slate-500 font-medium">Custom Rs.</span>
                               <input
