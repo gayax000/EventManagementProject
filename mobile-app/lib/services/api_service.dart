@@ -292,6 +292,58 @@ class ApiService {
     }
   }
 
+  // 5.1 Fetch Customer Payments & Invoices (Member 4 Mobile Feature)
+  static Future<List<Map<String, dynamic>>> getMyPayments() async {
+    try {
+      final userId = await AuthService.getUserId();
+      var urlStr = '$baseUrl/payments/my-payments';
+      if (userId != null && userId.isNotEmpty) {
+        urlStr += '?customerId=$userId';
+      }
+      final url = Uri.parse(urlStr);
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> body = jsonDecode(response.body);
+        return body.map((item) => item as Map<String, dynamic>).toList();
+      }
+    } catch (e) {
+      debugPrint("API Error getMyPayments endpoint: $e");
+    }
+
+    // Fallback: derive payments from confirmed events
+    try {
+      final events = await getMyEvents();
+      List<Map<String, dynamic>> fallbackList = [];
+      for (var ev in events) {
+        final proposal = await getProposalDetails(ev.eventId);
+        if (proposal != null && proposal.paymentStatus != null && proposal.paymentStatus!.isNotEmpty) {
+          fallbackList.add({
+            'paymentId': proposal.bookingId ?? ev.eventId,
+            'bookingId': proposal.bookingId,
+            'bookingRef': proposal.bookingRef ?? 'EV-2026-REF',
+            'eventId': ev.eventId,
+            'eventTitle': ev.title,
+            'eventType': ev.eventType ?? 'Wedding',
+            'amountPaid': proposal.estimatedTotalCost,
+            'totalAgreed': proposal.estimatedTotalCost,
+            'paymentMethod': 'BankTransferSlip',
+            'slipImageUrl': proposal.slipImageUrl,
+            'status': proposal.paymentStatus,
+            'paidAt': ev.createdAt.toIso8601String(),
+            'invoiceNumber': proposal.invoiceNumber,
+            'qrCodeData': proposal.qrCodeData,
+          });
+        }
+      }
+      return fallbackList;
+    } catch (fallbackError) {
+      debugPrint("Fallback error getMyPayments: $fallbackError");
+      return [];
+    }
+  }
+
   // 6. Verify QR Entry Pass (Staff Scanner Feature - Spec LO3 Device)
   static Future<Map<String, dynamic>> verifyQrPass(String qrCodeData) async {
     try {

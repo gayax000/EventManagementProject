@@ -130,6 +130,68 @@ public class PaymentsController : ControllerBase
         return Ok(payments);
     }
 
+    // 1.2 GET: api/payments/my-payments (Customer payment history, slips, and invoices)
+    [HttpGet("my-payments")]
+    public async Task<ActionResult> GetMyPayments([FromQuery] Guid? customerId)
+    {
+        Guid targetCustomerId = Guid.Empty;
+        if (customerId.HasValue && customerId.Value != Guid.Empty)
+        {
+            targetCustomerId = customerId.Value;
+        }
+        else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+        {
+            targetCustomerId = parsedId;
+        }
+        else
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (claim != null && Guid.TryParse(claim.Value, out var cId))
+            {
+                targetCustomerId = cId;
+            }
+        }
+
+        var query = _context.Payments
+            .Include(p => p.Booking)
+                .ThenInclude(b => b!.Event)
+            .AsQueryable();
+
+        if (targetCustomerId != Guid.Empty)
+        {
+            query = query.Where(p => p.Booking != null && p.Booking.Event != null && p.Booking.Event.CustomerId == targetCustomerId);
+        }
+
+        var list = await query
+            .OrderByDescending(p => p.PaidAt)
+            .Select(p => new
+            {
+                paymentId = p.PaymentId,
+                bookingId = p.BookingId,
+                bookingRef = p.Booking != null ? p.Booking.BookingReferenceCode : "EV-2026-REF",
+                eventId = p.Booking != null ? p.Booking.EventId : Guid.Empty,
+                eventTitle = p.Booking != null && p.Booking.Event != null ? p.Booking.Event.Title : "Event Reservation",
+                eventType = p.Booking != null && p.Booking.Event != null ? p.Booking.Event.EventType : "Wedding",
+                amountPaid = p.AmountPaid,
+                totalAgreed = p.Booking != null ? p.Booking.TotalAgreedAmount : p.AmountPaid,
+                paymentMethod = p.PaymentMethod,
+                slipImageUrl = p.SlipImageUrl,
+                status = p.Status,
+                paidAt = p.PaidAt,
+                invoiceNumber = _context.Invoices
+                    .Where(i => i.BookingId == p.BookingId)
+                    .Select(i => i.InvoiceNumber)
+                    .FirstOrDefault(),
+                qrCodeData = _context.EntryPasses
+                    .Where(ep => ep.BookingId == p.BookingId)
+                    .Select(ep => ep.QrCodeData)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+
+        return Ok(list);
+    }
+
     // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice)
     [HttpPut("{id}/verify")]
     public async Task<ActionResult> VerifyPayment(Guid id, [FromBody] VerifyPaymentDto dto)
