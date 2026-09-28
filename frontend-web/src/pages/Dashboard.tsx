@@ -1391,8 +1391,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             Special Client Custom Requests
                           </h4>
                         </div>
-                        <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
-                          {specialAllocation > 0 ? `Allocated: Rs. ${specialAllocation.toLocaleString()}` : '⏳ Pending Manager Pricing (Rs. 0)'}
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border font-mono ${
+                          specialAllocation > 0
+                            ? 'bg-rose-100 text-rose-800 border-rose-200'
+                            : (isApproved || selectedEvent.status === 'PendingClientBudgetApproval' || selectedEvent.status === 'ClientChoiceSubmitted'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                : 'bg-rose-100 text-rose-800 border-rose-200')
+                        }`}>
+                          {specialAllocation > 0 
+                            ? `Allocated: Rs. ${specialAllocation.toLocaleString()}` 
+                            : (isApproved || selectedEvent.status === 'PendingClientBudgetApproval' || selectedEvent.status === 'ClientChoiceSubmitted'
+                                ? '✓ Complimentary / Included (Rs. 0)' 
+                                : '⏳ Pending Manager Pricing (Rs. 0)')}
                         </span>
                       </div>
                       <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">

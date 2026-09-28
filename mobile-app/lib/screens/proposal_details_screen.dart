@@ -768,22 +768,30 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         decoration: BoxDecoration(
                           color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                               ? const Color(0xFFDBEAFE)
-                              : const Color(0xFFFEF3C7),
+                              : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEF3C7)),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                                 ? const Color(0xFF93C5FD)
-                                : const Color(0xFFFCD34D),
+                                : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                    ? const Color(0xFF86EFAC)
+                                    : const Color(0xFFFCD34D)),
                           ),
                         ),
                         child: Text(
                           proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
                             ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
-                            : '⏳ Pending Manager Costing',
+                            : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                ? '✓ Complimentary (Included)'
+                                : '⏳ Pending Manager Costing'),
                           style: TextStyle(
                             color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                                 ? const Color(0xFF1E40AF)
-                                : const Color(0xFFB45309),
+                                : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                    ? const Color(0xFF065F46)
+                                    : const Color(0xFFB45309)),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -2117,11 +2125,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text(
                   isDiscount 
                       ? "- LKR $costStr" 
-                      : (cost > 0 ? "LKR $costStr" : (item['isSpecial'] == true ? "⏳ Pending Manager Costing" : "Priced by Manager")), 
+                      : (cost > 0 
+                          ? "LKR $costStr" 
+                          : (item['isSpecial'] == true 
+                              ? (proposal.isConfirmed || proposal.status == 'Confirmed' || proposal.status == 'ApprovedByManager' || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                  ? "✓ Complimentary (LKR 0)" 
+                                  : "⏳ Pending Manager Costing") 
+                              : "Priced by Manager")), 
                   style: TextStyle(
                     color: isDiscount 
                         ? const Color(0xFF16A34A) 
-                        : (item['isSpecial'] == true ? const Color(0xFFB45309) : const Color(0xFF0F172A)), 
+                        : (item['isSpecial'] == true 
+                            ? (proposal.isConfirmed || proposal.status == 'Confirmed' || proposal.status == 'ApprovedByManager' || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                ? const Color(0xFF16A34A) 
+                                : const Color(0xFFB45309))
+                            : const Color(0xFF0F172A)), 
                     fontWeight: FontWeight.bold, 
                     fontSize: 11.5,
                   ),
