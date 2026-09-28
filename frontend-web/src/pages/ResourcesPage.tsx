@@ -35,7 +35,7 @@ const DEFAULT_RESOURCES: ResourceItem[] = [
   { id: 'd4', name: 'Fairy-Light Star Backdrop + Geometric Floral Frame', type: 'Decor', unitPrice: 50000, available: 14 },
   { id: 'd5', name: 'Minimalist Floral Arch + Cake Table Styling', type: 'Decor', unitPrice: 30000, available: 20 },
 
-  // 4. In-House Photography & Media (Photography)
+  // 4. Verified Photography & Media (Photography)
   { id: 'p1', name: 'Royal Cinematic Cinema Rig + Drone + 3 Senior Photographers', type: 'Photography', unitPrice: 250000, available: 4 },
   { id: 'p2', name: 'Master Wedding Photography + 4K Highlights Video + Album', type: 'Photography', unitPrice: 160000, available: 8 },
   { id: 'p3', name: 'Professional Event Coverage (2 Photographers + Edited Soft Copies)', type: 'Photography', unitPrice: 100000, available: 12 },
@@ -385,7 +385,7 @@ export const ResourcesPage: React.FC = () => {
                     </div>
                   ) : (
                     <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium flex items-center w-max">
-                      <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" /> In Stock (In-House)
+                      <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Verified Inventory Available
                     </span>
                   )}
                 </td>

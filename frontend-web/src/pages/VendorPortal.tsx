@@ -148,7 +148,7 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     tierSample: 'Floral Drapes, Thematic Stage & Archway Design'
   },
   Photography: {
-    label: 'In-House Photography & Cinematography',
+    label: 'Verified Photography & Cinematography',
     shortLabel: 'Photography',
     icon: '📸',
     defaultPackage: 'Master Wedding Photography + 4K Highlights Video + Storybook Album',
