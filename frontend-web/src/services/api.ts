@@ -59,6 +59,8 @@ export interface EventItem {
   inspirationImageUrl?: string;
   weatherAssessment?: any;
   estimatedTotalCost?: number;
+  assignedVendors?: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>;
+  assignedVendorsJson?: string;
   createdAt: string;
 }
 
@@ -94,7 +96,7 @@ export const eventService = {
   },
 
   // Manager Approve Proposal with exact finalTotal and optional status & customAddonCost
-  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number, planItems?: string[]) => {
+  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number, planItems?: string[], assignedVendorsJson?: string) => {
     let url = `/events/${eventId}/approve-proposal?discount=${discount}`;
     if (finalTotal !== undefined) {
       url += `&finalTotal=${finalTotal}`;
@@ -104,6 +106,9 @@ export const eventService = {
     }
     if (customAddonCost !== undefined) {
       url += `&customAddonCost=${customAddonCost}`;
+    }
+    if (assignedVendorsJson) {
+      url += `&assignedVendorsJson=${encodeURIComponent(assignedVendorsJson)}`;
     }
     const response = await apiClient.post(url, planItems || null);
     return response.data;
@@ -173,6 +178,19 @@ export const vendorService = {
   },
   deleteVendor: async (id: string) => {
     const res = await apiClient.delete(`/venues/vendors/${id}`);
+    return res.data;
+  },
+  getAssignedEvents: async (vendorId?: string, userId?: string) => {
+    let url = '/venues/vendors/assigned-events';
+    const params = new URLSearchParams();
+    if (vendorId) params.append('vendorId', vendorId);
+    if (userId) params.append('userId', userId);
+    if (params.toString()) url += `?${params.toString()}`;
+    const res = await apiClient.get(url);
+    return res.data;
+  },
+  assignVendorsToEvent: async (eventId: string, vendors: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>) => {
+    const res = await apiClient.put(`/events/${eventId}/assigned-vendors`, vendors);
     return res.data;
   },
 };

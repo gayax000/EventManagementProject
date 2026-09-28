@@ -20,6 +20,7 @@ public static class DbInitializer
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""InspirationImageUrl"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AdditionalDetails"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""IsOutdoor"" boolean DEFAULT false;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
                 ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackageName"" text;
                 ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackagePrice"" numeric;
             ");
@@ -284,30 +285,75 @@ public static class DbInitializer
         }
 
         // 6. Realistic Multi-Category Event Vendors Seeding
-        if (!await context.Vendors.AnyAsync())
+        // NOTE: Photography category is intentionally kept clean (unseeded) so the user can live-register and demonstrate Photography vendors at the viva!
+        try
         {
-            var defaultUser = await context.Users.FirstOrDefaultAsync();
-            var userId = defaultUser?.UserId ?? Guid.Empty;
-
-            var vendors = new List<Vendor>
+            var oldPhotoVendors = await context.Vendors.Where(v => v.Category == "Photography").ToListAsync();
+            if (oldPhotoVendors.Any())
             {
-                new() { BusinessName = "Lumina Pro Audio & Stage Lighting", Category = "SoundLighting", ContactNumber = "+94 77 123 4567", VerificationStatus = "Verified", AdminRemarks = "Concert Line-Array Rig + 16 Moving Heads", UserId = userId },
-                new() { BusinessName = "Royal Blooms Floral & Stage Design", Category = "Decor", ContactNumber = "+94 77 234 5678", VerificationStatus = "Verified", AdminRemarks = "Royal Fresh Flower Ceiling Drapes & Grand Stage", UserId = userId },
-                new() { BusinessName = "Studio Lumiere Wedding & Event Photography", Category = "Photography", ContactNumber = "+94 77 345 6789", VerificationStatus = "Verified", AdminRemarks = "Master Wedding Photography + 4K Highlights Video + Album", UserId = userId },
-                new() { BusinessName = "Velvet Crumb Artisan Cake Studio", Category = "Cake", ContactNumber = "+94 77 456 7890", VerificationStatus = "Verified", AdminRemarks = "5-Tier Royal Handcrafted Fondant Wedding Cake", UserId = userId },
-                new() { BusinessName = "Royal Crown VIP & Bridal Chauffeurs", Category = "Transport", ContactNumber = "+94 77 567 8901", VerificationStatus = "Verified", AdminRemarks = "Classic Vintage Rolls Royce / Jaguar Bridal Car", UserId = userId },
-                new() { BusinessName = "Ceylon Grand Banquet Caterers", Category = "Catering", ContactNumber = "+94 77 678 9012", VerificationStatus = "Verified", AdminRemarks = "Royal 7-Course International Gala Buffet", UserId = userId },
-                new() { BusinessName = "Ceylon WeatherShield Marquee Tents", Category = "MarqueeTent", ContactNumber = "+94 77 789 0123", VerificationStatus = "Verified", AdminRemarks = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)", UserId = userId },
-                new() { BusinessName = "VoltMax Heavy Power & Generator Hire", Category = "PowerBackup", ContactNumber = "+94 77 890 1234", VerificationStatus = "Verified", AdminRemarks = "Backup Diesel Silent Generator (60 kVA Heavy Duty)", UserId = userId },
-                
-                // Pending Verification Requests
-                new() { BusinessName = "LensCraft 4K Drone & Cinematic Media", Category = "Photography", ContactNumber = "+94 70 332 1144", VerificationStatus = "Pending", AdminRemarks = "Professional Event Coverage (2 Photographers + Unlimited Soft Copies)", UserId = userId },
-                new() { BusinessName = "Sweet Elegance Designer Cake House", Category = "Cake", ContactNumber = "+94 72 667 8899", VerificationStatus = "Pending", AdminRemarks = "3-Tier Luxury Floral Wedding Cake", UserId = userId },
-                new() { BusinessName = "Prestige Executive Mercedes Fleet", Category = "Transport", ContactNumber = "+94 75 998 8776", VerificationStatus = "Pending", AdminRemarks = "Mercedes-Benz S-Class Luxury Chauffeur Sedan", UserId = userId }
-            };
-
-            context.Vendors.AddRange(vendors);
-            await context.SaveChangesAsync();
+                context.Vendors.RemoveRange(oldPhotoVendors);
+                await context.SaveChangesAsync();
+            }
         }
+        catch { }
+
+        var defaultUser = await context.Users.FirstOrDefaultAsync();
+        var userId = defaultUser?.UserId ?? Guid.Empty;
+
+        var predefinedVendors = new List<Vendor>
+        {
+            // 1. Sound & Stage Lighting (Tiers 1 - 4)
+            new() { BusinessName = "Mano Sounds & Acoustic Setup - Moratuwa", Category = "SoundLighting", ContactNumber = "+94 77 123 4567", VerificationStatus = "Verified", PackageName = "Compact Speech PA Kit + 2 Wireless Mics", PackagePrice = 40000, AdminRemarks = "Budget PA system with dual wireless microphones", UserId = userId },
+            new() { BusinessName = "VibeWave Audio & Ambient LED - Kandy", Category = "SoundLighting", ContactNumber = "+94 77 234 5678", VerificationStatus = "Verified", PackageName = "Standard Stage Audio + Warm Ambient LED PAR Cans", PackagePrice = 85000, AdminRemarks = "Stage Audio System, Warm LED Mood Uplights, Digital Console", UserId = userId },
+            new() { BusinessName = "Lumina Pro Audio & Stage Lighting", Category = "SoundLighting", ContactNumber = "+94 77 345 6789", VerificationStatus = "Verified", PackageName = "Concert Line-Array Sound & Digital Mixer Package", PackagePrice = 180000, AdminRemarks = "Line-Array Sound & Digital Mixer Package", UserId = userId },
+            new() { BusinessName = "Dynamic AV Technologies & Concert Rigging", Category = "SoundLighting", ContactNumber = "+94 77 456 7890", VerificationStatus = "Verified", PackageName = "Concert Line-Array Rig + 16 Moving Heads + Beam Trusses", PackagePrice = 250000, AdminRemarks = "Concert Rigging with 16 Moving Heads & Beam Trusses", UserId = userId },
+
+            // 2. Floral Decor & Stage Styling (Tiers 1 - 4)
+            new() { BusinessName = "Samanmal Flora & Deco Maharagama", Category = "Decor", ContactNumber = "+94 77 567 8901", VerificationStatus = "Verified", PackageName = "Minimalist Floral Arch + Cake Table Styling", PackagePrice = 45000, AdminRemarks = "Minimalist floral arch, Poruwa styling & cake table", UserId = userId },
+            new() { BusinessName = "Lassana Events & Floral Concepts", Category = "Decor", ContactNumber = "+94 77 678 9012", VerificationStatus = "Verified", PackageName = "Thematic Floral Stage + Table Centerpieces", PackagePrice = 85000, AdminRemarks = "Thematic floral stage, entrance arch, table centerpieces", UserId = userId },
+            new() { BusinessName = "Petals & Drapes Luxury Event Stylists", Category = "Decor", ContactNumber = "+94 77 789 0123", VerificationStatus = "Verified", PackageName = "Thematic Floral Stage + Entrance Tunnel Arch", PackagePrice = 140000, AdminRemarks = "Thematic floral stage, entrance tunnel arch, settee backdrop", UserId = userId },
+            new() { BusinessName = "Royal Blooms Floral & Botanical Artistry", Category = "Decor", ContactNumber = "+94 77 890 1234", VerificationStatus = "Verified", PackageName = "Royal Fresh Flower Ceiling Drapes & Grand Stage Decor", PackagePrice = 220000, AdminRemarks = "Grand stage decor, fresh flower ceiling drapes, starry wall", UserId = userId },
+
+            // 3. VIP Transport & Bridal Cars (Tiers 1 - 4)
+            new() { BusinessName = "Kandy & Colombo Executive Transfers", Category = "Transport", ContactNumber = "+94 77 901 2345", VerificationStatus = "Verified", PackageName = "Toyota Premio / Allion Executive Chauffeur Sedan", PackagePrice = 35000, AdminRemarks = "Comfortable air-conditioned executive chauffeur sedan", UserId = userId },
+            new() { BusinessName = "SilverLine Executive BMW Fleet", Category = "Transport", ContactNumber = "+94 77 012 3456", VerificationStatus = "Verified", PackageName = "BMW 5-Series Executive Bridal Sedan", PackagePrice = 50000, AdminRemarks = "BMW 5-Series Executive bridal chauffeur sedan", UserId = userId },
+            new() { BusinessName = "Prestige Executive Mercedes Fleet", Category = "Transport", ContactNumber = "+94 77 123 7890", VerificationStatus = "Verified", PackageName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan", PackagePrice = 65000, AdminRemarks = "Mercedes-Benz S-Class luxury chauffeur sedan", UserId = userId },
+            new() { BusinessName = "Royal Crown Vintage Rolls Royce & Jaguar Escorts", Category = "Transport", ContactNumber = "+94 77 234 8901", VerificationStatus = "Verified", PackageName = "Classic Vintage Rolls Royce / 1954 Jaguar Mark VII", PackagePrice = 95000, AdminRemarks = "Classic vintage Rolls Royce / Jaguar Mark VII bridal car", UserId = userId },
+
+            // 4. Celebration Cakes & Confectionery (Tiers 1 - 4)
+            new() { BusinessName = "The Fab & Sponge Sweet Treats Colombo", Category = "Cake", ContactNumber = "+94 77 345 9012", VerificationStatus = "Verified", PackageName = "2-Tier Classic Buttercream Celebration Cake", PackagePrice = 15000, AdminRemarks = "2-Tier classic buttercream celebration gateau", UserId = userId },
+            new() { BusinessName = "SugarStory Bespoke Cakes - Malabe", Category = "Cake", ContactNumber = "+94 77 456 0123", VerificationStatus = "Verified", PackageName = "2-Tier Custom Handcrafted Fondant Cake", PackagePrice = 30000, AdminRemarks = "2-Tier handcrafted custom thematic fondant cake", UserId = userId },
+            new() { BusinessName = "Sweet Elegance Designer Cake House", Category = "Cake", ContactNumber = "+94 77 567 1234", VerificationStatus = "Verified", PackageName = "3-Tier Luxury Floral Wedding Cake", PackagePrice = 45000, AdminRemarks = "3-Tier luxury floral handcrafted wedding cake", UserId = userId },
+            new() { BusinessName = "Velvet Crumb Artisan Cake Studio", Category = "Cake", ContactNumber = "+94 77 678 2345", VerificationStatus = "Verified", PackageName = "5-Tier Royal Handcrafted Fondant Wedding Cake", PackagePrice = 65000, AdminRemarks = "5-Tier royal handcrafted fondant cake with sugar flowers", UserId = userId },
+
+            // 5. Catering Buffets (Tiers 1 - 4)
+            new() { BusinessName = "Perera & Sons (P&S Event Catering)", Category = "Catering", ContactNumber = "+94 77 789 3456", VerificationStatus = "Verified", PackageName = "Authentic Sri Lankan Traditional Feast", PackagePrice = 3800, AdminRemarks = "Chicken, Fish, Dhal, 4 Salads, 4 Desserts per plate", UserId = userId },
+            new() { BusinessName = "Harpos Hospitality & Outdoor Catering", Category = "Catering", ContactNumber = "+94 77 890 4567", VerificationStatus = "Verified", PackageName = "Classic Asian & Sri Lankan Fusion Buffet", PackagePrice = 5000, AdminRemarks = "2 Meats, Action Station, 6 Desserts per plate", UserId = userId },
+            new() { BusinessName = "Ceylon Grand Banquet Caterers", Category = "Catering", ContactNumber = "+94 77 901 5678", VerificationStatus = "Verified", PackageName = "Executive 5-Course Carvery & Seafood Buffet", PackagePrice = 6800, AdminRemarks = "3 Meats, Seafood, Pasta, 8 Desserts per plate", UserId = userId },
+
+            // 6. Refreshments & Beverage Stations (Tiers 1 - 4)
+            new() { BusinessName = "Ceylon Tea Trails Mobile Brew Station", Category = "Refreshments", ContactNumber = "+94 77 012 6789", VerificationStatus = "Verified", PackageName = "Traditional Ceylon Ginger Tea, Coffee & Short Eats", PackagePrice = 250, AdminRemarks = "Traditional hot brews & Sri Lankan savories per head", UserId = userId },
+            new() { BusinessName = "Tropical Splash Fresh Juice & Mocktail Bar", Category = "Refreshments", ContactNumber = "+94 77 123 6780", VerificationStatus = "Verified", PackageName = "Tropical Fresh Fruit Juices & Chilled Mocktail Bar", PackagePrice = 500, AdminRemarks = "Live fruit blends & chilled mocktail bar per head", UserId = userId },
+            new() { BusinessName = "Barista & Bean Artisanal Espresso Lounge", Category = "Refreshments", ContactNumber = "+94 77 234 7891", VerificationStatus = "Verified", PackageName = "Artisanal Ceylon Tea & Italian Espresso Barista Lounge", PackagePrice = 800, AdminRemarks = "Italian espresso, barista brews & pastry bar per head", UserId = userId },
+            new() { BusinessName = "Pilawoos & StreetEats Live Midnight Station", Category = "Refreshments", ContactNumber = "+94 77 345 8902", VerificationStatus = "Verified", PackageName = "Live Midnight Street Food Station (Kottu & Rotti)", PackagePrice = 950, AdminRemarks = "Live Kottu, cheese rotti & hopper station per head", UserId = userId },
+
+            // 7. Marquee Tents & Weather Safeguards
+            new() { BusinessName = "Rohan Canopy Rentals Kaduwela", Category = "MarqueeTent", ContactNumber = "+94 77 456 9013", VerificationStatus = "Verified", PackageName = "Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)", PackagePrice = 45000, AdminRemarks = "Waterproof pagoda / rain shelter canopy", UserId = userId },
+            new() { BusinessName = "Ceylon WeatherShield Marquee Tents", Category = "MarqueeTent", ContactNumber = "+94 77 567 0124", VerificationStatus = "Verified", PackageName = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)", PackagePrice = 150000, AdminRemarks = "Heavy-duty waterproof marquee weather safeguard", UserId = userId },
+
+            // 8. Power Backup & Generators
+            new() { BusinessName = "VoltMax Heavy Power Hire", Category = "PowerBackup", ContactNumber = "+94 77 678 1235", VerificationStatus = "Verified", PackageName = "Backup Diesel Silent Generator (60 kVA Heavy Duty)", PackagePrice = 90000, AdminRemarks = "Backup diesel silent 60 kVA generator unit", UserId = userId },
+            new() { BusinessName = "SparkLine Industrial Power Systems", Category = "PowerBackup", ContactNumber = "+94 77 789 2346", VerificationStatus = "Verified", PackageName = "Industrial 100 kVA Synchronized Silent Dual Generator", PackagePrice = 160000, AdminRemarks = "Industrial 100 kVA synchronized dual generator", UserId = userId }
+        };
+
+        foreach (var pv in predefinedVendors)
+        {
+            var exists = await context.Vendors.AnyAsync(v => v.BusinessName == pv.BusinessName);
+            if (!exists)
+            {
+                context.Vendors.Add(pv);
+            }
+        }
+        await context.SaveChangesAsync();
     }
 }

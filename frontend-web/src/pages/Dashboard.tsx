@@ -35,7 +35,7 @@ import {
   AlertTriangle,
   Trash2
 } from 'lucide-react';
-import { eventService, type EventItem } from '../services/api';
+import { eventService, vendorService, type EventItem, type VendorItem } from '../services/api';
 import { authService } from '../services/authService';
 
 const getEventTypeIcon = (type?: string) => {
@@ -150,6 +150,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [customTransportCost, setCustomTransportCost] = useState<number | null>(null);
   const [selectedWeatherOptionId, setSelectedWeatherOptionId] = useState<string | null>(null);
 
+  // Verified Vendors & Assignment State
+  const [availableVendors, setAvailableVendors] = useState<VendorItem[]>([]);
+  const [selectedVendorAssignments, setSelectedVendorAssignments] = useState<Record<string, { vendorId: string; vendorName: string; agreedPayout?: number }>>({});
+
+  const loadVendors = async () => {
+    try {
+      const data = await vendorService.getVendors();
+      if (Array.isArray(data)) {
+        setAvailableVendors(data.filter((v: any) => v.verificationStatus === 'Verified' || v.status === 'Verified'));
+      }
+    } catch (err) {
+      console.error("Failed to load verified vendors", err);
+    }
+  };
+
+  const getVerifiedVendorsForCategory = (catKey: string) => {
+    const norm = catKey.toLowerCase().trim();
+    return availableVendors.filter(v => {
+      const vCat = (v.category || '').toLowerCase().trim();
+      if (norm.includes('photo') || norm.includes('media')) return vCat.includes('photo');
+      if (norm.includes('sound') || norm.includes('audio') || norm.includes('light')) return vCat.includes('sound') || vCat.includes('audio');
+      if (norm.includes('deco') || norm.includes('flower') || norm.includes('floral')) return vCat.includes('decor') || vCat.includes('flower') || vCat.includes('floral');
+      if (norm.includes('cake')) return vCat.includes('cake');
+      if (norm.includes('transport') || norm.includes('car') || norm.includes('vip')) return vCat.includes('transport') || vCat.includes('car') || vCat.includes('vip');
+      if (norm.includes('cater') || norm.includes('buffet') || norm.includes('food')) return vCat.includes('cater') || vCat.includes('food');
+      if (norm.includes('refresh') || norm.includes('drink') || norm.includes('tea') || norm.includes('coffee')) return vCat.includes('refresh') || vCat.includes('tea') || vCat.includes('coffee') || vCat.includes('drink');
+      if (norm.includes('tent') || norm.includes('marquee') || norm.includes('weather')) return vCat.includes('tent') || vCat.includes('marquee') || vCat.includes('weather');
+      if (norm.includes('power') || norm.includes('generator') || norm.includes('gen')) return vCat.includes('power') || vCat.includes('gen');
+      return vCat.includes(norm) || norm.includes(vCat);
+    });
+  };
+
   // Authentication State & Modal
   const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(authService.isLoggedIn());
   const [currentUserName, setCurrentUserName] = useState<string>(authService.getUserName());
@@ -193,7 +225,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     refreshAuthStatus();
     loadEvents();
+    loadVendors();
+    const interval = setInterval(loadVendors, 5000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (selectedEvent) {
+      let currentMap: Record<string, { vendorId: string; vendorName: string; agreedPayout?: number }> = {};
+      if (selectedEvent.assignedVendors && Array.isArray(selectedEvent.assignedVendors)) {
+        selectedEvent.assignedVendors.forEach(a => {
+          if (a.category) {
+            currentMap[a.category] = {
+              vendorId: a.vendorId || '',
+              vendorName: a.vendorName || '',
+              agreedPayout: a.packagePrice
+            };
+          }
+        });
+      } else if (selectedEvent.assignedVendorsJson) {
+        try {
+          const parsed = JSON.parse(selectedEvent.assignedVendorsJson);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((a: any) => {
+              if (a.category) {
+                currentMap[a.category] = {
+                  vendorId: a.vendorId || '',
+                  vendorName: a.vendorName || '',
+                  agreedPayout: a.packagePrice ?? a.agreedPayout
+                };
+              }
+            });
+          }
+        } catch {}
+      }
+      setSelectedVendorAssignments(currentMap);
+    } else {
+      setSelectedVendorAssignments({});
+    }
+  }, [selectedEvent?.eventId, selectedEvent?.assignedVendorsJson]);
 
   // Fetch proposal details to synchronize real database pricing and inspiration photos
   useEffect(() => {
@@ -686,6 +756,105 @@ export const Dashboard: React.FC<DashboardProps> = ({
       targetStatus = 'PendingClientBudgetApproval';
     }
 
+    // Build verified partner assignments
+    const finalAssignedVendors: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }> = [];
+
+    // 1. Catering
+    const cateringAssigned = selectedVendorAssignments['Catering'];
+    finalAssignedVendors.push({
+      category: 'Catering',
+      vendorId: cateringAssigned?.vendorId,
+      vendorName: cateringAssigned?.vendorName || (selectedEvent.banquetHallName || selectedEvent.venueName ? `${selectedEvent.banquetHallName || selectedEvent.venueName} In-House Banquet Catering` : 'In-House Banquet Caterers'),
+      packageName: `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()})`,
+      packagePrice: cateringCost
+    });
+
+    // 2. Refreshments
+    if (alloc.refreshmentsCost > 0) {
+      const refreshAssigned = selectedVendorAssignments['Refreshments'];
+      finalAssignedVendors.push({
+        category: 'Refreshments',
+        vendorId: refreshAssigned?.vendorId,
+        vendorName: refreshAssigned?.vendorName || 'In-House Beverage Station',
+        packageName: alloc.refreshmentsItems.map(r => r.name).join(', '),
+        packagePrice: alloc.refreshmentsCost
+      });
+    }
+
+    // 3. Sound & Lighting
+    if (alloc.hasSounds) {
+      const assigned = selectedVendorAssignments['SoundLighting'] || selectedVendorAssignments['AudioVisual'];
+      finalAssignedVendors.push({
+        category: 'SoundLighting',
+        vendorId: assigned?.vendorId,
+        vendorName: assigned?.vendorName || 'EventCraft Pro Audio & Lighting Crew',
+        packageName: alloc.soundsName,
+        packagePrice: alloc.soundsCost
+      });
+    }
+
+    // 4. Floral Decor & Stage
+    if (alloc.hasDeco) {
+      const assigned = selectedVendorAssignments['Decor'];
+      finalAssignedVendors.push({
+        category: 'Decor',
+        vendorId: assigned?.vendorId,
+        vendorName: assigned?.vendorName || 'EventCraft Bespoke Decor & Stage Team',
+        packageName: alloc.decoName,
+        packagePrice: alloc.decoCost
+      });
+    }
+
+    // 5. Photography & Media
+    if (alloc.hasPhoto) {
+      const assigned = selectedVendorAssignments['Photography'];
+      finalAssignedVendors.push({
+        category: 'Photography',
+        vendorId: assigned?.vendorId,
+        vendorName: assigned?.vendorName || 'EventCraft In-House Cinema & Media Crew',
+        packageName: alloc.photoName,
+        packagePrice: alloc.photoCost
+      });
+    }
+
+    // 6. Celebration Cakes
+    if (alloc.hasCake) {
+      const assigned = selectedVendorAssignments['Cake'] || selectedVendorAssignments['Cakes'];
+      finalAssignedVendors.push({
+        category: 'Cake',
+        vendorId: assigned?.vendorId,
+        vendorName: assigned?.vendorName || 'EventCraft Artisan Cake Partner',
+        packageName: alloc.cakeLabel,
+        packagePrice: alloc.cakeCost
+      });
+    }
+
+    // 7. VIP & Luxury Transport
+    if (alloc.hasTransport) {
+      const assigned = selectedVendorAssignments['Transport'] || selectedVendorAssignments['VIPTransport'];
+      finalAssignedVendors.push({
+        category: 'Transport',
+        vendorId: assigned?.vendorId,
+        vendorName: assigned?.vendorName || 'EventCraft VIP Chauffeur Fleet',
+        packageName: alloc.transportName,
+        packagePrice: alloc.transportCost
+      });
+    }
+
+    // 8. Marquee Tent Weather Safeguard
+    if (isEventOutdoor && weatherTentCost > 0) {
+      const tentAssigned = selectedVendorAssignments['MarqueeTent'];
+      finalAssignedVendors.push({
+        category: 'MarqueeTent',
+        vendorId: tentAssigned?.vendorId,
+        vendorName: tentAssigned?.vendorName || 'Ceylon WeatherShield Marquee Tents',
+        packageName: weatherTentName,
+        packagePrice: weatherTentCost
+      });
+    }
+
+    const assignedVendorsJson = JSON.stringify(finalAssignedVendors);
+
     const planItems = [
       `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
       `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
@@ -697,24 +866,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
     }
 
-    if (alloc.hasSounds) planItems.push(`${alloc.soundsName} (Rs. ${alloc.soundsCost.toLocaleString()})`);
-    if (alloc.hasDeco) planItems.push(`${alloc.decoName} (Rs. ${alloc.decoCost.toLocaleString()})`);
-    if (alloc.hasPhoto) planItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
-    if (alloc.hasCake) planItems.push(`${alloc.cakeLabel} (Rs. ${alloc.cakeCost.toLocaleString()})`);
-    if (alloc.hasTransport) planItems.push(`${alloc.transportName} (Rs. ${alloc.transportCost.toLocaleString()})`);
+    if (alloc.hasSounds) {
+      const vName = selectedVendorAssignments['SoundLighting']?.vendorName || selectedVendorAssignments['AudioVisual']?.vendorName;
+      planItems.push(`${alloc.soundsName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.soundsCost.toLocaleString()})`);
+    }
+    if (alloc.hasDeco) {
+      const vName = selectedVendorAssignments['Decor']?.vendorName;
+      planItems.push(`${alloc.decoName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.decoCost.toLocaleString()})`);
+    }
+    if (alloc.hasPhoto) {
+      const vName = selectedVendorAssignments['Photography']?.vendorName;
+      planItems.push(`${alloc.photoName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.photoCost.toLocaleString()})`);
+    }
+    if (alloc.hasCake) {
+      const vName = selectedVendorAssignments['Cake']?.vendorName || selectedVendorAssignments['Cakes']?.vendorName;
+      planItems.push(`${alloc.cakeLabel}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.cakeCost.toLocaleString()})`);
+    }
+    if (alloc.hasTransport) {
+      const vName = selectedVendorAssignments['Transport']?.vendorName || selectedVendorAssignments['VIPTransport']?.vendorName;
+      planItems.push(`${alloc.transportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
+    }
     if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()})`);
     if (specialDiscount > 0) planItems.push(`Manager Courtesy Discount (-Rs. ${specialDiscount.toLocaleString()})`);
 
     try {
-      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation, planItems);
+      await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation, planItems, assignedVendorsJson);
+      try {
+        await vendorService.assignVendorsToEvent(selectedEvent.eventId, finalAssignedVendors);
+      } catch (err) {
+        console.warn("Assign vendors PUT fallback:", err);
+      }
       setActionSuccess(
         clientApprovalRequested
           ? "Proposal flagged & sent to client for budget increase request!"
-          : "Proposal approved successfully! Synchronized in PostgreSQL Database."
+          : "Proposal approved successfully with verified vendor assignments! Synchronized in PostgreSQL Database."
       );
-      setSelectedEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal } : null);
-      setViewModalEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal } : null);
+      setSelectedEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal, assignedVendors: finalAssignedVendors, assignedVendorsJson } : null);
+      setViewModalEvent(prev => prev ? { ...prev, status: targetStatus, estimatedTotalCost: computedFinalTotal, assignedVendors: finalAssignedVendors, assignedVendorsJson } : null);
       loadEvents();
     } catch (err) {
       console.error("Approval failed", err);
@@ -1647,70 +1836,155 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <span className="text-slate-800 font-medium">
                               🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
                             </span>
-                            <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
+                            {selectedVendorAssignments['Catering']?.vendorName ? (
+                              <p className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline mr-1" />
+                                Assigned Partner: <strong>{selectedVendorAssignments['Catering'].vendorName}</strong>
+                                <span className="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Caterer</span>
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-slate-400">Hotel banquet culinary team & buffet service</p>
+                            )}
                           </div>
                           <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
                         </div>
                         {!isApproved && (
-                          <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
-                            <span className="text-[11px] font-bold text-slate-700">Per Head Tier:</span>
-                            <button
-                              type="button"
-                              onClick={() => setCustomPerPlateCost(3800)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 3800 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Silver (3,800)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCustomPerPlateCost(4500)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 4500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Gold (4,500)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCustomPerPlateCost(5500)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 5500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Platinum (5,500)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCustomPerPlateCost(6500)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 6500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
-                            >
-                              Royal (6,500)
-                            </button>
-                            <div className="flex items-center space-x-1 ml-auto">
-                              <span className="text-[10px] text-slate-500 font-medium">Custom Rs/head:</span>
-                              <input
-                                type="number"
-                                value={customPerPlateCost ?? ''}
-                                placeholder={String(basePerPlate)}
-                                onChange={(e) => setCustomPerPlateCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                className="w-20 px-1.5 py-0.5 bg-white border border-slate-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                              />
-                              {customPerPlateCost !== null && (
-                                <button type="button" onClick={() => setCustomPerPlateCost(null)} className="text-[10px] text-indigo-600 hover:underline ml-1">
-                                  (Reset)
-                                </button>
-                              )}
+                          <>
+                            <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-slate-700">Per Head Tier:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPerPlateCost(3800)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 3800 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                              >
+                                Silver (3,800)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPerPlateCost(4500)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 4500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                              >
+                                Gold (4,500)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPerPlateCost(5500)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 5500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                              >
+                                Platinum (5,500)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPerPlateCost(6500)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 6500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                              >
+                                Royal (6,500)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-slate-500 font-medium">Custom Rs/head:</span>
+                                <input
+                                  type="number"
+                                  value={customPerPlateCost ?? ''}
+                                  placeholder={String(basePerPlate)}
+                                  onChange={(e) => setCustomPerPlateCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-slate-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                />
+                                {customPerPlateCost !== null && (
+                                  <button type="button" onClick={() => setCustomPerPlateCost(null)} className="text-[10px] text-indigo-600 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                            <div className="mt-2 pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                              <div className="flex items-center space-x-1">
+                                <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                                <span className="font-bold text-slate-700">Assign Catering Partner:</span>
+                              </div>
+                              <select
+                                value={selectedVendorAssignments['Catering']?.vendorId || ''}
+                                onChange={(e) => {
+                                  const vId = e.target.value;
+                                  const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                  setSelectedVendorAssignments(prev => {
+                                    const next = { ...prev };
+                                    if (found) {
+                                      next['Catering'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: cateringCost };
+                                    } else {
+                                      delete next['Catering'];
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-xs"
+                              >
+                                <option value="">(In-House Venue / Hotel Banquet Kitchen)</option>
+                                {getVerifiedVendorsForCategory('Catering').map(v => (
+                                  <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                    ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Caterer'})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
                         )}
                       </div>
 
                       {/* Refreshments */}
-                      {alloc.refreshmentsItems && alloc.refreshmentsItems.map((r, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm py-2 px-3 bg-emerald-50/60 rounded-lg border border-emerald-100">
-                          <div>
-                            <span className="text-emerald-950 font-medium">🍹 {r.name}</span>
-                            <p className="text-[11px] text-emerald-600">{selectedEvent.guestCount} Guests x Rs. {r.itemPerHead.toLocaleString()}</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
+                      {alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0 && (
+                        <div className="text-sm py-2.5 px-3 bg-emerald-50/60 rounded-lg border border-emerald-100 space-y-2">
+                          {alloc.refreshmentsItems.map((r, idx) => (
+                            <div key={idx} className="flex justify-between items-center">
+                              <div>
+                                <span className="text-emerald-950 font-medium">🍹 {r.name}</span>
+                                <p className="text-[11px] text-emerald-600">{selectedEvent.guestCount} Guests x Rs. {r.itemPerHead.toLocaleString()}</p>
+                              </div>
+                              <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
+                            </div>
+                          ))}
+                          {selectedVendorAssignments['Refreshments']?.vendorName ? (
+                            <p className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 pt-1 border-t border-emerald-100">
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline mr-1" />
+                              Assigned Partner: <strong>{selectedVendorAssignments['Refreshments'].vendorName}</strong>
+                              <span className="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Supplier</span>
+                            </p>
+                          ) : isApproved ? (
+                            <p className="text-[11px] text-emerald-600 pt-1 border-t border-emerald-100">EventCraft Beverage & Refreshment Service</p>
+                          ) : null}
+                          {!isApproved && (
+                            <div className="pt-2 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                              <div className="flex items-center space-x-1">
+                                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                                <span className="font-bold text-emerald-950">Assign Refreshments Partner:</span>
+                              </div>
+                              <select
+                                value={selectedVendorAssignments['Refreshments']?.vendorId || ''}
+                                onChange={(e) => {
+                                  const vId = e.target.value;
+                                  const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                  setSelectedVendorAssignments(prev => {
+                                    const next = { ...prev };
+                                    if (found) {
+                                      next['Refreshments'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.refreshmentsCost };
+                                    } else {
+                                      delete next['Refreshments'];
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="bg-white border border-emerald-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-xs"
+                              >
+                                <option value="">(In-House Refreshment & Mocktail Station)</option>
+                                {getVerifiedVendorsForCategory('Refreshments').map(v => (
+                                  <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                    ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Supplier'})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      )}
 
                       {/* 3. Sound & Lighting */}
                       {alloc.hasSounds && (
@@ -1718,57 +1992,97 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="flex justify-between items-center">
                             <div>
                               <span className="text-violet-950 font-medium">🔊 {alloc.soundsName}</span>
-                              <p className="text-[11px] text-violet-600">Pro audio, digital mixing & intelligent stage lights</p>
+                              {selectedVendorAssignments['SoundLighting']?.vendorName ? (
+                                <p className="text-[11px] text-violet-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-violet-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['SoundLighting'].vendorName}</strong>
+                                  <span className="text-[10px] text-violet-800 bg-violet-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-violet-600">Pro audio, digital mixing & intelligent stage lights</p>
+                              )}
                             </div>
                             <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
                           </div>
                           {!isApproved && (
-                            <div className="mt-2 pt-2 border-t border-violet-200/80 flex flex-wrap items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-violet-900">Adjust Sound:</span>
-                              <button
-                                type="button"
-                                onClick={() => setCustomSoundsCost(45000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 45000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
-                              >
-                                Acoustic PA (45k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomSoundsCost(85000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 85000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
-                              >
-                                Stage + LED (85k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomSoundsCost(150000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 150000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
-                              >
-                                Concert Mixer (150k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomSoundsCost(220000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 220000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
-                              >
-                                Royal Heads (220k)
-                              </button>
-                              <div className="flex items-center space-x-1 ml-auto">
-                                <span className="text-[10px] text-violet-600 font-medium">Custom Rs.</span>
-                                <input
-                                  type="number"
-                                  value={customSoundsCost ?? ''}
-                                  placeholder="Amount"
-                                  onChange={(e) => setCustomSoundsCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                  className="w-20 px-1.5 py-0.5 bg-white border border-violet-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                                />
-                                {customSoundsCost !== null && (
-                                  <button type="button" onClick={() => setCustomSoundsCost(null)} className="text-[10px] text-violet-700 hover:underline ml-1">
-                                    (Reset)
-                                  </button>
-                                )}
+                            <>
+                              <div className="mt-2 pt-2 border-t border-violet-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-[11px] font-bold text-violet-900">Adjust Sound:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomSoundsCost(45000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 45000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                                >
+                                  Acoustic PA (45k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomSoundsCost(85000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 85000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                                >
+                                  Stage + LED (85k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomSoundsCost(150000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 150000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                                >
+                                  Concert Mixer (150k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomSoundsCost(220000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 220000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                                >
+                                  Royal Heads (220k)
+                                </button>
+                                <div className="flex items-center space-x-1 ml-auto">
+                                  <span className="text-[10px] text-violet-600 font-medium">Custom Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={customSoundsCost ?? ''}
+                                    placeholder="Amount"
+                                    onChange={(e) => setCustomSoundsCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                    className="w-20 px-1.5 py-0.5 bg-white border border-violet-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                  />
+                                  {customSoundsCost !== null && (
+                                    <button type="button" onClick={() => setCustomSoundsCost(null)} className="text-[10px] text-violet-700 hover:underline ml-1">
+                                      (Reset)
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                              <div className="mt-2 pt-2 border-t border-violet-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                                <div className="flex items-center space-x-1">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-violet-700" />
+                                  <span className="font-bold text-violet-950">Assign Audio Partner:</span>
+                                </div>
+                                <select
+                                  value={selectedVendorAssignments['SoundLighting']?.vendorId || ''}
+                                  onChange={(e) => {
+                                    const vId = e.target.value;
+                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                    setSelectedVendorAssignments(prev => {
+                                      const next = { ...prev };
+                                      if (found) {
+                                        next['SoundLighting'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.soundsCost };
+                                      } else {
+                                        delete next['SoundLighting'];
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="bg-white border border-violet-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-violet-500 max-w-xs"
+                                >
+                                  <option value="">(In-House / Standard EventCraft Audio Crew)</option>
+                                  {getVerifiedVendorsForCategory('SoundLighting').map(v => (
+                                    <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                      ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -1779,57 +2093,97 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="flex justify-between items-center">
                             <div>
                               <span className="text-rose-950 font-medium">🌸 {alloc.decoName}</span>
-                              <p className="text-[11px] text-rose-600">Custom theme stage styling & floral tablescapes</p>
+                              {selectedVendorAssignments['Decor']?.vendorName ? (
+                                <p className="text-[11px] text-rose-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-rose-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['Decor'].vendorName}</strong>
+                                  <span className="text-[10px] text-rose-800 bg-rose-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-rose-600">Custom theme stage styling & floral tablescapes</p>
+                              )}
                             </div>
                             <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
                           </div>
                           {!isApproved && (
-                            <div className="mt-2 pt-2 border-t border-rose-200/80 flex flex-wrap items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-rose-900">Adjust Decor:</span>
-                              <button
-                                type="button"
-                                onClick={() => setCustomDecoCost(45000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 45000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
-                              >
-                                Essential (45k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomDecoCost(80000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 80000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
-                              >
-                                Floral Arch (80k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomDecoCost(130000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 130000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
-                              >
-                                Luxury Stage (130k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomDecoCost(200000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 200000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
-                              >
-                                Royal Fresh (200k)
-                              </button>
-                              <div className="flex items-center space-x-1 ml-auto">
-                                <span className="text-[10px] text-rose-600 font-medium">Custom Rs.</span>
-                                <input
-                                  type="number"
-                                  value={customDecoCost ?? ''}
-                                  placeholder="Amount"
-                                  onChange={(e) => setCustomDecoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                  className="w-20 px-1.5 py-0.5 bg-white border border-rose-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500"
-                                />
-                                {customDecoCost !== null && (
-                                  <button type="button" onClick={() => setCustomDecoCost(null)} className="text-[10px] text-rose-700 hover:underline ml-1">
-                                    (Reset)
-                                  </button>
-                                )}
+                            <>
+                              <div className="mt-2 pt-2 border-t border-rose-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-[11px] font-bold text-rose-900">Adjust Decor:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomDecoCost(45000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 45000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                                >
+                                  Essential (45k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomDecoCost(80000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 80000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                                >
+                                  Floral Arch (80k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomDecoCost(130000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 130000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                                >
+                                  Luxury Stage (130k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomDecoCost(200000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 200000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                                >
+                                  Royal Fresh (200k)
+                                </button>
+                                <div className="flex items-center space-x-1 ml-auto">
+                                  <span className="text-[10px] text-rose-600 font-medium">Custom Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={customDecoCost ?? ''}
+                                    placeholder="Amount"
+                                    onChange={(e) => setCustomDecoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                    className="w-20 px-1.5 py-0.5 bg-white border border-rose-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                                  />
+                                  {customDecoCost !== null && (
+                                    <button type="button" onClick={() => setCustomDecoCost(null)} className="text-[10px] text-rose-700 hover:underline ml-1">
+                                      (Reset)
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                              <div className="mt-2 pt-2 border-t border-rose-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                                <div className="flex items-center space-x-1">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-rose-700" />
+                                  <span className="font-bold text-rose-950">Assign Floral Partner:</span>
+                                </div>
+                                <select
+                                  value={selectedVendorAssignments['Decor']?.vendorId || ''}
+                                  onChange={(e) => {
+                                    const vId = e.target.value;
+                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                    setSelectedVendorAssignments(prev => {
+                                      const next = { ...prev };
+                                      if (found) {
+                                        next['Decor'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.decoCost };
+                                      } else {
+                                        delete next['Decor'];
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="bg-white border border-rose-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500 max-w-xs"
+                                >
+                                  <option value="">(In-House / Standard EventCraft Floral Team)</option>
+                                  {getVerifiedVendorsForCategory('Decor').map(v => (
+                                    <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                      ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -1840,57 +2194,103 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="flex justify-between items-center">
                             <div>
                               <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
-                              <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
+                              {selectedVendorAssignments['Photography']?.vendorName ? (
+                                <p className="text-[11px] text-sky-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-sky-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['Photography'].vendorName}</strong>
+                                  <span className="text-[10px] text-sky-800 bg-sky-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
+                              )}
                             </div>
                             <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
                           </div>
                           {!isApproved && (
-                            <div className="mt-2 pt-2 border-t border-sky-200/80 flex flex-wrap items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-sky-900">Adjust Photo:</span>
-                              <button
-                                type="button"
-                                onClick={() => setCustomPhotoCost(60000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 60000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
-                              >
-                                Essential (60k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomPhotoCost(100000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 100000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
-                              >
-                                Standard (100k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomPhotoCost(160000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 160000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
-                              >
-                                Master 4K (160k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomPhotoCost(250000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 250000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
-                              >
-                                Royal Drone (250k)
-                              </button>
-                              <div className="flex items-center space-x-1 ml-auto">
-                                <span className="text-[10px] text-sky-600 font-medium">Custom Rs.</span>
-                                <input
-                                  type="number"
-                                  value={customPhotoCost ?? ''}
-                                  placeholder="Amount"
-                                  onChange={(e) => setCustomPhotoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                  className="w-20 px-1.5 py-0.5 bg-white border border-sky-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
-                                />
-                                {customPhotoCost !== null && (
-                                  <button type="button" onClick={() => setCustomPhotoCost(null)} className="text-[10px] text-sky-700 hover:underline ml-1">
-                                    (Reset)
-                                  </button>
-                                )}
+                            <>
+                              <div className="mt-2 pt-2 border-t border-sky-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-[11px] font-bold text-sky-900">Adjust Photo:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomPhotoCost(60000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 60000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                                >
+                                  Essential (60k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomPhotoCost(100000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 100000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                                >
+                                  Standard (100k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomPhotoCost(160000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 160000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                                >
+                                  Master 4K (160k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomPhotoCost(250000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 250000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                                >
+                                  Royal Drone (250k)
+                                </button>
+                                <div className="flex items-center space-x-1 ml-auto">
+                                  <span className="text-[10px] text-sky-600 font-medium">Custom Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={customPhotoCost ?? ''}
+                                    placeholder="Amount"
+                                    onChange={(e) => setCustomPhotoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                    className="w-20 px-1.5 py-0.5 bg-white border border-sky-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                  />
+                                  {customPhotoCost !== null && (
+                                    <button type="button" onClick={() => setCustomPhotoCost(null)} className="text-[10px] text-sky-700 hover:underline ml-1">
+                                      (Reset)
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                              <div className="mt-2 pt-2 border-t border-sky-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                                <div className="flex items-center space-x-1">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-sky-700" />
+                                  <span className="font-bold text-sky-950">Assign Photography Partner:</span>
+                                </div>
+                                <select
+                                  value={selectedVendorAssignments['Photography']?.vendorId || ''}
+                                  onChange={(e) => {
+                                    const vId = e.target.value;
+                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                    setSelectedVendorAssignments(prev => {
+                                      const next = { ...prev };
+                                      if (found) {
+                                        next['Photography'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.photoCost };
+                                      } else {
+                                        delete next['Photography'];
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="bg-white border border-sky-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500 max-w-xs"
+                                >
+                                  {getVerifiedVendorsForCategory('Photography').length > 0 ? (
+                                    <>
+                                      <option value="">(In-House / Standard EventCraft Media Team)</option>
+                                      {getVerifiedVendorsForCategory('Photography').map(v => (
+                                        <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                          ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                        </option>
+                                      ))}
+                                    </>
+                                  ) : (
+                                    <option value="">(No external vendor verified yet — In-House / Partner Network fallback)</option>
+                                  )}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -1901,57 +2301,97 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="flex justify-between items-center">
                             <div>
                               <span className="text-amber-950 font-medium">🎂 {alloc.cakeLabel}</span>
-                              <p className="text-[11px] text-amber-600">Handcrafted bespoke celebration tier</p>
+                              {selectedVendorAssignments['Cake']?.vendorName ? (
+                                <p className="text-[11px] text-amber-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['Cake'].vendorName}</strong>
+                                  <span className="text-[10px] text-amber-800 bg-amber-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-amber-600">Handcrafted bespoke celebration tier</p>
+                              )}
                             </div>
                             <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
                           </div>
                           {!isApproved && (
-                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-amber-900">Adjust Cake:</span>
-                              <button
-                                type="button"
-                                onClick={() => setCustomCakeCost(15000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 15000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                1-Tier (15k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomCakeCost(25000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 25000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                2-Tier (25k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomCakeCost(40000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 40000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                3-Tier Luxury (40k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomCakeCost(65000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                5-Tier Royal (65k)
-                              </button>
-                              <div className="flex items-center space-x-1 ml-auto">
-                                <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
-                                <input
-                                  type="number"
-                                  value={customCakeCost ?? ''}
-                                  placeholder="Amount"
-                                  onChange={(e) => setCustomCakeCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                  className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                                />
-                                {customCakeCost !== null && (
-                                  <button type="button" onClick={() => setCustomCakeCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
-                                    (Reset)
-                                  </button>
-                                )}
+                            <>
+                              <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-[11px] font-bold text-amber-900">Adjust Cake:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomCakeCost(15000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 15000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  1-Tier (15k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomCakeCost(25000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 25000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  2-Tier (25k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomCakeCost(40000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 40000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  3-Tier Luxury (40k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomCakeCost(65000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  5-Tier Royal (65k)
+                                </button>
+                                <div className="flex items-center space-x-1 ml-auto">
+                                  <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={customCakeCost ?? ''}
+                                    placeholder="Amount"
+                                    onChange={(e) => setCustomCakeCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                    className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  />
+                                  {customCakeCost !== null && (
+                                    <button type="button" onClick={() => setCustomCakeCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
+                                      (Reset)
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                              <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                                <div className="flex items-center space-x-1">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                                  <span className="font-bold text-amber-950">Assign Cake Partner:</span>
+                                </div>
+                                <select
+                                  value={selectedVendorAssignments['Cake']?.vendorId || ''}
+                                  onChange={(e) => {
+                                    const vId = e.target.value;
+                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                    setSelectedVendorAssignments(prev => {
+                                      const next = { ...prev };
+                                      if (found) {
+                                        next['Cake'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.cakeCost };
+                                      } else {
+                                        delete next['Cake'];
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="bg-white border border-amber-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 max-w-xs"
+                                >
+                                  <option value="">(In-House / Standard EventCraft Cake Studio)</option>
+                                  {getVerifiedVendorsForCategory('Cake').map(v => (
+                                    <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                      ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -1962,64 +2402,104 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <div className="flex justify-between items-center">
                             <div>
                               <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
-                              <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
+                              {selectedVendorAssignments['Transport']?.vendorName ? (
+                                <p className="text-[11px] text-amber-700 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['Transport'].vendorName}</strong>
+                                  <span className="text-[10px] text-amber-800 bg-amber-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
+                              )}
                             </div>
                             <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
                           </div>
                           {!isApproved && (
-                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
-                              <span className="text-[11px] font-bold text-amber-900">Adjust Transport:</span>
-                              <button
-                                type="button"
-                                onClick={() => setCustomTransportCost(0)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 0 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                Self (Rs. 0)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomTransportCost(30000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 30000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                VIP Van (30k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomTransportCost(45000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 45000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                BMW Sedan (45k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomTransportCost(65000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                Mercedes S (65k)
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setCustomTransportCost(95000)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 95000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
-                              >
-                                Rolls Royce (95k)
-                              </button>
-                              <div className="flex items-center space-x-1 ml-auto">
-                                <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
-                                <input
-                                  type="number"
-                                  value={customTransportCost ?? ''}
-                                  placeholder="Amount"
-                                  onChange={(e) => setCustomTransportCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
-                                  className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                                />
-                                {customTransportCost !== null && (
-                                  <button type="button" onClick={() => setCustomTransportCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
-                                    (Reset)
-                                  </button>
-                                )}
+                            <>
+                              <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-[11px] font-bold text-amber-900">Adjust Transport:</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomTransportCost(0)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 0 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  Self (Rs. 0)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomTransportCost(30000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 30000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  VIP Van (30k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomTransportCost(45000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 45000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  BMW Sedan (45k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomTransportCost(65000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  Mercedes S (65k)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomTransportCost(95000)}
+                                  className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 95000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                                >
+                                  Rolls Royce (95k)
+                                </button>
+                                <div className="flex items-center space-x-1 ml-auto">
+                                  <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={customTransportCost ?? ''}
+                                    placeholder="Amount"
+                                    onChange={(e) => setCustomTransportCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                    className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                  />
+                                  {customTransportCost !== null && (
+                                    <button type="button" onClick={() => setCustomTransportCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
+                                      (Reset)
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
+                              <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                                <div className="flex items-center space-x-1">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                                  <span className="font-bold text-amber-950">Assign Chauffeur Partner:</span>
+                                </div>
+                                <select
+                                  value={selectedVendorAssignments['Transport']?.vendorId || ''}
+                                  onChange={(e) => {
+                                    const vId = e.target.value;
+                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                    setSelectedVendorAssignments(prev => {
+                                      const next = { ...prev };
+                                      if (found) {
+                                        next['Transport'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: alloc.transportCost };
+                                      } else {
+                                        delete next['Transport'];
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="bg-white border border-amber-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 max-w-xs"
+                                >
+                                  <option value="">(In-House / Standard EventCraft Chauffeur Fleet)</option>
+                                  {getVerifiedVendorsForCategory('Transport').map(v => (
+                                    <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                      ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </>
                           )}
                         </div>
                       )}
@@ -2141,12 +2621,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                       {/* Weather Tent Safeguard */}
                       {weatherTentCost > 0 && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
-                          <div>
-                            <span className="text-slate-700 font-medium">🎪 {weatherTentName}</span>
-                            <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
+                        <div className="text-sm py-2.5 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-slate-700 font-medium">🎪 {weatherTentName}</span>
+                              {selectedVendorAssignments['MarqueeTent']?.vendorName ? (
+                                <p className="text-[11px] text-amber-800 font-semibold flex items-center space-x-1 mt-0.5">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600 inline mr-1" />
+                                  Assigned Partner: <strong>{selectedVendorAssignments['MarqueeTent'].vendorName}</strong>
+                                  <span className="text-[10px] text-amber-900 bg-amber-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Partner</span>
+                                </p>
+                              ) : (
+                                <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
+                              )}
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
                           </div>
-                          <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-1.5 text-xs">
+                              <div className="flex items-center space-x-1">
+                                <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
+                                <span className="font-bold text-amber-950">Assign Marquee Partner:</span>
+                              </div>
+                              <select
+                                value={selectedVendorAssignments['MarqueeTent']?.vendorId || ''}
+                                onChange={(e) => {
+                                  const vId = e.target.value;
+                                  const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
+                                  setSelectedVendorAssignments(prev => {
+                                    const next = { ...prev };
+                                    if (found) {
+                                      next['MarqueeTent'] = { vendorId: vId, vendorName: found.businessName || found.name, agreedPayout: weatherTentCost };
+                                    } else {
+                                      delete next['MarqueeTent'];
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="bg-white border border-amber-300 rounded px-2 py-1 text-xs font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500 max-w-xs"
+                              >
+                                <option value="">(In-House / Standard EventCraft Tent Infrastructure)</option>
+                                {getVerifiedVendorsForCategory('MarqueeTent').map(v => (
+                                  <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
+                                    ⭐ {v.businessName || v.name} ({v.packageName || 'Verified Partner'})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       )}
 

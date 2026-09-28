@@ -175,4 +175,88 @@ public class VenuesController : ControllerBase
 
         return Ok(new { message = "Vendor deleted successfully." });
     }
+
+    // 8. GET: api/venues/vendors/assigned-events (Vendor Portal View for Assigned Work Orders)
+    [HttpGet("vendors/assigned-events")]
+    public async Task<ActionResult> GetAssignedEventsForVendor([FromQuery] Guid? vendorId, [FromQuery] Guid? userId)
+    {
+        var vendorQuery = _context.Vendors.AsQueryable();
+        if (vendorId.HasValue && vendorId.Value != Guid.Empty)
+        {
+            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
+        }
+        else if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+        }
+        else
+        {
+            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
+            {
+                vendorQuery = vendorQuery.Where(v => v.UserId == parsedClaimId);
+            }
+        }
+
+        var vendors = await vendorQuery.ToListAsync();
+        if (!vendors.Any())
+        {
+            return Ok(new List<object>());
+        }
+
+        var vendorIds = vendors.Select(v => v.VendorId.ToString().ToLower()).ToHashSet();
+        var vendorNames = vendors.Select(v => v.BusinessName.ToLower().Trim()).ToHashSet();
+
+        var events = await _context.Events
+            .Include(e => e.BanquetHall)
+            .ThenInclude(h => h!.Venue)
+            .Include(e => e.Venue)
+            .Include(e => e.Booking)
+            .Where(e => e.Status != "Cancelled" && !string.IsNullOrEmpty(e.AssignedVendorsJson))
+            .OrderByDescending(e => e.TargetDate)
+            .ToListAsync();
+
+        var results = new List<object>();
+
+        foreach (var ev in events)
+        {
+            try
+            {
+                var assignedList = System.Text.Json.JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson!) ?? new();
+                foreach (var av in assignedList)
+                {
+                    bool isMatch = (av.VendorId.HasValue && vendorIds.Contains(av.VendorId.Value.ToString().ToLower())) ||
+                                   (!string.IsNullOrWhiteSpace(av.VendorName) && vendorNames.Contains(av.VendorName.ToLower().Trim()));
+
+                    if (isMatch)
+                    {
+                        string venueLabel = ev.BanquetHall != null 
+                            ? $"{ev.BanquetHall.Venue?.Name ?? "Selected Hotel"} ({ev.BanquetHall.HallName})" 
+                            : (ev.Venue != null ? ev.Venue.Name : (ev.PreferredLocation ?? "Main Event Venue"));
+
+                        bool isAdvancePaid = ev.Booking != null && (ev.Booking.Status == "Confirmed" || ev.Booking.Status == "AdvancePaid");
+
+                        results.Add(new
+                        {
+                            eventId = ev.EventId,
+                            eventTitle = ev.Title,
+                            targetDate = ev.TargetDate,
+                            eventSession = ev.EventSession ?? "DayLunch",
+                            guestCount = ev.GuestCount,
+                            venueName = venueLabel,
+                            category = av.Category,
+                            packageName = av.PackageName,
+                            agreedPayout = av.PackagePrice ?? 0,
+                            eventStatus = ev.Status,
+                            advancePaid = isAdvancePaid,
+                            bookingStatus = isAdvancePaid ? "Advance Paid - Confirmed" : (ev.Status == "ApprovedByManager" ? "Assigned & Awaiting Client Advance" : "Assigned (Under Review)")
+                        });
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return Ok(results);
+    }
 }

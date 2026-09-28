@@ -36,6 +36,7 @@ public class EventsController : ControllerBase
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""PreferredLocation"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
             ");
             _schemaEnsured = true;
         }
@@ -293,6 +294,10 @@ public class EventsController : ControllerBase
                 ? JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson)
                 : new List<string>(),
             RevisionNotes = ev.RevisionNotes,
+            AssignedVendorsJson = ev.AssignedVendorsJson,
+            AssignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
+                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson)
+                : new List<AssignedVendorDto>(),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
             CreatedAt = ev.CreatedAt
@@ -515,6 +520,7 @@ public class EventsController : ControllerBase
                     CateringStyle = ev.CateringStyle,
                     TableRefreshments = null,
                     RevisionNotes = ev.RevisionNotes,
+                    AssignedVendorsJson = ev.AssignedVendorsJson,
                     Status = ev.Status,
                     VenueId = ev.VenueId,
                     VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
@@ -546,6 +552,11 @@ public class EventsController : ControllerBase
                         try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(evEntity.SelectedServicesJson); }
                         catch { }
                     }
+                    if (!string.IsNullOrEmpty(evEntity.AssignedVendorsJson))
+                    {
+                        try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(evEntity.AssignedVendorsJson); }
+                        catch { }
+                    }
                 }
             }
 
@@ -561,13 +572,18 @@ public class EventsController : ControllerBase
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [Authorize(Roles = "Manager")]
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null, [FromBody] List<string>? planItems = null)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null, [FromQuery] string? assignedVendorsJson = null, [FromBody] List<string>? planItems = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = "Event not found in database." });
 
         ev.Status = !string.IsNullOrWhiteSpace(status) ? status : "ApprovedByManager";
+
+        if (!string.IsNullOrWhiteSpace(assignedVendorsJson))
+        {
+            ev.AssignedVendorsJson = assignedVendorsJson;
+        }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
         if (aiState != null)
@@ -628,6 +644,26 @@ public class EventsController : ControllerBase
             message = "Proposal decision processed successfully.", 
             status = ev.Status, 
             finalTotal = aiState?.EstimatedTotalCost 
+        });
+    }
+
+    // 4.1 PUT: api/events/{id}/assigned-vendors (Manager Assign Vendors to Event)
+    [Authorize(Roles = "Manager")]
+    [HttpPut("{id}/assigned-vendors")]
+    public async Task<ActionResult> UpdateAssignedVendors(Guid id, [FromBody] List<AssignedVendorDto> vendors)
+    {
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+            return NotFound(new { message = "Event not found in database." });
+
+        ev.AssignedVendorsJson = JsonSerializer.Serialize(vendors);
+        await _context.SaveChangesAsync();
+
+        return Ok(new 
+        { 
+            message = "Assigned vendors updated successfully.", 
+            eventId = ev.EventId,
+            assignedVendors = vendors 
         });
     }
 
