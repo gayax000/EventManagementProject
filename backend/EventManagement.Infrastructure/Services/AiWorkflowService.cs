@@ -179,7 +179,7 @@ public class AiWorkflowService : IAiWorkflowService
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             _logger.LogInformation("Calling Agentic AI Subsystem at {Url} for Event {EventId}...", _aiServiceUrl, eventId);
 
