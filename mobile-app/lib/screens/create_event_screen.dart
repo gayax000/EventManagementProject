@@ -117,6 +117,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _districtVenueNameController = TextEditingController();
 
   // Mode 3: Custom / Private Venue
+  String _selectedPrivateDistrict = 'Colombo';
+  String _selectedPrivateTown = 'Colombo 07';
   final _customAddressController = TextEditingController();
 
   // Photo / Moodboard upload (up to 5 images)
@@ -132,6 +134,90 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
     'Monaragala', 'Ratnapura', 'Kegalle'
   ];
+
+  final Map<String, List<String>> _districtTownsMap = {
+    'Colombo': [
+      'Colombo 07', 'Colombo 03', 'Colombo 04', 'Colombo 01', 'Nugegoda',
+      'Maharagama', 'Dehiwala', 'Mount Lavinia', 'Moratuwa', 'Kottawa',
+      'Malabe', 'Battaramulla', 'Rajagiriya', 'Homagama', 'Piliyandala'
+    ],
+    'Gampaha': [
+      'Kiribathgoda', 'Gampaha City', 'Negombo', 'Kelaniya', 'Wattala',
+      'Ja-Ela', 'Kadawatha', 'Minuwangoda', 'Nittambuwa', 'Mirigama', 'Ragama'
+    ],
+    'Kandy': [
+      'Kandy City', 'Peradeniya', 'Katugastota', 'Kundasale', 'Gampola',
+      'Digana', 'Akurana', 'Teldeniya'
+    ],
+    'Kalutara': [
+      'Kalutara City', 'Panadura', 'Wadduwa', 'Beruwala', 'Aluthgama',
+      'Horana', 'Matugama', 'Bandaragama'
+    ],
+    'Galle': [
+      'Galle Fort', 'Hikkaduwa', 'Unawatuna', 'Ambalangoda', 'Karapitiya',
+      'Bentota', 'Baddegama'
+    ],
+    'Matara': [
+      'Matara City', 'Mirissa', 'Weligama', 'Dikwella', 'Akuressa', 'Kamburupitiya'
+    ],
+    'Kurunegala': [
+      'Kurunegala City', 'Kuliyapitiya', 'Narammala', 'Wariyapola', 'Pannala', 'Polgahawela'
+    ],
+    'Nuwara Eliya': [
+      'Nuwara Eliya Town', 'Hatton', 'Nanu Oya', 'Talawakele', 'Maskeliya'
+    ],
+    'Ratnapura': [
+      'Ratnapura City', 'Balangoda', 'Pelmadulla', 'Embilipitiya', 'Kuruwita'
+    ],
+    'Anuradhapura': [
+      'Anuradhapura Town', 'Kekirawa', 'Medawachchiya', 'Tambuttegama'
+    ],
+    'Badulla': [
+      'Badulla City', 'Bandarawela', 'Ella', 'Haputale', 'Diyatalawa', 'Mahiyanganaya'
+    ],
+    'Matale': [
+      'Matale Town', 'Dambulla', 'Sigiriya', 'Ukuwela', 'Rattota'
+    ],
+    'Hambantota': [
+      'Hambantota City', 'Tangalle', 'Tissamaharama', 'Ambalantota', 'Beliatta'
+    ],
+    'Jaffna': [
+      'Jaffna Town', 'Chavakachcheri', 'Point Pedro', 'Nallur'
+    ],
+    'Trincomalee': [
+      'Trincomalee Town', 'Kinniya', 'Nilaveli', 'Kantale'
+    ],
+    'Batticaloa': [
+      'Batticaloa Town', 'Kattankudy', 'Eravur', 'Valaichchenai'
+    ],
+    'Puttalam': [
+      'Puttalam Town', 'Chilaw', 'Marawila', 'Wennappuwa'
+    ],
+    'Polonnaruwa': [
+      'Polonnaruwa Town', 'Kaduruwela', 'Hingurakgoda'
+    ],
+    'Kegalle': [
+      'Kegalle Town', 'Mawanella', 'Warakapola', 'Rambukkana'
+    ],
+    'Monaragala': [
+      'Monaragala Town', 'Wellawaya', 'Buttala', 'Kataragama'
+    ],
+    'Ampara': [
+      'Ampara Town', 'Kalmunai', 'Sammanthurai', 'Akkaraipattu'
+    ],
+    'Vavuniya': [
+      'Vavuniya Town', 'Nedurkeni'
+    ],
+    'Kilinochchi': [
+      'Kilinochchi Town', 'Pallai'
+    ],
+    'Mannar': [
+      'Mannar Town', 'Murunkan'
+    ],
+    'Mullaitivu': [
+      'Mullaitivu Town', 'Mankulam'
+    ]
+  };
 
   @override
   void initState() {
@@ -427,9 +513,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final detail = _districtVenueNameController.text.trim();
         venueLocationStr = detail.isNotEmpty ? '$_selectedDistrict District ($detail)' : '$_selectedDistrict District';
       } else {
-        venueLocationStr = _customAddressController.text.trim().isNotEmpty
-            ? _customAddressController.text.trim()
-            : 'Private Venue / Home';
+        final street = _customAddressController.text.trim();
+        venueLocationStr = street.isNotEmpty
+            ? 'Private Residence - $street | Town: $_selectedPrivateTown | District: $_selectedPrivateDistrict'
+            : 'Private Residence | Town: $_selectedPrivateTown | District: $_selectedPrivateDistrict';
       }
 
       final customNotes = _customServiceNotesController.text.trim();
@@ -1508,19 +1595,111 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
               // MODE 3: CUSTOM / PRIVATE VENUE
               if (_locationMode == 'custom') ...[
-                const Text('Private Venue / Residence Address', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Private Venue / Residence Street Address', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _customAddressController,
                   maxLines: 2,
                   style: const TextStyle(color: Color(0xFF0F172A)),
                   decoration: _inputDecoration(
-                    'Enter Address / Location Details',
-                    hint: 'e.g. No. 45, Flower Road, Colombo 07 (Private Residence Lawn)',
+                    'Enter Street Address / House No.',
+                    hint: 'e.g. No. 45/2, Temple Road (Private Residence Lawn)',
                   ),
                   validator: (v) => _locationMode == 'custom' && (v == null || v.trim().isEmpty)
-                      ? 'Please enter venue location'
+                      ? 'Please enter residence street address'
                       : null,
+                ),
+                const SizedBox(height: 14),
+
+                // District Dropdown
+                const Text('District / Region', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedPrivateDistrict,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                      items: _sriLankaDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      onChanged: (d) {
+                        if (d != null && d != _selectedPrivateDistrict) {
+                          setState(() {
+                            _selectedPrivateDistrict = d;
+                            final towns = _districtTownsMap[d] ?? [];
+                            _selectedPrivateTown = towns.isNotEmpty ? towns.first : d;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Cascading Town Dropdown
+                Builder(
+                  builder: (context) {
+                    final towns = _districtTownsMap[_selectedPrivateDistrict] ?? [_selectedPrivateDistrict];
+                    final currentTown = towns.contains(_selectedPrivateTown) ? _selectedPrivateTown : towns.first;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nearest Town / City (For Hyper-Local Weather)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: currentTown,
+                              isExpanded: true,
+                              dropdownColor: Colors.white,
+                              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                              items: towns.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                              onChanged: (t) {
+                                if (t != null) {
+                                  setState(() => _selectedPrivateTown = t);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // AI Weather Info Badge
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🌤️', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Weather Forecast Target: $_selectedPrivateTown ($_selectedPrivateDistrict)\nLive OpenWeather API will predict rain risk and safeguard outdoor setups.',
+                          style: const TextStyle(color: Color(0xFF166534), fontSize: 11, fontWeight: FontWeight.w500, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -1851,7 +2030,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               else if (_locationMode == 'district')
                 _buildSummaryRow('District:', '$_selectedDistrict District ${_districtVenueNameController.text.isNotEmpty ? "(${_districtVenueNameController.text})" : ""}')
               else
-                _buildSummaryRow('Private Venue:', _customAddressController.text.trim()),
+                _buildSummaryRow('Private Venue:', '${_customAddressController.text.trim().isNotEmpty ? _customAddressController.text.trim() : "Residence"}, $_selectedPrivateTown ($_selectedPrivateDistrict District)'),
 
               if (_selectedServices.isNotEmpty)
                 _buildSummaryRow('Services (${_selectedServices.length}):', _selectedServices.join(' • ')),

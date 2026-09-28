@@ -53,6 +53,7 @@ export interface EventItem {
   eventSession?: string;
   cateringStyle?: string;
   tableRefreshments?: string[];
+  preferredLocation?: string;
   revisionNotes?: string;
   inspirationImages?: string[];
   inspirationImageUrl?: string;
