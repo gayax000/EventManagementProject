@@ -407,6 +407,22 @@ public class EventsController : ControllerBase
         else
         {
             ev.Status = "ClientChoiceSubmitted";
+            if (clientAction.Contains("AcceptedPremium", StringComparison.OrdinalIgnoreCase) || clientAction.Contains("Premium", StringComparison.OrdinalIgnoreCase))
+            {
+                ev.RevisionNotes = "ClientChoice:AcceptedPremium";
+                if (chosenTotal.HasValue && chosenTotal.Value > 0)
+                {
+                    ev.BudgetLimit = chosenTotal.Value;
+                }
+            }
+            else if (clientAction.Contains("RequestedBudgetFit", StringComparison.OrdinalIgnoreCase) || clientAction.Contains("BudgetFit", StringComparison.OrdinalIgnoreCase))
+            {
+                ev.RevisionNotes = "ClientChoice:RequestedBudgetFit";
+            }
+            else
+            {
+                ev.RevisionNotes = $"ClientChoice:{clientAction}";
+            }
         }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);

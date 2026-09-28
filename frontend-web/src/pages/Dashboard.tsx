@@ -1270,9 +1270,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isApproved
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : selectedEvent.revisionNotes?.includes('AcceptedPremium')
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : selectedEvent.revisionNotes?.includes('RequestedBudgetFit')
+                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                         : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                     }`}>
-                      {isApproved ? '✓ Approved' : '⏳ Awaiting Manager Approval'}
+                      {isApproved 
+                        ? '✓ Approved' 
+                        : selectedEvent.revisionNotes?.includes('AcceptedPremium')
+                        ? '✓ Client Accepted Premium'
+                        : selectedEvent.revisionNotes?.includes('RequestedBudgetFit')
+                        ? '⚡ Client: Budget-Fit Requested'
+                        : '⏳ Awaiting Manager Approval'}
                     </span>
                   </div>
                   <h3 className="font-extrabold text-base sm:text-lg text-white mt-0.5 line-clamp-1">{selectedEvent.title}</h3>
@@ -2098,106 +2108,130 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <h4 className="text-base font-bold text-slate-900 mb-4">Pricing Summary & Actions</h4>
                     
                     {/* Smart Budget Overrun Guardrail Box */}
-                    {isBudgetAutoFitted && !isApproved ? (
-                      <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
-                        <div className="flex items-start space-x-2.5">
-                          <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                              ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
-                            </h5>
-                            <p className="text-xs text-emerald-900 mt-1">
-                              Optional services scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
-                            </p>
-                          </div>
-                        </div>
+                    {(() => {
+                      const isClientAccepted = selectedEvent.revisionNotes?.includes('AcceptedPremium') || (selectedEvent.status === 'ClientChoiceSubmitted' && overrunAmount <= 0);
+                      const isClientBudgetFit = selectedEvent.revisionNotes?.includes('RequestedBudgetFit');
 
-                        <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
-                          <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
-                          <button
-                            type="button"
-                            onClick={() => setIsBudgetAutoFitted(false)}
-                            className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
-                          >
-                            🔄 Reset Packages
-                          </button>
-                        </div>
-                      </div>
-                    ) : overrunAmount > 0 && !isApproved && (
-                      <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
-                        <div className="flex items-start space-x-2.5">
-                          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
-                              ⚠️ Budget Overrun Triggered
-                            </h5>
-                            <p className="text-xs text-amber-900 mt-1">
-                              Compiled subtotal (<strong>Rs. {currentSubtotal.toLocaleString()}</strong>) exceeds client limit (<strong>Rs. {clientBudgetLimit.toLocaleString()}</strong>) by <strong className="text-rose-700">Rs. {overrunAmount.toLocaleString()}</strong>.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Manager Guardrail Actions */}
-                        <div className="pt-2 border-t border-amber-200/80 space-y-2">
-                          <p className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
-                            Human-in-the-Loop Manager Guardrails:
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsBudgetAutoFitted(true);
-                              setClientApprovalRequested(false);
-                              setSpecialDiscount(0);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
-                              isBudgetAutoFitted
-                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                                : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                            }`}
-                          >
-                            <span>⚡ 1. Auto-Fit Packages to Budget</span>
-                            <span className="text-[10px] opacity-90 font-mono">&lt;= Rs. 1.5M</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setClientApprovalRequested(!clientApprovalRequested);
-                              setIsBudgetAutoFitted(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
-                              clientApprovalRequested
-                                ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
-                                : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
-                            }`}
-                          >
-                            <span>📩 {clientApprovalRequested ? '✓ Flagged: Awaiting Client Budget Increase' : '2. Keep Quality & Request Client Budget Increase'}</span>
-                            <span className="text-[10px] opacity-90">{clientApprovalRequested ? 'Active' : 'Notify Client'}</span>
-                          </button>
-
-                          {overrunAmount <= 50000 ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSpecialDiscount(overrunAmount);
-                                setIsBudgetAutoFitted(false);
-                                setClientApprovalRequested(false);
-                              }}
-                              className="w-full text-left px-3 py-2 bg-white hover:bg-amber-100/50 text-slate-800 border border-amber-300 rounded-lg text-xs font-semibold flex items-center justify-between transition"
-                            >
-                              <span>🎁 3. Apply Match Discount (Rs. {overrunAmount.toLocaleString()})</span>
-                              <span className="text-[10px] text-emerald-700 font-bold">Within Cap (≤ 50k)</span>
-                            </button>
-                          ) : (
-                            <div className="p-2 bg-rose-50 rounded-lg border border-rose-200 text-[11px] text-rose-900 flex items-center justify-between">
-                              <span className="font-medium">⛔ Discount Cap Exceeded (Max Rs. 50,000)</span>
-                              <span className="font-mono text-[10px] text-rose-700 font-bold">Over: Rs. {overrunAmount.toLocaleString()}</span>
+                      if (isClientAccepted) {
+                        return (
+                          <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-2 shadow-xs">
+                            <div className="flex items-start space-x-2.5">
+                              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                                  ✅ CLIENT ACCEPTED PREMIUM BUDGET
+                                </h5>
+                                <p className="text-xs text-emerald-900 mt-1">
+                                  Client agreed to increase their budget to <strong>Rs. {displayedFinalTotal.toLocaleString()}</strong> to preserve full luxury specifications.
+                                </p>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                          </div>
+                        );
+                      }
+
+                      if (isBudgetAutoFitted && !isApproved) {
+                        return (
+                          <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
+                            <div className="flex items-start space-x-2.5">
+                              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                                  ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
+                                </h5>
+                                <p className="text-xs text-emerald-900 mt-1">
+                                  Optional services scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
+                              <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
+                              <button
+                                type="button"
+                                onClick={() => setIsBudgetAutoFitted(false)}
+                                className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
+                              >
+                                🔄 Reset Packages
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (overrunAmount > 0 && !isApproved) {
+                        return (
+                          <div className="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50/90 space-y-3 shadow-xs">
+                            <div className="flex items-start space-x-2.5">
+                              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                                  ⚠️ Budget Overrun Triggered
+                                </h5>
+                                <p className="text-xs text-amber-900 mt-1">
+                                  Compiled subtotal (<strong>Rs. {currentSubtotal.toLocaleString()}</strong>) exceeds client limit (<strong>Rs. {clientBudgetLimit.toLocaleString()}</strong>) by <strong className="text-rose-700">Rs. {overrunAmount.toLocaleString()}</strong>.
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Manager Guardrail Actions */}
+                            <div className="pt-2 border-t border-amber-200/80 space-y-2">
+                              {isClientBudgetFit && (
+                                <div className="p-2.5 bg-sky-100 border border-sky-300 rounded-lg text-xs text-sky-950 font-medium flex items-center space-x-2">
+                                  <span>📩</span>
+                                  <span><strong>Client Decision:</strong> Requested Budget-Fit Standard Package. Click below to auto-fit.</span>
+                                </div>
+                              )}
+
+                              <p className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
+                                Human-in-the-Loop Manager Guardrails:
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsBudgetAutoFitted(true);
+                                  setClientApprovalRequested(false);
+                                  setSpecialDiscount(0);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                                  isBudgetAutoFitted
+                                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                                    : isClientBudgetFit
+                                    ? 'bg-sky-600 text-white border-sky-700 shadow-sm'
+                                    : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                                }`}
+                              >
+                                <span>⚡ 1. Auto-Fit Packages to Budget</span>
+                                <span className="text-[10px] opacity-90 font-mono">
+                                  Fit to &le; Rs. {clientBudgetLimit >= 1000000 ? `${(clientBudgetLimit / 1000000).toFixed(1)}M` : `${(clientBudgetLimit / 1000).toFixed(0)}k`}
+                                </span>
+                              </button>
+
+                              {!isClientBudgetFit && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setClientApprovalRequested(!clientApprovalRequested);
+                                    setIsBudgetAutoFitted(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
+                                    clientApprovalRequested
+                                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs'
+                                      : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100/50'
+                                  }`}
+                                >
+                                  <span>📩 {clientApprovalRequested ? '✓ Flagged: Awaiting Client Budget Increase' : '2. Keep Quality & Request Client Budget Increase'}</span>
+                                  <span className="text-[10px] opacity-90">{clientApprovalRequested ? 'Active' : 'Notify Client'}</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
 
                     <div className="space-y-3 mb-6">
                       <div className="flex justify-between text-sm text-slate-600">
@@ -2234,7 +2268,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       onClick={handleApprove}
                       disabled={isApproved || selectedEvent.status === 'PendingClientBudgetApproval'}
                       className={`w-full py-2.5 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-2 disabled:opacity-50 ${
-                        selectedEvent.status === 'ClientChoiceSubmitted'
+                        selectedEvent.status === 'ClientChoiceSubmitted' || selectedEvent.revisionNotes?.includes('AcceptedPremium')
                           ? 'bg-emerald-600 hover:bg-emerald-700 font-bold'
                           : clientApprovalRequested
                           ? 'bg-indigo-600 hover:bg-indigo-700 font-bold'
@@ -2247,7 +2281,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           ? 'Approved & Ready for Signing' 
                           : selectedEvent.status === 'PendingClientBudgetApproval'
                           ? '⏳ Proposal Sent to Client (Awaiting Response)'
-                          : selectedEvent.status === 'ClientChoiceSubmitted'
+                          : selectedEvent.status === 'ClientChoiceSubmitted' || selectedEvent.revisionNotes?.includes('AcceptedPremium')
                           ? 'Approve Finalized Proposal (Unlock Client Deposit)'
                           : clientApprovalRequested 
                           ? 'Send Proposal with Client Budget Increase Request' 

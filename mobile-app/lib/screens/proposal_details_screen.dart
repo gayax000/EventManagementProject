@@ -726,22 +726,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-
-                    // Option C: Request Custom Revision
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showRevisionDialog(proposal),
-                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFFF43F5E)),
-                        label: const Text("⚠️ Request Custom Revision Notes", style: TextStyle(fontSize: 11.5, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFF43F5E)),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
                   ],
                 ],
               ),
