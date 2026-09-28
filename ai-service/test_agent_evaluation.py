@@ -74,5 +74,29 @@ class TestAgenticAIEvaluation(unittest.TestCase):
         self.assertFalse(res.isUnderBudget)
         self.assertFalse(res.validationPassed)
 
+    def test_weather_tool_live_api_and_seasonal_fallback(self):
+        import datetime
+        import tools
+
+        today_str = datetime.date.today().isoformat()
+        live_res = tools.check_weather_forecast("Colombo", today_str)
+        self.assertIn("Live OpenWeatherMap 5-Day Forecast API", live_res["dataSource"])
+        self.assertEqual(live_res["city"], "Colombo")
+
+        future_str = (datetime.date.today() + datetime.timedelta(days=60)).isoformat()
+        fallback_res = tools.check_weather_forecast("Kandy", future_str)
+        self.assertIn("Historical Sri Lanka Seasonal Climate Model", fallback_res["dataSource"])
+        self.assertEqual(fallback_res["city"], "Kandy")
+
+    def test_langgraph_stategraph_four_nodes_compiled(self):
+        from main import agent_graph
+        nodes = list(agent_graph.nodes.keys())
+        
+        # Verify LangGraph StateGraph nodes for all 4 student group members
+        self.assertIn("planner_agent", nodes)            # Member 2 (Kasun)
+        self.assertIn("weather_risk_agent", nodes)        # Member 3
+        self.assertIn("resource_optimizer_agent", nodes)  # Member 1
+        self.assertIn("validation_safety_agent", nodes)   # Member 4
+
 if __name__ == '__main__':
     unittest.main()

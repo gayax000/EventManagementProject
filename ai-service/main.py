@@ -3,12 +3,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import traceback
 
-from schemas import EventObjectiveInput, AgentWorkflowResult, ProposedItem
+from langgraph.graph import StateGraph, START, END
+
+from schemas import EventObjectiveInput, AgentWorkflowResult, AgentGraphState
+from agent_planner import PlanningAgent
+from agent_weather_risk import WeatherRiskAgent
+from agent_resource_optimizer import ResourceOptimizerAgent
+from agent_validation_safety import ValidationSafetyAgent
 
 app = FastAPI(
-    title="EventCraft Agentic AI Subsystem",
-    description="Multi-Agent Orchestrator compliant with SLIIT SE3090 Assignment 1",
-    version="1.0.0"
+    title="EventCraft Multi-Agent AI Subsystem (LangGraph)",
+    description="Multi-Agent Orchestrator powered by LangGraph, compliant with SLIIT SE3090 Assignment 1",
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -19,143 +25,137 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------------------------------------------------------------------------
+# 1. Instantiate 4 Specialized Domain Agents (1 per group member)
+# ---------------------------------------------------------------------------
+planner_agent = PlanningAgent()                       # Member 2 (Kasun): Planning & Task Decomposition
+weather_agent = WeatherRiskAgent()                     # Member 3: Weather Risk & Safeguard Tool
+optimizer_agent = ResourceOptimizerAgent()             # Member 1: Resource & Budget Optimizer
+safety_agent = ValidationSafetyAgent()                 # Member 4: Deterministic Validation & Human Gate
+
+# ---------------------------------------------------------------------------
+# 2. Define LangGraph Node Functions (State Transitions)
+# ---------------------------------------------------------------------------
+def planner_node(state: AgentGraphState) -> dict:
+    """Node 1 (Member 2): Decomposes natural language objective into structured multi-step execution tasks."""
+    res = planner_agent.execute(state["objective"])
+    logs = list(state.get("audit_trace_logs", [])) + res["trace"]
+    return {
+        "multi_step_plan": res["multiStepPlan"],
+        "audit_trace_logs": logs
+    }
+
+def weather_risk_node(state: AgentGraphState) -> dict:
+    """Node 2 (Member 3): Evaluates real-time / seasonal precipitation risk via allow-listed weather tool."""
+    res = weather_agent.execute(state["objective"])
+    logs = list(state.get("audit_trace_logs", [])) + res["trace"]
+    return {
+        "weather_assessment": res["weatherAssessment"],
+        "safeguard_item": res["safeguardItem"],
+        "audit_trace_logs": logs
+    }
+
+def resource_optimizer_node(state: AgentGraphState) -> dict:
+    """Node 3 (Member 1): Matches venue, catering buffet, and sound packages under client budget."""
+    res = optimizer_agent.execute(state["objective"], state.get("safeguard_item"))
+    logs = list(state.get("audit_trace_logs", [])) + res["trace"]
+    return {
+        "selected_venue": res["selectedVenue"],
+        "cost_breakdown": res["items"],
+        "subtotal": res["subtotal"],
+        "audit_trace_logs": logs
+    }
+
+def validation_safety_node(state: AgentGraphState) -> dict:
+    """Node 4 (Member 4): Deterministic guardrails (cost <= budget) and human approval interceptor."""
+    res = safety_agent.execute(state["objective"], state.get("subtotal", 0.0), state.get("cost_breakdown", []))
+    logs = list(state.get("audit_trace_logs", [])) + res["trace"]
+    return {
+        "is_under_budget": res["isUnderBudget"],
+        "budget_remaining": res["budgetRemaining"],
+        "validation_passed": res["validationPassed"],
+        "requires_human_approval": res["requiresHumanApproval"],
+        "approval_status": res["approvalStatus"],
+        "audit_trace_logs": logs
+    }
+
+# ---------------------------------------------------------------------------
+# 3. Construct and Compile LangGraph StateGraph (SE3090 Section 9 & 10)
+# ---------------------------------------------------------------------------
+workflow = StateGraph(AgentGraphState)
+
+# Add the 4 Distinct Agent Nodes
+workflow.add_node("planner_agent", planner_node)
+workflow.add_node("weather_risk_agent", weather_risk_node)
+workflow.add_node("resource_optimizer_agent", resource_optimizer_node)
+workflow.add_node("validation_safety_agent", validation_safety_node)
+
+# Set Entry Point and Linear / Sequential State Transitions
+workflow.set_entry_point("planner_agent")
+workflow.add_edge("planner_agent", "weather_risk_agent")
+workflow.add_edge("weather_risk_agent", "resource_optimizer_agent")
+workflow.add_edge("resource_optimizer_agent", "validation_safety_agent")
+workflow.add_edge("validation_safety_agent", END)
+
+# Compile Executable Multi-Agent Graph
+agent_graph = workflow.compile()
+
+# ---------------------------------------------------------------------------
+# 4. REST API Endpoints (Exposed to ASP.NET Core Web API)
+# ---------------------------------------------------------------------------
 @app.get("/health")
 def health_check():
-    return {"status": "Online", "service": "EventCraft Multi-Agent AI Subsystem"}
+    return {
+        "status": "Online",
+        "service": "EventCraft Multi-Agent AI Subsystem (LangGraph)",
+        "framework": "LangGraph StateGraph",
+        "nodes": ["planner_agent", "weather_risk_agent", "resource_optimizer_agent", "validation_safety_agent"],
+        "agents": [
+            planner_agent.role_name,
+            weather_agent.role_name,
+            optimizer_agent.role_name,
+            safety_agent.role_name
+        ]
+    }
 
 @app.post("/api/ai/plan", response_model=AgentWorkflowResult)
 def execute_multi_agent_workflow(event_req: EventObjectiveInput):
     """
-    Orchestrates the 4 Distinct Agent Roles:
-    1. Member 2 (Kasun): Planning & Task Graph Agent
-    2. Member 3: Weather Risk & Safeguard Tool Agent
-    3. Member 1: Resource & Budget Optimizer Agent
-    4. Member 4: Deterministic Validation & Safety Agent
+    Executes the LangGraph Multi-Agent Orchestrator across the 4 specialized agent roles.
+    Input contract and Output response remain 100% compliant with ASP.NET Core & React/Flutter.
     """
     try:
         workflow_id = str(uuid.uuid4())
-        audit_trace = []
 
-        # -------------------------------------------------------------
-        # 1. Member 2 (Kasun): Planning & Delegation Agent
-        # -------------------------------------------------------------
-        audit_trace.append(f"PlannerAgent (Member 2): Decomposing objective for '{event_req.title}' (Guests: {event_req.guestCount}, Budget: Rs. {event_req.budgetLimit:,.2f})")
-        plan_steps = [
-            "Step 1: Environmental & Weather Assessment via Weather API Tool",
-            "Step 2: Dynamic Contingency Safeguard Injection for Rain Risk",
-            "Step 3: Venue, Catering & AV Package Matching and Budget Optimization",
-            "Step 4: Deterministic Rule Checks and Human Approval Hold"
-        ]
-
-        # -------------------------------------------------------------
-        # 2. Member 3: Weather Risk & Environmental Agent
-        # -------------------------------------------------------------
-        audit_trace.append(f"WeatherRiskAgent (Member 3): Querying Weather Tool for '{event_req.location}'")
-        loc_lower = event_req.location.lower()
-        if any(place in loc_lower for place in ["nuwara", "kandy", "galle", "lawn"]):
-            rain_pct = 75
-            condition = "Heavy Monsoon Rain Showers Expected"
-            risk_level = "High"
-        else:
-            rain_pct = 25
-            condition = "Clear / Partly Cloudy"
-            risk_level = "Low"
-
-        weather_assessment = {
-            "location": event_req.location,
-            "targetDate": event_req.targetDate,
-            "rainProbabilityPercent": rain_pct,
-            "condition": condition,
-            "riskLevel": risk_level
+        initial_state: AgentGraphState = {
+            "workflow_id": workflow_id,
+            "objective": event_req,
+            "audit_trace_logs": []
         }
 
-        safeguard_item = None
-        if event_req.isOutdoor and rain_pct >= 60:
-            safeguard_item = ProposedItem(
-                name="Heavy-Duty Waterproof Marquee Tent (20x40 ft)",
-                category="WeatherSafeguard",
-                cost=150000.0,
-                isSafeguard=True,
-                reason=f"70%+ Rain Probability detected on outdoor grounds in {event_req.location}."
-            )
-            audit_trace.append(f"WeatherRiskAgent (Member 3): ALERT - Rain risk {rain_pct}%. Auto-injected Marquee Tent safeguard (Rs. 150,000).")
-        else:
-            audit_trace.append("WeatherRiskAgent (Member 3): Risk within limits. No structural safeguard required.")
-
-        # -------------------------------------------------------------
-        # 3. Member 1: Resource & Budget Optimization Agent
-        # -------------------------------------------------------------
-        audit_trace.append(f"ResourceOptimizerAgent (Member 1): Querying inventory tools for {event_req.guestCount} guests")
-        
-        # Venue Selection
-        if "nuwara" in loc_lower:
-            selected_venue = "The Grand Hotel Nuwara Eliya - Governors Lawn"
-        elif "kandy" in loc_lower:
-            selected_venue = "Earl's Regency Kandy - Regent Ballroom"
-        elif "galle" in loc_lower:
-            selected_venue = "Jetwing Lighthouse Galle - Ocean Rocks Lawn"
-        else:
-            selected_venue = "Shangri-La Colombo - Lotus Ballroom"
-
-        # Catering & Sound Packaging
-        buffet_per_head = 5000.0
-        catering_cost = buffet_per_head * event_req.guestCount
-        sound_cost = 150000.0
-
-        items = [
-            ProposedItem(
-                name=f"Premium Dinner Buffet B ({event_req.guestCount} Guests x Rs. {buffet_per_head:,.0f})",
-                category="Catering",
-                cost=catering_cost
-            ),
-            ProposedItem(
-                name="Concert Stage, Audio & Intelligent Lighting Rig",
-                category="AudioVisual",
-                cost=sound_cost
-            )
-        ]
-
-        if safeguard_item:
-            items.append(safeguard_item)
-
-        subtotal = sum(i.cost for i in items)
-        audit_trace.append(f"ResourceOptimizerAgent (Member 1): Optimal package compiled. Subtotal: Rs. {subtotal:,.2f}")
-
-        # -------------------------------------------------------------
-        # 4. Member 4: Deterministic Validation & Safety Agent
-        # -------------------------------------------------------------
-        audit_trace.append("ValidationSafetyAgent (Member 4): Executing deterministic assertion rules and budget guardrails")
-        
-        is_under_budget = subtotal <= event_req.budgetLimit
-        remaining = event_req.budgetLimit - subtotal
-        validation_passed = is_under_budget and len(items) > 0
-
-        if validation_passed:
-            audit_trace.append("ValidationSafetyAgent (Member 4): All deterministic safety rules PASSED.")
-            audit_trace.append("ValidationSafetyAgent (Member 4): Halting workflow. Status set to PendingManagerApproval.")
-        else:
-            audit_trace.append(f"ValidationSafetyAgent (Member 4): VIOLATION - Proposal exceeds budget by Rs. {abs(remaining):,.2f}")
+        # Invoke the LangGraph State Machine
+        final_state = agent_graph.invoke(initial_state)
 
         return AgentWorkflowResult(
             workflowId=workflow_id,
             eventId=event_req.eventId,
             objectiveSummary=f"Autonomous plan for {event_req.title} with {event_req.guestCount} guests in {event_req.location}",
-            multiStepPlan=plan_steps,
-            weatherRiskAssessment=weather_assessment,
-            selectedVenue=selected_venue,
-            costBreakdown=items,
-            subtotal=subtotal,
-            isUnderBudget=is_under_budget,
-            budgetRemaining=remaining,
-            validationPassed=validation_passed,
-            requiresHumanApproval=True,
-            approvalStatus="PendingManagerApproval",
-            auditTraceLogs=audit_trace
+            multiStepPlan=final_state.get("multi_step_plan", []),
+            weatherRiskAssessment=final_state.get("weather_assessment", {}),
+            selectedVenue=final_state.get("selected_venue", ""),
+            costBreakdown=final_state.get("cost_breakdown", []),
+            subtotal=final_state.get("subtotal", 0.0),
+            isUnderBudget=final_state.get("is_under_budget", False),
+            budgetRemaining=final_state.get("budget_remaining", 0.0),
+            validationPassed=final_state.get("validation_passed", False),
+            requiresHumanApproval=final_state.get("requires_human_approval", True),
+            approvalStatus=final_state.get("approval_status", "PendingManagerApproval"),
+            auditTraceLogs=final_state.get("audit_trace_logs", [])
         )
 
     except Exception as e:
         print("AGENT WORKFLOW ERROR:", traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Orchestration failure: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"LangGraph Orchestration failure: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

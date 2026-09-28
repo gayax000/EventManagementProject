@@ -6,7 +6,7 @@ class ValidationSafetyAgent:
     Owned by Member 4: Deterministic Validation, Guardrails & Human Approval Interceptor
     Ensures budget constraints and schema validity, halting the workflow for Manager Review.
     """
-    def _init_(self):
+    def __init__(self):
         self.role_name = "Deterministic Validation & Safety Agent"
 
     def execute(self, objective: EventObjectiveInput, subtotal: float, items: List[ProposedItem]) -> dict:
