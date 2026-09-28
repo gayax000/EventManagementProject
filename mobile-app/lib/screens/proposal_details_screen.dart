@@ -117,75 +117,138 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
   void _showRevisionDialog(EventProposalDetail proposal) {
     final controller = TextEditingController();
+    final Set<String> selectedCategories = {};
+    final categories = [
+      'Photography',
+      'Decoration',
+      'Sound & DJ',
+      'Catering / Food',
+      'Cake',
+      'Transport',
+      'Venue Rental',
+      'Special Request',
+    ];
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Row(
-          children: [
-            Icon(Icons.edit_note_rounded, color: Color(0xFFF43F5E), size: 24),
-            SizedBox(width: 8),
-            Text('Request Custom Revision', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Describe the specific changes or adjustments you would like the Operations Manager to make for your event proposal:',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'e.g., Please change photography package, adjust food menu options, add welcome drinks...',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                filled: true,
-                fillColor: const Color(0xFF0F172A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFF43F5E))),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: const Row(
+            children: [
+              Icon(Icons.edit_note_rounded, color: Color(0xFFF43F5E), size: 24),
+              SizedBox(width: 8),
+              Text('Request Custom Revision', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF43F5E),
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              final notes = controller.text.trim();
-              if (notes.isEmpty) return;
-              Navigator.of(ctx).pop();
-              setState(() => _isLoading = true);
-              final ok = await ApiService.submitClientBudgetChoice(
-                widget.eventId,
-                'request_revision',
-                proposal.estimatedTotalCost,
-                revisionNotes: notes,
-              );
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok ? '⚠️ Revision request submitted to Manager!' : 'Failed to submit revision request.'),
-                    backgroundColor: ok ? const Color(0xFFF43F5E) : Colors.redAccent,
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Select categories you want to adjust:',
+                  style: TextStyle(color: Colors.white70, fontSize: 11.5, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: categories.map((cat) {
+                    final isSel = selectedCategories.contains(cat);
+                    return InkWell(
+                      onTap: () {
+                        setDialogState(() {
+                          if (isSel) {
+                            selectedCategories.remove(cat);
+                          } else {
+                            selectedCategories.add(cat);
+                          }
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isSel ? const Color(0xFFF43F5E) : const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSel ? const Color(0xFFFB7185) : Colors.white12,
+                          ),
+                        ),
+                        child: Text(
+                          cat,
+                          style: TextStyle(
+                            color: isSel ? Colors.white : Colors.white70,
+                            fontSize: 11,
+                            fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Describe your requested modifications in detail:',
+                  style: TextStyle(color: Colors.white70, fontSize: 11.5),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: controller,
+                  maxLines: 3,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'e.g., Please reduce flower decor cost, reduce catering per plate, change cake size...',
+                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                    filled: true,
+                    fillColor: const Color(0xFF0F172A),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFF43F5E))),
                   ),
-                );
-                _loadProposal();
-              }
-            },
-            child: const Text('Submit Revision Request', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF43F5E),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                String notes = controller.text.trim();
+                if (selectedCategories.isNotEmpty) {
+                  final catHeader = "[Categories: ${selectedCategories.join(', ')}]";
+                  notes = notes.isNotEmpty ? "$catHeader $notes" : catHeader;
+                }
+                if (notes.isEmpty) return;
+                Navigator.of(ctx).pop();
+                setState(() => _isLoading = true);
+                final ok = await ApiService.submitClientBudgetChoice(
+                  widget.eventId,
+                  'request_revision',
+                  proposal.estimatedTotalCost,
+                  revisionNotes: notes,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok ? '⚠️ Revision request submitted to Manager!' : 'Failed to submit revision request.'),
+                      backgroundColor: ok ? const Color(0xFFF43F5E) : Colors.redAccent,
+                    ),
+                  );
+                  _loadProposal();
+                }
+              },
+              child: const Text('Submit Revision Request', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -719,15 +782,27 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFDBEAFE),
+                          color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+                              ? const Color(0xFFDBEAFE)
+                              : const Color(0xFFFEF3C7),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF93C5FD)),
+                          border: Border.all(
+                            color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+                                ? const Color(0xFF93C5FD)
+                                : const Color(0xFFFCD34D),
+                          ),
                         ),
                         child: Text(
                           proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
                             ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
-                            : 'Priced by Manager',
-                          style: const TextStyle(color: Color(0xFF1E40AF), fontSize: 11, fontWeight: FontWeight.bold),
+                            : '⏳ Pending Manager Costing',
+                          style: TextStyle(
+                            color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
+                                ? const Color(0xFF1E40AF)
+                                : const Color(0xFFB45309),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -978,8 +1053,19 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text("FINAL AGREED AMOUNT:", style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5)),
+                    Expanded(
+                      child: Text(
+                        isConfirmed 
+                          ? "FINAL AGREED AMOUNT:" 
+                          : (isApproved 
+                              ? "MANAGER PROPOSED TOTAL:" 
+                              : (proposal.status == 'RevisionRequested' 
+                                  ? "ESTIMATED TOTAL (UNDER REVISION):" 
+                                  : (isChoiceSubmitted 
+                                      ? "SUBMITTED CLIENT CHOICE TOTAL:" 
+                                      : "ESTIMATED AI PROPOSAL TOTAL:"))),
+                        style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 12.5),
+                      ),
                     ),
                     Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontWeight: FontWeight.bold, fontSize: 17)),
                   ],
@@ -987,7 +1073,141 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
+
+          // Client Action & Revision Section (Accessible during review phase)
+          if (!isApproved && !isConfirmed) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: proposal.status == 'RevisionRequested' 
+                      ? const Color(0xFFFDA4AF) 
+                      : const Color(0xFFCBD5E1),
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (proposal.status == 'RevisionRequested') ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.mark_chat_read, color: Color(0xFFE11D48), size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Revision Request Submitted to Manager",
+                            style: TextStyle(color: Color(0xFF9F1239), fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFE4E6),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text("Under Review", style: TextStyle(color: Color(0xFFBE123C), fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF1F2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "Your Notes: \"${proposal.revisionNotes ?? 'Revision requested'}\"\n\nHotel Operations Manager has been notified on the Web Portal to review your requested adjustments.",
+                        style: const TextStyle(color: Color(0xFF881337), fontSize: 12, height: 1.35),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showRevisionDialog(proposal),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFFE11D48)),
+                        label: const Text("Update Revision Notes", style: TextStyle(fontSize: 12, color: Color(0xFFE11D48), fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFFDA4AF)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    const Row(
+                      children: [
+                        Icon(Icons.touch_app_rounded, color: Color(0xFF2563EB), size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          "Client Review & Action Options",
+                          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Review the preliminary AI budget breakdown above. You can agree with this proposal or request custom adjustments (e.g. adjust photography, catering, or decor packages):",
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, height: 1.35),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              setState(() => _isLoading = true);
+                              final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', proposal.estimatedTotalCost);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(ok 
+                                        ? "✓ Agreement submitted! Manager has been notified to finalize your proposal." 
+                                        : "✓ Agreement submitted to manager."),
+                                    backgroundColor: const Color(0xFF059669),
+                                  ),
+                                );
+                                _loadProposal();
+                              }
+                            },
+                            icon: const Icon(Icons.check_circle_outline, size: 16, color: Colors.white),
+                            label: const Text("Agree to Proposal", style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _showRevisionDialog(proposal),
+                            icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFFE11D48)),
+                            label: const Text("Request Changes", style: TextStyle(fontSize: 11.5, color: Color(0xFFE11D48), fontWeight: FontWeight.bold)),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0xFFFDA4AF)),
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
 
           // 4. Bank Transfer & Payment Slip Section (Member 4 Mobile Integration)
           if (isApproved || isConfirmed) ...[
@@ -1913,11 +2133,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text(
                   isDiscount 
                       ? "- LKR $costStr" 
-                      : (cost > 0 ? "LKR $costStr" : "Priced by Manager"), 
+                      : (cost > 0 ? "LKR $costStr" : (item['isSpecial'] == true ? "⏳ Pending Manager Costing" : "Priced by Manager")), 
                   style: TextStyle(
                     color: isDiscount 
                         ? const Color(0xFF16A34A) 
-                        : (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF0F172A)), 
+                        : (item['isSpecial'] == true ? const Color(0xFFB45309) : const Color(0xFF0F172A)), 
                     fontWeight: FontWeight.bold, 
                     fontSize: 11.5,
                   ),

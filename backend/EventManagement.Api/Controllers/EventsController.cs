@@ -394,7 +394,7 @@ public class EventsController : ControllerBase
             return NotFound(new { message = "Event not found." });
 
         var clientAction = dtoBody?.ClientAction ?? choice ?? "accept";
-        var isRevision = clientAction.Equals("request_revision", StringComparison.OrdinalIgnoreCase) || clientAction.Equals("revision", StringComparison.OrdinalIgnoreCase);
+        var isRevision = clientAction.Contains("revision", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(dtoBody?.RevisionNotes);
 
         if (isRevision)
         {
