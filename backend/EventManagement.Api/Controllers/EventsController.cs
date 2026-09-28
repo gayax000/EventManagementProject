@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using EventManagement.Core.DTOs;
 using EventManagement.Core.Entities;
@@ -292,6 +293,7 @@ public class EventsController : ControllerBase
                 : new List<string>(),
             RevisionNotes = ev.RevisionNotes,
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
+            WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
             CreatedAt = ev.CreatedAt
         });
     }
@@ -392,7 +394,7 @@ public class EventsController : ControllerBase
             return NotFound(new { message = "Event not found." });
 
         var clientAction = dtoBody?.ClientAction ?? choice ?? "accept";
-        var isRevision = clientAction.Equals("request_revision", StringComparison.OrdinalIgnoreCase) || clientAction.Equals("revision", StringComparison.OrdinalIgnoreCase);
+        var isRevision = clientAction.Contains("revision", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(dtoBody?.RevisionNotes);
 
         if (isRevision)
         {
@@ -438,7 +440,43 @@ public class EventsController : ControllerBase
         {
             await EnsureSchemaAsync();
 
+            Guid targetCustomerId = Guid.Empty;
+            if (customerId.HasValue && customerId.Value != Guid.Empty)
+            {
+                targetCustomerId = customerId.Value;
+            }
+            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+            {
+                targetCustomerId = parsedId;
+            }
+            else
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+                var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+                bool isManager = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Manager");
+
+                if (!isManager && !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var claimId))
+                {
+                    var userEntity = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == claimId);
+                    if (userEntity != null && string.Equals(userEntity.Role?.RoleName, "Manager", StringComparison.OrdinalIgnoreCase))
+                    {
+                        isManager = true;
+                    }
+                    else
+                    {
+                        targetCustomerId = claimId;
+                    }
+                }
+            }
+
             var query = _context.Events.AsQueryable();
+            if (targetCustomerId != Guid.Empty)
+            {
+                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
+                Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
+
+                query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
+            }
 
             var events = await query
                 .Include(e => e.Venue)
@@ -468,6 +506,7 @@ public class EventsController : ControllerBase
                     PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
                     InspirationImageUrl = null,
                     EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                    WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
                     CreatedAt = ev.CreatedAt
                 })
                 .ToListAsync();
@@ -476,10 +515,18 @@ public class EventsController : ControllerBase
             {
                 item.InspirationImages = new List<string>();
                 var evEntity = await _context.Events.FindAsync(item.EventId);
-                if (evEntity != null && !string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                if (evEntity != null)
                 {
-                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
-                    catch { }
+                    if (!string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                    {
+                        try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
+                        catch { }
+                    }
+                    if (!string.IsNullOrEmpty(evEntity.SelectedServicesJson))
+                    {
+                        try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(evEntity.SelectedServicesJson); }
+                        catch { }
+                    }
                 }
             }
 
@@ -614,7 +661,7 @@ public class EventsController : ControllerBase
                 ? booking.BookingReferenceCode 
                 : $"EV-2026-{new Random().Next(1000, 9999)}";
 
-            var qrData = $"https://eventmanagementproject-production.up.railway.app/verify?ref={referenceCode}";
+            var qrData = $"https://eventmanagementproject-production-19c1.up.railway.app/verify?ref={referenceCode}";
 
             booking.BookingReferenceCode = referenceCode;
             booking.DigitalSignatureUrl = dto.DigitalSignatureUrl;

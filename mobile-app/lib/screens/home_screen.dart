@@ -5,6 +5,8 @@ import '../services/auth_service.dart';
 import 'create_event_screen.dart';
 import 'proposal_details_screen.dart';
 import 'login_screen.dart';
+import 'packages_screen.dart';
+import 'payments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -137,7 +139,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           // 2. Hero Action Card (Matching Web Operational Bar)
                           _buildHeroActionCard(),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 16),
+
+                          // 2.1 Quick Service Hub (Member 3 Catering/Weather & Member 4 Payments)
+                          _buildQuickNavCards(),
+                          const SizedBox(height: 24),
 
                           // 3. Quick Inspiration Carousel (Zero Emojis, Pure Vector Icons)
                           _buildInspirationSection(),
@@ -555,6 +561,116 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- QUICK SERVICE HUB (MEMBER 3 CATERING/WEATHER & MEMBER 4 PAYMENTS) ---
+  Widget _buildQuickNavCards() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 450;
+        final double spacing = isCompact ? 10.0 : 14.0;
+
+        return Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PackagesScreen()),
+                ),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x060F172A),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0284C7).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.restaurant_menu_rounded, color: Color(0xFF0284C7), size: 20),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Packages & Weather",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        "Catering & Rain Radar",
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: spacing),
+            Expanded(
+              child: InkWell(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                ),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x060F172A),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 20),
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Payments & Invoices",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        "Slips & Tax Receipts",
+                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1082,10 +1198,19 @@ class _HomeScreenState extends State<HomeScreen> {
       child: BottomNavigationBar(
         currentIndex: _currentNavIndex,
         onTap: (index) {
-          setState(() => _currentNavIndex = index);
           if (index == 1) {
-            _navigateToCreateEvent();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PackagesScreen()),
+            );
           } else if (index == 2) {
+            _navigateToCreateEvent();
+          } else if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+            );
+          } else if (index == 4) {
             final confirmed = _events.where((e) => e.status == 'Confirmed').toList();
             if (confirmed.isNotEmpty) {
               Navigator.push(
@@ -1100,8 +1225,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             }
-          } else if (index == 3) {
-            _handleLogout();
           }
         },
         backgroundColor: Colors.transparent,
@@ -1118,19 +1241,24 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_menu_rounded),
+            activeIcon: Icon(Icons.restaurant_menu_rounded, color: Color(0xFF2563EB)),
+            label: 'Packages',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline_rounded),
             activeIcon: Icon(Icons.add_circle_rounded, color: Color(0xFF2563EB)),
             label: 'Plan Event',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_2_rounded),
-            activeIcon: Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
-            label: 'QR Passes',
+            icon: Icon(Icons.payment_rounded),
+            activeIcon: Icon(Icons.payment_rounded, color: Color(0xFF2563EB)),
+            label: 'Payments',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.logout_rounded),
-            activeIcon: Icon(Icons.logout_rounded, color: Color(0xFF2563EB)),
-            label: 'Sign Out',
+            icon: Icon(Icons.qr_code_2_rounded),
+            activeIcon: Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
+            label: 'Passes',
           ),
         ],
       ),

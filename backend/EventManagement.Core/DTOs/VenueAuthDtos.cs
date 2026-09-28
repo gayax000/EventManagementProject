@@ -75,4 +75,5 @@ public class RegisterVendorDto
     public string? Description { get; set; }
     public string? PackageName { get; set; }
     public decimal? PackagePrice { get; set; }
+    public Guid? UserId { get; set; }
 }

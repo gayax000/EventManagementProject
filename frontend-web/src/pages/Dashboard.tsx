@@ -140,7 +140,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
   const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
-  const [specialAllocation, setSpecialAllocation] = useState<number>(35000);
+  const [specialAllocation, setSpecialAllocation] = useState<number>(0);
+  const [customHallCost, setCustomHallCost] = useState<number | null>(null);
+  const [customPerPlateCost, setCustomPerPlateCost] = useState<number | null>(null);
+  const [customSoundsCost, setCustomSoundsCost] = useState<number | null>(null);
+  const [customDecoCost, setCustomDecoCost] = useState<number | null>(null);
+  const [customPhotoCost, setCustomPhotoCost] = useState<number | null>(null);
+  const [customCakeCost, setCustomCakeCost] = useState<number | null>(null);
+  const [customTransportCost, setCustomTransportCost] = useState<number | null>(null);
   const [selectedWeatherOptionId, setSelectedWeatherOptionId] = useState<string | null>(null);
 
   // Authentication State & Modal
@@ -153,7 +160,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [regFullName, setRegFullName] = useState('');
-  const [regBusinessName, setRegBusinessName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -194,12 +200,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (selectedEvent?.eventId) {
       setIsBudgetAutoFitted(false);
       setClientApprovalRequested(false);
-      setSpecialAllocation(35000);
+      setSpecialAllocation(0);
+      setCustomHallCost(null);
+      setCustomPerPlateCost(null);
+      setCustomSoundsCost(null);
+      setCustomDecoCost(null);
+      setCustomPhotoCost(null);
+      setCustomCakeCost(null);
+      setCustomTransportCost(null);
       eventService.getProposal(selectedEvent.eventId)
         .then(p => {
           if (p) {
             if (p.specialRequestAllocation && p.specialRequestAllocation > 0) {
               setSpecialAllocation(p.specialRequestAllocation);
+            } else {
+              setSpecialAllocation(0);
             }
             let parsedImages: string[] = [];
             if (Array.isArray(p.inspirationImages) && p.inspirationImages.length > 0) {
@@ -236,6 +251,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               additionalDetails: p.additionalDetails || prev.additionalDetails,
               weatherAssessment: weatherObj || prev.weatherAssessment,
               selectedServices: p.selectedServices || prev.selectedServices,
+              tableRefreshments: p.tableRefreshments || prev.tableRefreshments,
               inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
             } : prev);
           }
@@ -280,13 +296,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     setAuthLoading(true);
     setAuthError(null);
-
-    const displayName = regBusinessName.trim()
-      ? `${regBusinessName.trim()} (${regFullName.trim()})`
-      : regFullName.trim();
-
     // Strictly register as 'Vendor'
-    const success = await authService.register(displayName, regEmail, regPassword, regPhone, 'Vendor');
+    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
     setAuthLoading(false);
     if (success) {
       // Auto-login or navigate to login tab
@@ -294,7 +305,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (loginSuccess) {
         refreshAuthStatus();
         setAuthModalTab(null);
-        setActionSuccess(`Registration successful! Welcome to EventCraft, ${displayName}!`);
+        setActionSuccess(`Registration successful! Welcome to EventCraft, ${regFullName}!`);
         loadEvents();
         if (onAuthChange) onAuthChange();
       } else {
@@ -313,7 +324,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   // Smart AI Tiered Resource Allocation Engine (Budget & Event-Type Context Aware)
-  const getAllocations = (ev: EventItem | null, forceAutoFit: boolean = false, customSpecialAllocation?: number) => {
+  const getAllocations = (
+    ev: EventItem | null, 
+    forceAutoFit: boolean = false, 
+    customSpecialAllocation?: number,
+    overridePhotoCost?: number | null,
+    overrideDecoCost?: number | null,
+    overrideSoundsCost?: number | null,
+    overrideCakeCost?: number | null,
+    overrideTransportCost?: number | null
+  ) => {
     if (!ev) {
       return {
         hasSounds: false, soundsCost: 0, soundsName: '',
@@ -328,16 +348,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
     const services = ev.selectedServices || [];
-    const planText = (ev.generatedPlan || (ev.planItems ? ev.planItems.join(' ') : '') || '').toLowerCase();
 
     // 1. Sound & Lighting
-    const hasSounds = services.length === 0 || 
-      services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio') || s.toLowerCase().includes('mixer')) ||
-      planText.includes('sound') || planText.includes('audio') || planText.includes('mixer');
+    const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting')) || (overrideSoundsCost !== null && overrideSoundsCost !== undefined);
     let soundsCost = 0;
     let soundsName = 'Concert Line-Array Sound & Digital Mixer Package';
     if (hasSounds) {
-      if (forceAutoFit) {
+      if (overrideSoundsCost !== undefined && overrideSoundsCost !== null) {
+        soundsCost = overrideSoundsCost;
+        if (soundsCost === 0) {
+          soundsName = 'No Sound/Audio System (Client Arranged)';
+        } else if (soundsCost <= 50000) {
+          soundsName = `Acoustic PA System & Dual Wireless Mics (Manager Adjusted: Rs. ${soundsCost.toLocaleString()})`;
+        } else if (soundsCost <= 100000) {
+          soundsName = `Standard Stage Audio & Ambient Warm LED PAR Cans (Manager Adjusted: Rs. ${soundsCost.toLocaleString()})`;
+        } else if (soundsCost <= 180000) {
+          soundsName = `Concert Line-Array Sound & Digital Mixer Package (Manager Adjusted: Rs. ${soundsCost.toLocaleString()})`;
+        } else {
+          soundsName = `Concert Line-Array Rig + 16 Moving Heads + Beam Trusses (Manager Adjusted: Rs. ${soundsCost.toLocaleString()})`;
+        }
+      } else if (forceAutoFit) {
         soundsCost = 120000;
         soundsName = 'Standard Stage Audio + Ambient Warm LED PAR Cans (Budget Auto-Fit)';
       } else if (budget >= 2000000) {
@@ -356,13 +386,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 2. Decorations
-    const hasDeco = services.length === 0 ||
-      services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('stage') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('theme')) ||
-      planText.includes('deco') || planText.includes('stage') || planText.includes('floral');
+    const hasDeco = services.some(s => s.toLowerCase().includes('deco')) || (overrideDecoCost !== null && overrideDecoCost !== undefined);
     let decoCost = 0;
     let decoName = 'Floral Stage & Tablescape Theme Decoration';
     if (hasDeco) {
-      if (forceAutoFit) {
+      if (overrideDecoCost !== undefined && overrideDecoCost !== null) {
+        decoCost = overrideDecoCost;
+        if (decoCost === 0) {
+          decoName = 'Basic Theme Decor (Client Arranged)';
+        } else if (decoCost <= 50000) {
+          decoName = `Essential Fairy-Light Star Backdrop & Geometric Arch (Manager Adjusted: Rs. ${decoCost.toLocaleString()})`;
+        } else if (decoCost <= 90000) {
+          decoName = `Floral Stage Arch & Tablescape Theme Decoration (Manager Adjusted: Rs. ${decoCost.toLocaleString()})`;
+        } else if (decoCost <= 150000) {
+          decoName = `Thematic Floral Stage + Grand Entrance Tunnel Arch (Manager Adjusted: Rs. ${decoCost.toLocaleString()})`;
+        } else {
+          decoName = `Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Manager Adjusted: Rs. ${decoCost.toLocaleString()})`;
+        }
+      } else if (forceAutoFit) {
         decoCost = 50000;
         decoName = 'Standard Floral Arch & Fairy-Light Backdrop (Budget Auto-Fit)';
       } else if (budget >= 2000000) {
@@ -381,13 +422,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 3. Photography & Media
-    const hasPhoto = services.length === 0 ||
-      services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('video') || s.toLowerCase().includes('media') || s.toLowerCase().includes('4k')) ||
-      planText.includes('photo') || planText.includes('video') || planText.includes('media');
+    const hasPhoto = services.some(s => s.toLowerCase().includes('photo')) || (overridePhotoCost !== null && overridePhotoCost !== undefined);
     let photoCost = 0;
     let photoName = 'Professional Event Coverage';
     if (hasPhoto) {
-      if (forceAutoFit) {
+      if (overridePhotoCost !== undefined && overridePhotoCost !== null) {
+        photoCost = overridePhotoCost;
+        if (photoCost === 0) {
+          photoName = 'No Photography Package (Client Arranged)';
+        } else if (photoCost <= 70000) {
+          photoName = `Essential Event Photography (1 Senior Photographer + Digital Deliverables - Manager Adjusted: Rs. ${photoCost.toLocaleString()})`;
+        } else if (photoCost <= 120000) {
+          photoName = `Professional Event Coverage (2 Photographers + Soft Copies - Manager Adjusted: Rs. ${photoCost.toLocaleString()})`;
+        } else if (photoCost <= 190000) {
+          photoName = `Master Wedding Photography + 4K Highlights Video + Storybook Album (Manager Adjusted: Rs. ${photoCost.toLocaleString()})`;
+        } else {
+          photoName = `Royal Cinematic Rig + Drone + 3 Senior Photographers (Manager Adjusted: Rs. ${photoCost.toLocaleString()})`;
+        }
+      } else if (forceAutoFit) {
         photoCost = 60000;
         photoName = 'Essential Event Photography (1 Senior Photographer + Digital Deliverables - Budget Auto-Fit)';
       } else if (budget >= 2000000) {
@@ -406,13 +458,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     // 4. Celebration Cakes
-    const hasCake = services.some(s => s.toLowerCase().includes('cake') || s.toLowerCase().includes('confectionery') || s.toLowerCase().includes('tier')) ||
-      planText.includes('cake') || planText.includes('gateau') || planText.includes('tier') ||
-      (eventType.includes('wedding') || eventType.includes('birthday') || eventType.includes('anniversary') || eventType.includes('engagement'));
+    const hasCake = services.some(s => s.toLowerCase().includes('cake')) || (overrideCakeCost !== null && overrideCakeCost !== undefined);
     let cakeCost = 0;
     let cakeLabel = 'Celebration Cake';
     if (hasCake) {
-      if (forceAutoFit) {
+      if (overrideCakeCost !== undefined && overrideCakeCost !== null) {
+        cakeCost = overrideCakeCost;
+        if (cakeCost === 0) {
+          cakeLabel = 'No Cake Package (Client Arranged)';
+        } else if (cakeCost <= 18000) {
+          cakeLabel = `1-Tier Classic Celebration Gateau (Manager Adjusted: Rs. ${cakeCost.toLocaleString()})`;
+        } else if (cakeCost <= 30000) {
+          cakeLabel = `2-Tier Custom Thematic Fondant Cake (Manager Adjusted: Rs. ${cakeCost.toLocaleString()})`;
+        } else if (cakeCost <= 50000) {
+          cakeLabel = `3-Tier Luxury Floral Celebration Cake (Manager Adjusted: Rs. ${cakeCost.toLocaleString()})`;
+        } else {
+          cakeLabel = `5-Tier Grand Royal Handcrafted Fondant Cake (Manager Adjusted: Rs. ${cakeCost.toLocaleString()})`;
+        }
+      } else if (forceAutoFit) {
         cakeCost = 20000;
         cakeLabel = '2-Tier Classic Celebration Cake (Budget Auto-Fit)';
       } else if (eventType.includes('birthday')) {
@@ -460,16 +523,25 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const hasTransport = services.some(s => 
       s.toLowerCase().includes('transport') || 
       s.toLowerCase().includes('car') || 
-      s.toLowerCase().includes('bridal') ||
-      s.toLowerCase().includes('sedan') ||
-      s.toLowerCase().includes('vehicle') ||
-      s.toLowerCase().includes('chauffeur')
-    ) || planText.includes('transport') || planText.includes('sedan') || planText.includes('chauffeur') || planText.includes('car') || planText.includes('vehicle') ||
-      (eventType.includes('wedding') || eventType.includes('engagement') || eventType.includes('gala'));
+      s.toLowerCase().includes('bridal')
+    ) || (overrideTransportCost !== null && overrideTransportCost !== undefined);
     let transportCost = 0;
     let transportName = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
     if (hasTransport) {
-      if (forceAutoFit) {
+      if (overrideTransportCost !== undefined && overrideTransportCost !== null) {
+        transportCost = overrideTransportCost;
+        if (transportCost === 0) {
+          transportName = 'Self-Arranged / No Transport Required (Rs. 0)';
+        } else if (transportCost <= 35000) {
+          transportName = `Luxury High-Roof VIP Passenger Van (14-Seater - Manager Adjusted: Rs. ${transportCost.toLocaleString()})`;
+        } else if (transportCost <= 55000) {
+          transportName = `BMW 5-Series Executive VIP Sedan (Manager Adjusted: Rs. ${transportCost.toLocaleString()})`;
+        } else if (transportCost <= 75000) {
+          transportName = `Mercedes-Benz S-Class Luxury Chauffeur Sedan (Manager Adjusted: Rs. ${transportCost.toLocaleString()})`;
+        } else {
+          transportName = `Classic Vintage Rolls Royce / Jaguar Bridal Car (Manager Adjusted: Rs. ${transportCost.toLocaleString()})`;
+        }
+      } else if (forceAutoFit) {
         transportCost = 35000;
         transportName = 'Executive Chauffeur Sedan / VIP Van (Budget Auto-Fit)';
       } else if (eventType.includes('wedding')) {
@@ -496,21 +568,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const otherCost = hasSpecialRequests ? (customSpecialAllocation !== undefined ? customSpecialAllocation : specialAllocation) : 0;
 
     let refreshmentsCost = 0;
+    const refreshmentsItems: { name: string; itemPerHead: number; cost: number }[] = [];
     const tableRefreshments = ev.tableRefreshments || [];
     tableRefreshments.forEach(item => {
       let itemPerHead = 0;
+      let itemLabel = item;
       if (item.includes('Mocktail') || item.includes('Drink')) {
         itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
-      } else if (item.includes('Snack') || item.includes('Savory')) {
+        itemLabel = budget >= 2000000 ? "Welcome Mocktails & Fresh Fruit Fusion Bar" : (budget >= 1000000 ? "Tropical Fresh Fruit Juice & Chilled Mocktail Station" : "Welcome Mint Lime Chilled Refreshments");
+      } else if (item.includes('Snack') || item.includes('Savory') || item.includes('Table Refreshment')) {
         itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
+        itemLabel = budget >= 2000000 ? "Gourmet Savory Snack Platter & Artisanal Canapés" : (budget >= 1000000 ? "Assorted Mini Pastry & Savory Snack Platter" : "Classic Tea Time Savory Snack Selection");
       } else if (item.includes('Dessert') || item.includes('Sweet')) {
         itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
+        itemLabel = budget >= 2000000 ? "Luxury Dessert Counter (Chocolate Fountain & Pastries)" : (budget >= 1000000 ? "Deluxe Dessert Corner (Watalappan & Ice Cream Bar)" : "Classic Dessert Selection");
       } else if (item.includes('Tea') || item.includes('Coffee')) {
         itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
+        itemLabel = budget >= 2000000 ? "Artisanal Ceylon Tea & Espresso Coffee Lounge" : (budget >= 1000000 ? "Premium Ceylon Milk Tea & Brewed Coffee Counter" : "Traditional Ceylon Tea & Coffee Station");
       } else if (item.includes('Midnight') || item.includes('Action')) {
         itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
+        itemLabel = budget >= 2000000 ? "Live Action Midnight Street Food Station" : (budget >= 1000000 ? "Live Kottu & Mini Burger Midnight Station" : "Midnight Hot Savory Snack Station");
       }
-      refreshmentsCost += (ev.guestCount || 100) * itemPerHead;
+      const itemCost = (ev.guestCount || 100) * itemPerHead;
+      refreshmentsCost += itemCost;
+      refreshmentsItems.push({
+        name: itemLabel,
+        itemPerHead,
+        cost: itemCost
+      });
     });
 
     return {
@@ -521,19 +606,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
       hasTransport, transportCost, transportName,
       hasSpecialRequests, otherCost,
       refreshmentsCost,
+      refreshmentsItems,
     };
   };
 
   // Proposal Approval Action
   const handleApprove = async () => {
     if (!selectedEvent) return;
-    const perPlate = selectedEvent.perPlatePrice || 5000;
+    const basePerPlate = selectedEvent.perPlatePrice || 5000;
+    const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
     const cateringCost = selectedEvent.guestCount * perPlate;
-    const hallRental = selectedEvent.hallRentalPrice || 350000;
-    const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
+    const baseHallRental = selectedEvent.hallRentalPrice || 350000;
+    const hallRental = customHallCost !== null ? customHallCost : baseHallRental;
+    const alloc = getAllocations(
+      selectedEvent, 
+      isBudgetAutoFitted, 
+      specialAllocation, 
+      customPhotoCost, 
+      customDecoCost,
+      customSoundsCost,
+      customCakeCost,
+      customTransportCost
+    );
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
-    const weatherData = selectedEvent.weatherAssessment;
+    let weatherData = selectedEvent.weatherAssessment;
+    if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
+      try { weatherData = JSON.parse(weatherData); } catch (e) {}
+    }
     const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
     const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
 
@@ -584,23 +684,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
     ];
 
-    if (selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0) {
-      const budget = Number(selectedEvent.budgetLimit) || 1000000;
-      selectedEvent.tableRefreshments.forEach(item => {
-        let itemPerHead = 0;
-        if (item.includes('Mocktail') || item.includes('Drink')) {
-          itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
-        } else if (item.includes('Snack') || item.includes('Savory')) {
-          itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
-        } else if (item.includes('Dessert') || item.includes('Sweet')) {
-          itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
-        } else if (item.includes('Tea') || item.includes('Coffee')) {
-          itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
-        } else if (item.includes('Midnight') || item.includes('Action')) {
-          itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
-        }
-        const itemCost = selectedEvent.guestCount * itemPerHead;
-        planItems.push(`${item} (${selectedEvent.guestCount} guests @ Rs. ${itemPerHead.toLocaleString()}) = Rs. ${itemCost.toLocaleString()}`);
+    if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
+      alloc.refreshmentsItems.forEach(r => {
+        planItems.push(`${r.name} (${selectedEvent.guestCount} guests @ Rs. ${r.itemPerHead.toLocaleString()}) = Rs. ${r.cost.toLocaleString()}`);
       });
     }
 
@@ -611,6 +697,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (alloc.hasTransport) planItems.push(`${alloc.transportName} (Rs. ${alloc.transportCost.toLocaleString()})`);
     if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()})`);
+    if (specialDiscount > 0) planItems.push(`Manager Courtesy Discount (-Rs. ${specialDiscount.toLocaleString()})`);
 
     try {
       await eventService.approveProposal(selectedEvent.eventId, specialDiscount, computedFinalTotal, targetStatus, specialAllocation, planItems);
@@ -678,17 +765,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Pricing calculations for current selected event
   const isApproved = selectedEvent?.status === 'ApprovedByManager' || selectedEvent?.status === 'Confirmed';
-  const perPlate = selectedEvent?.perPlatePrice || 5000;
+  const basePerPlate = selectedEvent?.perPlatePrice || 5000;
+  const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
-  const hallRental = selectedEvent?.hallRentalPrice || 350000;
-  const alloc = getAllocations(selectedEvent, isBudgetAutoFitted, specialAllocation);
+  const baseHallRental = selectedEvent?.hallRentalPrice || 350000;
+  const hallRental = customHallCost !== null ? customHallCost : baseHallRental;
+  const alloc = getAllocations(
+    selectedEvent, 
+    isBudgetAutoFitted, 
+    specialAllocation, 
+    customPhotoCost, 
+    customDecoCost,
+    customSoundsCost,
+    customCakeCost,
+    customTransportCost
+  );
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
-  const weatherData = selectedEvent?.weatherAssessment;
+  let weatherData = selectedEvent?.weatherAssessment;
+  if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
+    try { weatherData = JSON.parse(weatherData); } catch (e) {}
+  }
   const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
   const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
   const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? "Monsoon Showers" : "Indoor Climate Controlled");
-  const weatherAction = weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
+  const weatherAction = weatherData?.description || weatherData?.Description || weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
 
   let weatherTentCost = 0;
   let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
@@ -723,11 +824,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }
 
-  const calculatedSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
-  const currentSubtotal = (isApproved && selectedEvent?.estimatedTotalCost) ? (selectedEvent.estimatedTotalCost + specialDiscount) : calculatedSubtotal;
+  const currentSubtotal = cateringCost + hallRental + alloc.soundsCost + alloc.decoCost + alloc.photoCost + alloc.cakeCost + alloc.transportCost + alloc.refreshmentsCost + weatherTentCost + alloc.otherCost;
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
-  const displayedFinalTotal = isApproved ? (selectedEvent?.estimatedTotalCost || Math.max(0, currentSubtotal - specialDiscount)) : Math.max(0, currentSubtotal - specialDiscount);
+  const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -1070,7 +1170,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name (Owner / Representative)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Full Name</label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
@@ -1078,21 +1178,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       required
                       value={regFullName}
                       onChange={e => setRegFullName(e.target.value)}
-                      placeholder="e.g. Kasun Perera"
-                      className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Business / Company Name</label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={regBusinessName}
-                      onChange={e => setRegBusinessName(e.target.value)}
                       placeholder="e.g. Royal Blooms Floral Decor"
                       className="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
@@ -1297,7 +1382,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </h4>
                         </div>
                         <span className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-200 font-mono">
-                          Allocated: Rs. {alloc.otherCost.toLocaleString()}
+                          {specialAllocation > 0 ? `Allocated: Rs. ${specialAllocation.toLocaleString()}` : '⏳ Pending Manager Pricing (Rs. 0)'}
                         </span>
                       </div>
                       <p className="text-xs text-rose-950 font-medium whitespace-pre-line pl-6 mb-3">
@@ -1311,9 +1396,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <span className="font-semibold text-rose-700">Rs.</span>
                             <input
                               type="number"
-                              value={specialAllocation}
-                              onChange={(e) => setSpecialAllocation(Number(e.target.value))}
-                              className="w-28 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                              value={specialAllocation === 0 ? '' : specialAllocation}
+                              placeholder="0 (Enter allocation)"
+                              onChange={(e) => setSpecialAllocation(Math.max(0, Number(e.target.value)))}
+                              className="w-36 px-2 py-1 bg-white border border-rose-300 rounded text-right font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 placeholder:text-slate-400"
                             />
                           </div>
                         </div>
@@ -1401,120 +1487,587 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   )}
 
+                  {/* Client Requested Custom Revision Alert Banner */}
+                  {(selectedEvent.status === 'RevisionRequested' || (selectedEvent.revisionNotes && selectedEvent.revisionNotes.trim().length > 0)) && (
+                    <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-xl space-y-2 shadow-xs">
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                        <h4 className="text-sm font-bold text-rose-950 uppercase tracking-wide">
+                          Client Requested Custom Proposal Revisions
+                        </h4>
+                        <span className="text-[10px] bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-full">
+                          Action Required
+                        </span>
+                      </div>
+                      <div className="bg-white/90 p-3 rounded-lg border border-rose-200">
+                        <p className="text-xs font-semibold text-rose-900 italic">
+                          "{selectedEvent.revisionNotes || 'Client has requested adjustments to this event proposal.'}"
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-rose-700">
+                        Review the client's request above. You can adjust service package tiers below, update the special request allocation, or apply courtesy discounts before final approval.
+                      </p>
+                    </div>
+                  )}
+
                   {/* AI Compiled Package Breakdown List */}
                   <div>
                     <h4 className="text-sm font-bold text-slate-800 mb-3">AI Compiled Package Breakdown</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-slate-700 font-medium">
-                            🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
-                          </span>
-                          <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
-                      </div>
-
-                      <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <div>
-                          <span className="text-slate-700 font-medium">
-                            🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
-                          </span>
-                          <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
-                        </div>
-                        <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
-                      </div>
-
-                      {selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0 && selectedEvent.tableRefreshments.map((item, idx) => {
-                        let itemPerHead = 0;
-                        const b = Number(selectedEvent.budgetLimit) || 1000000;
-                        if (item.includes('Mocktail') || item.includes('Drink')) {
-                          itemPerHead = b >= 2000000 ? 800 : (b >= 1000000 ? 500 : 350);
-                        } else if (item.includes('Snack') || item.includes('Savory')) {
-                          itemPerHead = b >= 2000000 ? 950 : (b >= 1000000 ? 650 : 450);
-                        } else if (item.includes('Dessert') || item.includes('Sweet')) {
-                          itemPerHead = b >= 2000000 ? 1200 : (b >= 1000000 ? 800 : 500);
-                        } else if (item.includes('Tea') || item.includes('Coffee')) {
-                          itemPerHead = b >= 2000000 ? 450 : (b >= 1000000 ? 300 : 200);
-                        } else if (item.includes('Midnight') || item.includes('Action')) {
-                          itemPerHead = b >= 2000000 ? 1100 : (b >= 1000000 ? 750 : 500);
-                        }
-                        const itemCost = selectedEvent.guestCount * itemPerHead;
-                        return (
-                          <div key={`ref-${idx}`} className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                            <div>
-                              <span className="text-slate-700 font-medium">
-                                🍹 {item} ({selectedEvent.guestCount} Guests @ Rs. {itemPerHead.toLocaleString()})
-                              </span>
-                              <p className="text-[11px] text-slate-400">Table Refreshments & Catering Add-on</p>
-                            </div>
-                            <span className="font-semibold text-slate-900">Rs. {itemCost.toLocaleString()}</span>
-                          </div>
-                        );
-                      })}
-
-                      {alloc.hasSounds && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="space-y-3">
+                      {/* 1. Venue / Banquet Hall Rental */}
+                      <div className="text-sm py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex justify-between items-center">
                           <div>
-                            <span className="text-slate-700 font-medium">🔊 {alloc.soundsName}</span>
-                            <p className="text-[11px] text-slate-400">Pro audio, digital mixing & intelligent stage lights</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {alloc.hasDeco && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div>
-                            <span className="text-slate-700 font-medium">🌸 {alloc.decoName}</span>
-                            <p className="text-[11px] text-slate-400">Custom theme stage styling & floral tablescapes</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {alloc.hasPhoto && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-sky-50/70 rounded-lg border border-sky-200">
-                          <div>
-                            <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
-                            <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {alloc.hasCake && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-slate-50 rounded-lg border border-slate-100">
-                          <div>
-                            <span className="text-slate-700 font-medium">🎂 {alloc.cakeLabel}</span>
-                            <p className="text-[11px] text-slate-400">Handcrafted bespoke celebration tier</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {alloc.hasTransport && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
-                          <div>
-                            <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
-                            <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
-                          </div>
-                          <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {alloc.hasSpecialRequests && (
-                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
-                          <div>
-                            <span className="text-rose-900 font-medium">
-                              💐 Special Client Request: {selectedEvent.additionalDetails}
+                            <span className="text-slate-800 font-medium">
+                              🏨 {selectedEvent.banquetHallName ? `${selectedEvent.banquetHallName} Rental` : "Selected Venue Rental"}
                             </span>
-                            <p className="text-[11px] text-rose-500">Dedicated arrangement budget</p>
+                            <p className="text-[11px] text-slate-400">Exclusive venue access & setup</p>
                           </div>
-                          <span className="font-semibold text-rose-700">Rs. {alloc.otherCost.toLocaleString()}</span>
+                          <span className="font-semibold text-slate-900">Rs. {hallRental.toLocaleString()}</span>
+                        </div>
+                        {!isApproved && (
+                          <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-bold text-slate-700">Adjust Venue:</span>
+                            <button
+                              type="button"
+                              onClick={() => setCustomHallCost(350000)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 350000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Standard (350k)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomHallCost(300000)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 300000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Partner (300k)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomHallCost(250000)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${hallRental === 250000 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Rebate (250k)
+                            </button>
+                            <div className="flex items-center space-x-1 ml-auto">
+                              <span className="text-[10px] text-slate-500 font-medium">Custom Rs.</span>
+                              <input
+                                type="number"
+                                value={customHallCost ?? ''}
+                                placeholder={String(baseHallRental)}
+                                onChange={(e) => setCustomHallCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                className="w-24 px-1.5 py-0.5 bg-white border border-slate-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                              {customHallCost !== null && (
+                                <button type="button" onClick={() => setCustomHallCost(null)} className="text-[10px] text-indigo-600 hover:underline ml-1">
+                                  (Reset)
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. Hotel Catering Buffet */}
+                      <div className="text-sm py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-slate-800 font-medium">
+                              🍽️ In-House Hotel Dinner Buffet ({selectedEvent.guestCount} Guests x Rs. {perPlate.toLocaleString()})
+                            </span>
+                            <p className="text-[11px] text-slate-400">Mandatory 5-star hotel catering service</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {cateringCost.toLocaleString()}</span>
+                        </div>
+                        {!isApproved && (
+                          <div className="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-bold text-slate-700">Per Head Tier:</span>
+                            <button
+                              type="button"
+                              onClick={() => setCustomPerPlateCost(3800)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 3800 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Silver (3,800)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomPerPlateCost(4500)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 4500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Gold (4,500)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomPerPlateCost(5500)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 5500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Platinum (5,500)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCustomPerPlateCost(6500)}
+                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${perPlate === 6500 ? 'bg-indigo-600 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'}`}
+                            >
+                              Royal (6,500)
+                            </button>
+                            <div className="flex items-center space-x-1 ml-auto">
+                              <span className="text-[10px] text-slate-500 font-medium">Custom Rs/head:</span>
+                              <input
+                                type="number"
+                                value={customPerPlateCost ?? ''}
+                                placeholder={String(basePerPlate)}
+                                onChange={(e) => setCustomPerPlateCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                className="w-20 px-1.5 py-0.5 bg-white border border-slate-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              />
+                              {customPerPlateCost !== null && (
+                                <button type="button" onClick={() => setCustomPerPlateCost(null)} className="text-[10px] text-indigo-600 hover:underline ml-1">
+                                  (Reset)
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Refreshments */}
+                      {alloc.refreshmentsItems && alloc.refreshmentsItems.map((r, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-sm py-2 px-3 bg-emerald-50/60 rounded-lg border border-emerald-100">
+                          <div>
+                            <span className="text-emerald-950 font-medium">🍹 {r.name}</span>
+                            <p className="text-[11px] text-emerald-600">{selectedEvent.guestCount} Guests x Rs. {r.itemPerHead.toLocaleString()}</p>
+                          </div>
+                          <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
+                        </div>
+                      ))}
+
+                      {/* 3. Sound & Lighting */}
+                      {alloc.hasSounds && (
+                        <div className="text-sm py-2.5 px-3 bg-violet-50/70 rounded-lg border border-violet-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-violet-950 font-medium">🔊 {alloc.soundsName}</span>
+                              <p className="text-[11px] text-violet-600">Pro audio, digital mixing & intelligent stage lights</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {alloc.soundsCost.toLocaleString()}</span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-violet-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-violet-900">Adjust Sound:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomSoundsCost(45000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 45000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                              >
+                                Acoustic PA (45k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomSoundsCost(85000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 85000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                              >
+                                Stage + LED (85k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomSoundsCost(150000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 150000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                              >
+                                Concert Mixer (150k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomSoundsCost(220000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.soundsCost === 220000 ? 'bg-violet-600 text-white shadow-xs' : 'bg-white text-violet-800 border border-violet-300 hover:bg-violet-100'}`}
+                              >
+                                Royal Heads (220k)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-violet-600 font-medium">Custom Rs.</span>
+                                <input
+                                  type="number"
+                                  value={customSoundsCost ?? ''}
+                                  placeholder="Amount"
+                                  onChange={(e) => setCustomSoundsCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-violet-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                />
+                                {customSoundsCost !== null && (
+                                  <button type="button" onClick={() => setCustomSoundsCost(null)} className="text-[10px] text-violet-700 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
+                      {/* 4. Theme Decorations */}
+                      {alloc.hasDeco && (
+                        <div className="text-sm py-2.5 px-3 bg-rose-50/70 rounded-lg border border-rose-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-rose-950 font-medium">🌸 {alloc.decoName}</span>
+                              <p className="text-[11px] text-rose-600">Custom theme stage styling & floral tablescapes</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {alloc.decoCost.toLocaleString()}</span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-rose-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-rose-900">Adjust Decor:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomDecoCost(45000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 45000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Essential (45k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomDecoCost(80000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 80000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Floral Arch (80k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomDecoCost(130000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 130000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Luxury Stage (130k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomDecoCost(200000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.decoCost === 200000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Royal Fresh (200k)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-rose-600 font-medium">Custom Rs.</span>
+                                <input
+                                  type="number"
+                                  value={customDecoCost ?? ''}
+                                  placeholder="Amount"
+                                  onChange={(e) => setCustomDecoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-rose-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                                />
+                                {customDecoCost !== null && (
+                                  <button type="button" onClick={() => setCustomDecoCost(null)} className="text-[10px] text-rose-700 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 5. Photography & Media */}
+                      {alloc.hasPhoto && (
+                        <div className="text-sm py-2.5 px-3 bg-sky-50/70 rounded-lg border border-sky-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-sky-950 font-medium">📸 {alloc.photoName}</span>
+                              <p className="text-[11px] text-sky-600">In-house media crew, unlimited edited coverage & digital deliverables</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {alloc.photoCost.toLocaleString()}</span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-sky-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-sky-900">Adjust Photo:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPhotoCost(60000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 60000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                              >
+                                Essential (60k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPhotoCost(100000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 100000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                              >
+                                Standard (100k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPhotoCost(160000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 160000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                              >
+                                Master 4K (160k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomPhotoCost(250000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.photoCost === 250000 ? 'bg-sky-600 text-white shadow-xs' : 'bg-white text-sky-800 border border-sky-300 hover:bg-sky-100'}`}
+                              >
+                                Royal Drone (250k)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-sky-600 font-medium">Custom Rs.</span>
+                                <input
+                                  type="number"
+                                  value={customPhotoCost ?? ''}
+                                  placeholder="Amount"
+                                  onChange={(e) => setCustomPhotoCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-sky-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                                />
+                                {customPhotoCost !== null && (
+                                  <button type="button" onClick={() => setCustomPhotoCost(null)} className="text-[10px] text-sky-700 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 6. Celebration Cakes */}
+                      {alloc.hasCake && (
+                        <div className="text-sm py-2.5 px-3 bg-amber-50/60 rounded-lg border border-amber-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-amber-950 font-medium">🎂 {alloc.cakeLabel}</span>
+                              <p className="text-[11px] text-amber-600">Handcrafted bespoke celebration tier</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {alloc.cakeCost.toLocaleString()}</span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-amber-900">Adjust Cake:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomCakeCost(15000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 15000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                1-Tier (15k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomCakeCost(25000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 25000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                2-Tier (25k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomCakeCost(40000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 40000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                3-Tier Luxury (40k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomCakeCost(65000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.cakeCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                5-Tier Royal (65k)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
+                                <input
+                                  type="number"
+                                  value={customCakeCost ?? ''}
+                                  placeholder="Amount"
+                                  onChange={(e) => setCustomCakeCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                />
+                                {customCakeCost !== null && (
+                                  <button type="button" onClick={() => setCustomCakeCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 7. Luxury Transport */}
+                      {alloc.hasTransport && (
+                        <div className="text-sm py-2.5 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-amber-950 font-medium">🚗 {alloc.transportName}</span>
+                              <p className="text-[11px] text-amber-700">Dedicated chauffeur-driven luxury transport & bridal escort</p>
+                            </div>
+                            <span className="font-semibold text-slate-900">Rs. {alloc.transportCost.toLocaleString()}</span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-amber-900">Adjust Transport:</span>
+                              <button
+                                type="button"
+                                onClick={() => setCustomTransportCost(0)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 0 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                Self (Rs. 0)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomTransportCost(30000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 30000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                VIP Van (30k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomTransportCost(45000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 45000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                BMW Sedan (45k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomTransportCost(65000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 65000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                Mercedes S (65k)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomTransportCost(95000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${alloc.transportCost === 95000 ? 'bg-amber-600 text-white shadow-xs' : 'bg-white text-amber-800 border border-amber-300 hover:bg-amber-100'}`}
+                              >
+                                Rolls Royce (95k)
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-amber-600 font-medium">Custom Rs.</span>
+                                <input
+                                  type="number"
+                                  value={customTransportCost ?? ''}
+                                  placeholder="Amount"
+                                  onChange={(e) => setCustomTransportCost(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+                                  className="w-20 px-1.5 py-0.5 bg-white border border-amber-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                />
+                                {customTransportCost !== null && (
+                                  <button type="button" onClick={() => setCustomTransportCost(null)} className="text-[10px] text-amber-700 hover:underline ml-1">
+                                    (Reset)
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 8. Special Client Request */}
+                      {alloc.hasSpecialRequests && (
+                        <div className="text-sm py-2.5 px-3 bg-rose-50/80 rounded-lg border border-rose-200">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-rose-900 font-medium">
+                                💐 Special Client Request: {selectedEvent.additionalDetails}
+                              </span>
+                              <p className="text-[11px] text-rose-500">Dedicated arrangement budget</p>
+                            </div>
+                            <span className="font-semibold text-rose-700 font-mono">
+                              {specialAllocation > 0 ? `Rs. ${alloc.otherCost.toLocaleString()}` : "⏳ Pending Pricing (Rs. 0)"}
+                            </span>
+                          </div>
+                          {!isApproved && (
+                            <div className="mt-2 pt-2 border-t border-rose-200 flex flex-wrap items-center gap-1.5 text-xs">
+                              <span className="text-[11px] font-bold text-rose-900">Quick Pricing:</span>
+                              <button
+                                type="button"
+                                onClick={() => setSpecialAllocation(0)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${specialAllocation === 0 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                No Cost (Rs. 0)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSpecialAllocation(25000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${specialAllocation === 25000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Rs. 25k
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSpecialAllocation(50000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${specialAllocation === 50000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Rs. 50k
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSpecialAllocation(75000)}
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${specialAllocation === 75000 ? 'bg-rose-600 text-white shadow-xs' : 'bg-white text-rose-800 border border-rose-300 hover:bg-rose-100'}`}
+                              >
+                                Rs. 75k
+                              </button>
+                              <div className="flex items-center space-x-1 ml-auto">
+                                <span className="text-[10px] text-rose-600 font-medium">Enter Rs.</span>
+                                <input
+                                  type="number"
+                                  value={specialAllocation === 0 ? '' : specialAllocation}
+                                  placeholder="0"
+                                  onChange={(e) => setSpecialAllocation(Math.max(0, Number(e.target.value)))}
+                                  className="w-24 px-1.5 py-0.5 bg-white border border-rose-300 rounded text-right text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* 9. Quick Add Optional Services Toolbar */}
+                      {!isApproved && (!alloc.hasSounds || !alloc.hasDeco || !alloc.hasPhoto || !alloc.hasCake || !alloc.hasTransport) && (
+                        <div className="p-3 bg-slate-100/90 rounded-lg border border-dashed border-slate-300 flex flex-wrap items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-700 flex items-center">
+                            <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                            + Add Service to Proposal:
+                          </span>
+                          {!alloc.hasSounds && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomSoundsCost(85000)}
+                              className="px-2.5 py-1 bg-white hover:bg-violet-50 text-violet-700 border border-violet-200 rounded text-xs font-semibold flex items-center space-x-1 shadow-2xs transition"
+                            >
+                              <span>🔊 + Sound & Lighting</span>
+                            </button>
+                          )}
+                          {!alloc.hasDeco && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomDecoCost(80000)}
+                              className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded text-xs font-semibold flex items-center space-x-1 shadow-2xs transition"
+                            >
+                              <span>🌸 + Decorations</span>
+                            </button>
+                          )}
+                          {!alloc.hasPhoto && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomPhotoCost(100000)}
+                              className="px-2.5 py-1 bg-white hover:bg-sky-50 text-sky-700 border border-sky-200 rounded text-xs font-semibold flex items-center space-x-1 shadow-2xs transition"
+                            >
+                              <span>📸 + Photography</span>
+                            </button>
+                          )}
+                          {!alloc.hasCake && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomCakeCost(25000)}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 rounded text-xs font-semibold flex items-center space-x-1 shadow-2xs transition"
+                            >
+                              <span>🎂 + Celebration Cake</span>
+                            </button>
+                          )}
+                          {!alloc.hasTransport && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomTransportCost(45000)}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 rounded text-xs font-semibold flex items-center space-x-1 shadow-2xs transition"
+                            >
+                              <span>🚗 + Luxury Transport</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Weather Tent Safeguard */}
                       {weatherTentCost > 0 && (
                         <div className="flex justify-between items-center text-sm py-2 px-3 bg-amber-50/50 rounded-lg border border-amber-200">
                           <div>
@@ -1522,6 +2075,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <p className="text-[11px] text-amber-700">Outdoor rain contingency safeguard</p>
                           </div>
                           <span className="font-semibold text-slate-900">Rs. {weatherTentCost.toLocaleString()}</span>
+                        </div>
+                      )}
+
+                      {/* Manager Courtesy Discount */}
+                      {specialDiscount > 0 && (
+                        <div className="flex justify-between items-center text-sm py-2 px-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <div>
+                            <span className="text-emerald-800 font-medium">🏷️ Manager Courtesy Discount</span>
+                            <p className="text-[11px] text-emerald-600">Special courtesy deduction applied</p>
+                          </div>
+                          <span className="font-semibold text-emerald-700">- Rs. {specialDiscount.toLocaleString()}</span>
                         </div>
                       )}
                     </div>

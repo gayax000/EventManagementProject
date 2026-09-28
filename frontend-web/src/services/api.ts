@@ -1,7 +1,16 @@
 import axios from 'axios';
 
-// ASP.NET Core Backend Base URL (Railway Production Cloud)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://eventmanagementproject-production.up.railway.app/api'; 
+const isLocalhost = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+let rawUrl = import.meta.env.VITE_API_URL || 
+  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-19c1.up.railway.app/api');
+
+rawUrl = rawUrl.trim();
+if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+  rawUrl = `https://${rawUrl}`;
+}
+const API_BASE_URL = rawUrl;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -129,6 +138,7 @@ export const venueService = {
 export interface VendorItem {
   id?: string;
   vendorId?: string;
+  userId?: string;
   name?: string;
   businessName?: string;
   category: string;
@@ -142,11 +152,17 @@ export interface VendorItem {
 }
 
 export const vendorService = {
-  getVendors: async (): Promise<VendorItem[]> => {
-    const res = await apiClient.get('/venues/vendors');
+  getVendors: async (userId?: string): Promise<VendorItem[]> => {
+    const url = userId ? `/venues/vendors?userId=${encodeURIComponent(userId)}` : '/venues/vendors';
+    const res = await apiClient.get(url);
     return res.data;
   },
-  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string; packageName?: string; packagePrice?: number }) => {
+  getMyVendors: async (userId?: string): Promise<VendorItem[]> => {
+    const url = userId ? `/venues/vendors/my-vendors?userId=${encodeURIComponent(userId)}` : '/venues/vendors/my-vendors';
+    const res = await apiClient.get(url);
+    return res.data;
+  },
+  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string; packageName?: string; packagePrice?: number; userId?: string }) => {
     const res = await apiClient.post('/venues/vendors/register', data);
     return res.data;
   },

@@ -1,32 +1,185 @@
+import os
 import datetime
+import requests
+from dotenv import load_dotenv
 
-# Tool 1: Environmental & Weather Forecast Tool (Weather API Mock / Real Endpoint)
-def check_weather_forecast(location: str, target_date: str) -> dict:
+# Load environment variables from .env
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+PRIMARY_API_KEY = os.getenv("OPENWEATHER_API_KEY", "").strip()
+
+def extract_city(location_str: str) -> str:
+    """Extracts a recognized Sri Lankan city name from a venue or location string."""
+    loc = location_str.lower()
+    city_map = [
+        ("nuwara eliya", "Nuwara Eliya"),
+        ("nuwara", "Nuwara Eliya"),
+        ("kandy", "Kandy"),
+        ("galle", "Galle"),
+        ("colombo", "Colombo"),
+        ("negombo", "Negombo"),
+        ("matara", "Matara"),
+        ("kalutara", "Kalutara"),
+        ("jaffna", "Jaffna"),
+        ("trincomalee", "Trincomalee"),
+        ("batticaloa", "Batticaloa"),
+        ("anuradhapura", "Anuradhapura"),
+        ("polonnaruwa", "Polonnaruwa"),
+        ("ratnapura", "Ratnapura"),
+        ("badulla", "Badulla"),
+        ("kurunegala", "Kurunegala"),
+        ("hambantota", "Hambantota"),
+        ("bentota", "Bentota"),
+        ("mount lavinia", "Colombo"),
+        ("gampaha", "Gampaha")
+    ]
+    for key, city_name in city_map:
+        if key in loc:
+            return city_name
+    
+    clean = location_str.split("-")[0].split(",")[0].strip()
+    return clean if clean else "Colombo"
+
+def evaluate_seasonal_climatology(city: str, target_dt: datetime.date) -> dict:
     """
-    Allow-listed Tool: Retrieves environmental precipitation risk for event location and date.
-    Hill country & coastal outdoor venues exhibit dynamic rain profiles.
+    Historical Sri Lanka Climatological & Monsoon Meteorological Model.
+    Used when event date is outside the 5-day real-time forecast horizon or when external API is unreachable.
     """
-    loc_lower = location.lower()
-    # Dynamic simulation matching Sri Lankan weather patterns
-    if "nuwara" in loc_lower or "kandy" in loc_lower or "galle" in loc_lower:
-        rain_probability = 75
-        condition = "Heavy Monsoon Showers Expected"
+    month = target_dt.month
+    day = target_dt.day
+    loc_lower = city.lower()
+
+    is_central = any(p in loc_lower for p in ["kandy", "nuwara", "badulla", "ratnapura"])
+    is_west_south = any(p in loc_lower for p in ["colombo", "galle", "kalutara", "matara", "negombo", "bentota", "gampaha"])
+    is_north_east = any(p in loc_lower for p in ["jaffna", "trincomalee", "batticaloa", "anuradhapura", "polonnaruwa"])
+
+    if 5 <= month <= 9:  # Southwest Monsoon (Yala)
+        season_name = "South-West Monsoon (Yala)"
+        if is_central or is_west_south:
+            base_prob = 74
+            condition = "South-West Monsoon Active Rain Showers"
+            risk_level = "High"
+        elif is_north_east:
+            base_prob = 22
+            condition = "Dry Season / Warm Sunny Conditions"
+            risk_level = "Low"
+        else:
+            base_prob = 55
+            condition = "Partly Cloudy with Scattered Showers"
+            risk_level = "Moderate"
+    elif 10 <= month <= 12:  # Northeast Monsoon (Maha) & 2nd Inter-Monsoon
+        season_name = "North-East Monsoon (Maha) & 2nd Inter-Monsoon"
+        base_prob = 72
+        condition = "Monsoonal Cloud Cover & Heavy Afternoon Rain Showers"
         risk_level = "High"
+    elif 1 <= month <= 3:  # Dry Season
+        season_name = "Annual Dry Season"
+        base_prob = 18
+        condition = "Clear Blue Skies & Mild Humidity"
+        risk_level = "Low"
+    else:  # April - 1st Inter-Monsoon
+        season_name = "1st Inter-Monsoon Convective Period"
+        base_prob = 52
+        condition = "Afternoon Convective Thunderstorms"
+        risk_level = "Moderate"
+
+    # Deterministic daily micro-variance (-6% to +6%) to prevent flat values
+    variance = ((day * 7 + month * 13) % 13) - 6
+    rain_probability = max(10, min(92, base_prob + variance))
+    if rain_probability >= 60:
+        risk_level = "High"
+    elif rain_probability >= 35:
+        risk_level = "Moderate"
     else:
-        rain_probability = 25
-        condition = "Mostly Sunny with Mild Breeze"
         risk_level = "Low"
 
     return {
-        "location": location,
-        "targetDate": target_date,
         "rainProbabilityPercent": rain_probability,
         "condition": condition,
         "riskLevel": risk_level,
-        "timestamp": datetime.datetime.utcnow().isoformat()
+        "dataSource": f"Historical Sri Lanka Seasonal Climate Model ({season_name})"
     }
 
-# Tool 2: Sri Lankan Venue & Inventory Pricing Tool
+# Tool 1: Environmental & Weather Forecast Tool (Allow-listed Tool)
+def check_weather_forecast(location: str, target_date_str: str) -> dict:
+    """
+    Allow-listed Tool: Retrieves environmental precipitation risk for event location and date.
+    Integrates Live OpenWeatherMap 5-Day Forecast API with automatic graceful fallback to 
+    Sri Lanka Seasonal Climatological Model for dates beyond 5 days or network failures.
+    """
+    city = extract_city(location)
+    today = datetime.date.today()
+
+    try:
+        clean_date_str = target_date_str.split("T")[0].strip()
+        target_dt = datetime.date.fromisoformat(clean_date_str)
+    except Exception:
+        target_dt = today + datetime.timedelta(days=14)
+
+    days_diff = (target_dt - today).days
+
+    # Branch A: If target date is within 5-day real-time forecast horizon
+    if 0 <= days_diff <= 5 and PRIMARY_API_KEY:
+        try:
+            url = f"https://api.openweathermap.org/data/2.5/forecast?q={city},LK&appid={PRIMARY_API_KEY}&units=metric"
+            response = requests.get(url, timeout=3.5)
+            if response.status_code == 200:
+                data = response.json()
+                target_date_prefix = target_dt.isoformat()
+                # Filter intervals for the target date
+                day_intervals = [
+                    item for item in data.get("list", [])
+                    if item.get("dt_txt", "").startswith(target_date_prefix)
+                ]
+                # If target date intervals found, calculate max precipitation probability
+                if not day_intervals:
+                    day_intervals = data.get("list", [])[:8]
+
+                if day_intervals:
+                    max_pop = max((item.get("pop", 0.0) for item in day_intervals), default=0.0)
+                    rain_pct = int(round(max_pop * 100))
+                    
+                    # Pick condition description from interval with highest pop
+                    peak_interval = max(day_intervals, key=lambda x: x.get("pop", 0.0))
+                    weather_desc = peak_interval.get("weather", [{}])[0].get("description", "Variable Clouds").title()
+
+                    if rain_pct >= 60:
+                        risk_level = "High"
+                    elif rain_pct >= 35:
+                        risk_level = "Moderate"
+                    else:
+                        risk_level = "Low"
+
+                    return {
+                        "location": location,
+                        "city": city,
+                        "targetDate": target_dt.isoformat(),
+                        "daysAhead": days_diff,
+                        "rainProbabilityPercent": rain_pct,
+                        "condition": weather_desc,
+                        "riskLevel": risk_level,
+                        "dataSource": "Live OpenWeatherMap 5-Day Forecast API",
+                        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    }
+        except Exception:
+            # If network timeout or API error, seamlessly fall through to seasonal model
+            pass
+
+    # Branch B: Target date is beyond 5 days OR API was unreachable -> Climatological Model
+    seasonal_data = evaluate_seasonal_climatology(city, target_dt)
+    return {
+        "location": location,
+        "city": city,
+        "targetDate": target_dt.isoformat(),
+        "daysAhead": days_diff,
+        "rainProbabilityPercent": seasonal_data["rainProbabilityPercent"],
+        "condition": seasonal_data["condition"],
+        "riskLevel": seasonal_data["riskLevel"],
+        "dataSource": seasonal_data["dataSource"],
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+    }
+
+# Tool 2: Sri Lankan Venue & Inventory Pricing Tool (Allow-listed Tool)
 def query_venue_and_inventory(location: str, guest_count: int) -> dict:
     """
     Allow-listed Tool: Queries available database venue capacities and package prices.
@@ -49,7 +202,7 @@ def query_venue_and_inventory(location: str, guest_count: int) -> dict:
     return {
         "venueName": venue_name,
         "venuePrice": venue_price,
-        "buffetPerHead": 5000.0, # Premium Dinner Buffet B
-        "soundRigPrice": 150000.0, # Line-Array Rig
+        "buffetPerHead": 5000.0,    # Premium Dinner Buffet B
+        "soundRigPrice": 150000.0,  # Line-Array Rig
         "marqueeTentPrice": 150000.0 # Weather Safeguard
     }
