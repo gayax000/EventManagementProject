@@ -10,6 +10,9 @@ export const authService = {
         const name = response.data.fullName || email.split('@')[0];
         localStorage.setItem('user_name', name);
         localStorage.setItem('user_email', email);
+        if (response.data.userId) {
+          localStorage.setItem('user_id', response.data.userId);
+        }
         return true;
       }
       return false;
@@ -22,6 +25,9 @@ export const authService = {
   register: async (fullName: string, email: string, password: string, phoneNumber: string, role: string = 'Vendor') => {
     try {
       const response = await apiClient.post('/auth/register', { fullName, email, password, phoneNumber, role });
+      if (response.data && response.data.userId) {
+        localStorage.setItem('user_id', response.data.userId);
+      }
       return response.status === 201 || response.status === 200;
     } catch (error) {
       console.error('Register error', error);
@@ -34,10 +40,15 @@ export const authService = {
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_email');
+    localStorage.removeItem('user_id');
   },
 
   getToken: () => {
     return localStorage.getItem('jwt_token');
+  },
+
+  getUserId: () => {
+    return localStorage.getItem('user_id') || '';
   },
 
   getUserName: () => {

@@ -59,17 +59,66 @@ public class VenuesController : ControllerBase
     }
 
     // 4. GET: api/venues/vendors
+    // 4. GET: api/venues/vendors (Supports optional userId filtering)
     [HttpGet("vendors")]
-    public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors()
+    public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors([FromQuery] Guid? userId)
     {
-        return await _context.Vendors.OrderByDescending(v => v.CreatedAt).ToListAsync();
+        var query = _context.Vendors.AsQueryable();
+        if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            query = query.Where(v => v.UserId == userId.Value);
+        }
+        return await query.OrderByDescending(v => v.CreatedAt).ToListAsync();
+    }
+
+    // 4b. GET: api/venues/vendors/my-vendors
+    [HttpGet("vendors/my-vendors")]
+    public async Task<ActionResult<IEnumerable<Vendor>>> GetMyVendors([FromQuery] Guid? userId)
+    {
+        Guid targetUserId = Guid.Empty;
+        if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            targetUserId = userId.Value;
+        }
+        else
+        {
+            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
+            {
+                targetUserId = parsedClaimId;
+            }
+        }
+
+        if (targetUserId == Guid.Empty)
+        {
+            return Ok(new List<Vendor>());
+        }
+
+        return await _context.Vendors.Where(v => v.UserId == targetUserId).OrderByDescending(v => v.CreatedAt).ToListAsync();
     }
 
     // 5. POST: api/venues/vendors/register (Vendor Portal Registration)
     [HttpPost("vendors/register")]
     public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
     {
-        var defaultUser = await _context.Users.FirstOrDefaultAsync();
+        Guid effectiveUserId = Guid.Empty;
+        if (dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
+        {
+            effectiveUserId = dto.UserId.Value;
+        }
+        else
+        {
+            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
+            {
+                effectiveUserId = parsedClaimId;
+            }
+            else
+            {
+                var defaultUser = await _context.Users.FirstOrDefaultAsync();
+                if (defaultUser != null) effectiveUserId = defaultUser.UserId;
+            }
+        }
 
         var vendor = new Vendor
         {
@@ -81,7 +130,7 @@ public class VenuesController : ControllerBase
             AdminRemarks = dto.Description,
             PackageName = dto.PackageName ?? dto.Description,
             PackagePrice = dto.PackagePrice,
-            UserId = defaultUser != null ? defaultUser.UserId : Guid.Empty
+            UserId = effectiveUserId
         };
 
         try

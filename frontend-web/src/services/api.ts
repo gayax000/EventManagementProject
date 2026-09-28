@@ -138,6 +138,7 @@ export const venueService = {
 export interface VendorItem {
   id?: string;
   vendorId?: string;
+  userId?: string;
   name?: string;
   businessName?: string;
   category: string;
@@ -146,14 +147,22 @@ export interface VendorItem {
   status?: string;
   verificationStatus?: string;
   adminRemarks?: string;
+  packageName?: string;
+  packagePrice?: number;
 }
 
 export const vendorService = {
-  getVendors: async (): Promise<VendorItem[]> => {
-    const res = await apiClient.get('/venues/vendors');
+  getVendors: async (userId?: string): Promise<VendorItem[]> => {
+    const url = userId ? `/venues/vendors?userId=${encodeURIComponent(userId)}` : '/venues/vendors';
+    const res = await apiClient.get(url);
     return res.data;
   },
-  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string }) => {
+  getMyVendors: async (userId?: string): Promise<VendorItem[]> => {
+    const url = userId ? `/venues/vendors/my-vendors?userId=${encodeURIComponent(userId)}` : '/venues/vendors/my-vendors';
+    const res = await apiClient.get(url);
+    return res.data;
+  },
+  registerVendor: async (data: { businessName: string; category: string; contactNumber: string; description?: string; packageName?: string; packagePrice?: number; userId?: string }) => {
     const res = await apiClient.post('/venues/vendors/register', data);
     return res.data;
   },

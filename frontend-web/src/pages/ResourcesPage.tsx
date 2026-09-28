@@ -91,19 +91,25 @@ export const ResourcesPage: React.FC = () => {
         const mappedVendors: ResourceItem[] = verified.map(v => {
           const category = v.category || 'General';
           const name = v.businessName || v.name;
+          const pkgName = v.packageName || (v as any).packageName;
           const remarks = v.adminRemarks ? ` - ${v.adminRemarks}` : '';
+          const displayName = pkgName ? `${name} - ${pkgName}` : (remarks ? `${name}${remarks}` : name);
+          const pkgPrice = Number(v.packagePrice || (v as any).packagePrice);
+          const defaultPrice = category.includes('Sound') ? 120000 
+                   : category.includes('Decor') ? 130000 
+                   : category.includes('Photo') ? 150000 
+                   : category.includes('Cake') ? 45000 
+                   : category.includes('Transport') ? 65000 
+                   : category.includes('Cater') ? 5500 
+                   : category.includes('Tent') ? 150000 
+                   : 90000;
+          const unitPrice = (pkgPrice && pkgPrice > 0) ? pkgPrice : defaultPrice;
+
           return {
             id: `v-res-${v.vendorId || v.id}`,
-            name: `${name}${remarks}`,
+            name: displayName,
             type: category.includes('Catering') ? 'CateringPackage' : category,
-            unitPrice: category.includes('Sound') ? 120000 
-                     : category.includes('Decor') ? 130000 
-                     : category.includes('Photo') ? 150000 
-                     : category.includes('Cake') ? 45000 
-                     : category.includes('Transport') ? 65000 
-                     : category.includes('Cater') ? 5500 
-                     : category.includes('Tent') ? 150000 
-                     : 90000,
+            unitPrice: unitPrice,
             available: 'Active Partner',
             isPartnerVendor: true,
             vendorName: name,
