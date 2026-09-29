@@ -13,71 +13,15 @@ export interface ResourceItem {
   contactNumber?: string;
 }
 
-const DEFAULT_RESOURCES: ResourceItem[] = [
-  // 1. Tents & Weather Safeguards (MarqueeTent)
-  { id: 't1', name: 'Royal Clear-Roof Transparent Marquee Tent (40x60 ft)', type: 'MarqueeTent', unitPrice: 220000, available: 4 },
-  { id: 't2', name: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)', type: 'MarqueeTent', unitPrice: 150000, available: 10 },
-  { id: 't3', name: 'White Waterproof Pagoda / Gazebo Tent Set (Set of 4)', type: 'MarqueeTent', unitPrice: 110000, available: 8 },
-  { id: 't4', name: 'Black Weatherproof Heavy-Duty Canopy Tent (20x20 ft)', type: 'MarqueeTent', unitPrice: 80000, available: 12 },
-  { id: 't5', name: 'Compact Pop-Up Rain Shelter Canopy (10x20 ft)', type: 'MarqueeTent', unitPrice: 45000, available: 15 },
-
-  // 2. Sound & Intelligent Lighting (SoundLighting)
-  { id: 's1', name: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses', type: 'SoundLighting', unitPrice: 250000, available: 6 },
-  { id: 's2', name: 'Concert Line-Array Sound & Digital Mixer Package', type: 'SoundLighting', unitPrice: 180000, available: 12 },
-  { id: 's3', name: 'Standard Stage Audio + Ambient Warm LED PAR Cans', type: 'SoundLighting', unitPrice: 120000, available: 15 },
-  { id: 's4', name: 'Acoustic PA System + Wireless Dual Mics + Mood Uplights', type: 'SoundLighting', unitPrice: 75000, available: 20 },
-  { id: 's5', name: 'Compact Speech PA Kit + 2 Speakers + Bluetooth Hub', type: 'SoundLighting', unitPrice: 40000, available: 18 },
-
-  // 3. Floral & Stage Decoration (Decor)
-  { id: 'd1', name: 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor', type: 'Decor', unitPrice: 200000, available: 5 },
-  { id: 'd2', name: 'Thematic Floral Stage + Entrance Tunnel Arch Decor', type: 'Decor', unitPrice: 130000, available: 8 },
-  { id: 'd3', name: 'Floral Stage & Tablescape Theme Decoration', type: 'Decor', unitPrice: 80000, available: 15 },
-  { id: 'd4', name: 'Fairy-Light Star Backdrop + Geometric Floral Frame', type: 'Decor', unitPrice: 50000, available: 14 },
-  { id: 'd5', name: 'Minimalist Floral Arch + Cake Table Styling', type: 'Decor', unitPrice: 30000, available: 20 },
-
-  // 4. Verified Photography & Media (Photography)
-  { id: 'p1', name: 'Royal Cinematic Cinema Rig + Drone + 3 Senior Photographers', type: 'Photography', unitPrice: 250000, available: 4 },
-  { id: 'p2', name: 'Master Wedding Photography + 4K Highlights Video + Album', type: 'Photography', unitPrice: 160000, available: 8 },
-  { id: 'p3', name: 'Professional Event Coverage (2 Photographers + Edited Soft Copies)', type: 'Photography', unitPrice: 100000, available: 12 },
-  { id: 'p4', name: 'Standard Event Photography (Full Day Coverage + Highlight Album)', type: 'Photography', unitPrice: 60000, available: 15 },
-  { id: 'p5', name: 'Compact Event Photography (4-Hour Coverage + Raw & Graded)', type: 'Photography', unitPrice: 35000, available: 18 },
-
-  // 5. Celebration Cakes (Cake)
-  { id: 'c1', name: '5-Tier Royal Handcrafted Fondant Wedding Cake', type: 'Cake', unitPrice: 65000, available: 10 },
-  { id: 'c2', name: '3-Tier Luxury Floral Wedding Cake', type: 'Cake', unitPrice: 45000, available: 12 },
-  { id: 'c3', name: '3-Tier Grand Custom Thematic Birthday Cake', type: 'Cake', unitPrice: 35000, available: 15 },
-  { id: 'c4', name: '2-Tier Signature Engagement / Anniversary Cake', type: 'Cake', unitPrice: 28000, available: 18 },
-  { id: 'c5', name: 'Classic Celebration Birthday Gateau', type: 'Cake', unitPrice: 12000, available: 25 },
-
-  // 6. Luxury Bridal & VIP Transport (Transport)
-  { id: 'v1', name: 'Classic Vintage Rolls Royce / Jaguar Bridal Car', type: 'Transport', unitPrice: 95000, available: 4 },
-  { id: 'v2', name: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan', type: 'Transport', unitPrice: 65000, available: 8 },
-  { id: 'v3', name: 'BMW 5-Series Executive Bridal Sedan', type: 'Transport', unitPrice: 50000, available: 10 },
-  { id: 'v4', name: 'Luxury High-Roof VIP Passenger Van (14-Seater)', type: 'Transport', unitPrice: 35000, available: 12 },
-  { id: 'v5', name: 'Airport & Hotel Executive Transfer Sedan', type: 'Transport', unitPrice: 20000, available: 15 },
-
-  // 7. Catering Packages (Per Plate) (CateringPackage)
-  { id: 'cp1', name: 'Royal 7-Course International Gala Buffet (Seafood & Carvery)', type: 'CateringPackage', unitPrice: 8500, available: 1500 },
-  { id: 'cp2', name: 'Executive Dinner Buffet (3 Meats, Seafood & Action Station)', type: 'CateringPackage', unitPrice: 6500, available: 2500 },
-  { id: 'cp3', name: 'Premium Dinner Buffet B (2 Meats, Action Station & Desserts)', type: 'CateringPackage', unitPrice: 5000, available: 3000 },
-  { id: 'cp4', name: 'Classic Sri Lankan & Asian Fusion Buffet (2 Meats)', type: 'CateringPackage', unitPrice: 3800, available: 4000 },
-  { id: 'cp5', name: 'Cocktail High-Tea & Savoury Finger Food Platter Package', type: 'CateringPackage', unitPrice: 2500, available: 3500 },
-
-  // 8. Power Backup & Generators (PowerBackup)
-  { id: 'pb1', name: 'Industrial 100 kVA Synchronized Silent Dual Generator', type: 'PowerBackup', unitPrice: 160000, available: 4 },
-  { id: 'pb2', name: 'Backup Diesel Silent Generator (60 kVA Heavy Duty)', type: 'PowerBackup', unitPrice: 90000, available: 10 },
-  { id: 'pb3', name: 'Mid-Range 35 kVA Soundproof Outdoor Generator', type: 'PowerBackup', unitPrice: 60000, available: 12 },
-  { id: 'pb4', name: 'Portable 15 kVA Diesel Generator Kit', type: 'PowerBackup', unitPrice: 35000, available: 15 },
-  { id: 'pb5', name: 'Inverter Battery Emergency Pack + Mobile Floodlights', type: 'PowerBackup', unitPrice: 20000, available: 20 },
-];
+const DEFAULT_RESOURCES: ResourceItem[] = [];
 
 export const ResourcesPage: React.FC = () => {
   const [resources, setResources] = useState<ResourceItem[]>(() => {
     try {
-      const saved = localStorage.getItem('eventcraft_resources_v2');
-      return saved ? JSON.parse(saved) : DEFAULT_RESOURCES;
+      const saved = localStorage.getItem('eventcraft_resources_custom_v3');
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return DEFAULT_RESOURCES;
+      return [];
     }
   });
 
@@ -87,29 +31,24 @@ export const ResourcesPage: React.FC = () => {
     try {
       const vendorData = await vendorService.getVendors();
       if (Array.isArray(vendorData)) {
-        const verified = vendorData.filter(v => (v.verificationStatus || v.status) === 'Verified');
+        const verified = vendorData.filter(v => 
+          (v.verificationStatus || v.status) === 'Verified' &&
+          Boolean(v.packageName) &&
+          Number(v.packagePrice) > 0
+        );
         const mappedVendors: ResourceItem[] = verified.map(v => {
           const category = v.category || 'General';
           const name = v.businessName || v.name;
           const pkgName = v.packageName || (v as any).packageName;
           const remarks = v.adminRemarks ? ` - ${v.adminRemarks}` : '';
           const displayName = pkgName ? `${name} - ${pkgName}` : (remarks ? `${name}${remarks}` : name);
-          const pkgPrice = Number(v.packagePrice || (v as any).packagePrice);
-          const defaultPrice = category.includes('Sound') ? 120000 
-                   : category.includes('Decor') ? 130000 
-                   : category.includes('Photo') ? 150000 
-                   : category.includes('Cake') ? 45000 
-                   : category.includes('Transport') ? 65000 
-                   : category.includes('Cater') ? 5500 
-                   : category.includes('Tent') ? 150000 
-                   : 90000;
-          const unitPrice = (pkgPrice && pkgPrice > 0) ? pkgPrice : defaultPrice;
+          const pkgPrice = Number(v.packagePrice || (v as any).packagePrice) || 0;
 
           return {
             id: `v-res-${v.vendorId || v.id}`,
             name: displayName,
             type: category.includes('Catering') ? 'CateringPackage' : category,
-            unitPrice: unitPrice,
+            unitPrice: pkgPrice,
             available: 'Active Partner',
             isPartnerVendor: true,
             vendorName: name,
@@ -131,7 +70,7 @@ export const ResourcesPage: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('eventcraft_resources_v2', JSON.stringify(resources));
+      localStorage.setItem('eventcraft_resources_custom_v3', JSON.stringify(resources));
     } catch (e) {
       console.error(e);
     }
@@ -173,8 +112,8 @@ export const ResourcesPage: React.FC = () => {
   ];
 
   const allCombinedResources = [
-    ...resources.map(r => ({ ...r, isPartnerVendor: false })),
-    ...partnerVendors
+    ...partnerVendors,
+    ...resources.map(r => ({ ...r, isPartnerVendor: false }))
   ];
 
   const filteredResources = allCombinedResources.filter(res => {
@@ -384,8 +323,8 @@ export const ResourcesPage: React.FC = () => {
                       </span>
                     </div>
                   ) : (
-                    <span className="text-xs px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-medium flex items-center w-max">
-                      <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" /> Verified Inventory Available
+                    <span className="text-xs px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full font-medium flex items-center w-max">
+                      <Check className="w-3.5 h-3.5 mr-1 text-indigo-600" /> Custom Resource
                     </span>
                   )}
                 </td>

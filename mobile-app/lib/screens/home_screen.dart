@@ -902,6 +902,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final isConfirmed = event.status == 'Confirmed';
     final isApproved = event.status == 'ApprovedByManager';
+    final double displayCost = (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0)
+        ? event.estimatedTotalCost!
+        : event.budgetLimit;
+    final formattedCost = displayCost.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    final String costLabel = isConfirmed
+        ? "Agreed"
+        : (isApproved
+            ? "Approved"
+            : (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0
+                ? "Total"
+                : "Budget"));
     final daysUntil = event.targetDate.difference(DateTime.now()).inDays;
 
     return Container(
@@ -1033,9 +1047,31 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: _buildMetaPill(Icons.people_alt_rounded, "Guests", "${event.guestCount}")),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildMetaPill(Icons.payments_outlined, "Budget", "LKR $formattedBudget")),
+                      Expanded(child: _buildMetaPill(Icons.payments_outlined, costLabel, "LKR $formattedCost")),
                     ],
                   ),
+                  if (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0 && (event.estimatedTotalCost! - event.budgetLimit).abs() > 10) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Client Budget: LKR $formattedBudget",
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          event.estimatedTotalCost! > event.budgetLimit 
+                              ? "+LKR ${((event.estimatedTotalCost! - event.budgetLimit)).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}"
+                              : "-LKR ${((event.budgetLimit - event.estimatedTotalCost!)).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
+                          style: TextStyle(
+                            color: event.estimatedTotalCost! > event.budgetLimit ? const Color(0xFFD97706) : const Color(0xFF16A34A),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 14),
 
                   // AI Multi-Agent & Weather Safeguard Card

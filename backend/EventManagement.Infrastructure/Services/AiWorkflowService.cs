@@ -194,6 +194,17 @@ public class AiWorkflowService : IAiWorkflowService
                 var planJson = root.TryGetProperty("multiStepPlan", out var planProp) ? planProp.GetRawText() : "[]";
                 var traceJson = root.TryGetProperty("auditTraceLogs", out var tProp) ? tProp.GetRawText() : "[]";
 
+                var existingHttpState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == ev.EventId);
+                if (existingHttpState != null)
+                {
+                    existingHttpState.GeneratedPlanJson = planJson;
+                    existingHttpState.WeatherAssessmentJson = weatherJson;
+                    existingHttpState.ToolExecutionLogsJson = traceJson;
+                    existingHttpState.EstimatedTotalCost = estimatedCost;
+                    await _context.SaveChangesAsync();
+                    return existingHttpState;
+                }
+
                 var aiState = new AIWorkflowState
                 {
                     EventId = ev.EventId,
@@ -219,9 +230,35 @@ public class AiWorkflowService : IAiWorkflowService
         }
 
         // 2. Intelligent Proposal Engine (Native in .NET for High Availability & Zero Failure)
+        // Synchronized 100% with Verified Vendor Catalog & Manager Dashboard Tier Allocation
+        var verifiedVendors = await _context.Vendors
+            .Where(v => v.VerificationStatus == "Verified" && v.PackagePrice != null && v.PackagePrice > 0)
+            .ToListAsync();
+
+        Vendor? AutoAllocateVendor(string category, decimal budgetLimit)
+        {
+            var matching = verifiedVendors
+                .Where(v => string.Equals(v.Category, category, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(v => v.PackagePrice ?? 0m)
+                .ToList();
+            if (matching.Count == 0) return null;
+
+            int targetIndex = 0;
+            if (budgetLimit >= 2000000m)
+                targetIndex = matching.Count - 1;
+            else if (budgetLimit >= 1200000m)
+                targetIndex = Math.Min(matching.Count - 1, Math.Max(0, matching.Count - 2));
+            else if (budgetLimit >= 700000m)
+                targetIndex = Math.Min(matching.Count - 1, 1);
+            else
+                targetIndex = 0;
+
+            return matching[targetIndex];
+        }
+
         bool isPrivateVenue = ev.BanquetHall == null;
         decimal hallRental = isPrivateVenue ? 0m : ev.BanquetHall!.HallRentalPrice;
-        decimal cateringPrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : 4500m;
+        decimal cateringPrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : 5000m;
         decimal cateringCost = ev.GuestCount * cateringPrice;
 
         List<string> selectedServices = new();
@@ -231,93 +268,108 @@ public class AiWorkflowService : IAiWorkflowService
             catch { }
         }
 
-        bool hasSounds = selectedServices.Any(s => s.Contains("Sound") || s.Contains("Lighting"));
-        bool hasDeco = selectedServices.Any(s => s.Contains("Deco"));
-        bool hasPhoto = selectedServices.Any(s => s.Contains("Photo"));
-        bool hasCake = selectedServices.Any(s => s.ToLower().Contains("cake"));
-        bool hasTransport = selectedServices.Any(s => s.ToLower().Contains("transport") || s.ToLower().Contains("car") || s.ToLower().Contains("bridal"));
+        bool hasSounds = selectedServices.Any(s => s.Contains("Sound", StringComparison.OrdinalIgnoreCase) || s.Contains("Lighting", StringComparison.OrdinalIgnoreCase) || s.Contains("Audio", StringComparison.OrdinalIgnoreCase));
+        bool hasDeco = selectedServices.Any(s => s.Contains("Deco", StringComparison.OrdinalIgnoreCase) || s.Contains("Floral", StringComparison.OrdinalIgnoreCase) || s.Contains("Flower", StringComparison.OrdinalIgnoreCase));
+        bool hasPhoto = selectedServices.Any(s => s.Contains("Photo", StringComparison.OrdinalIgnoreCase) || s.Contains("Media", StringComparison.OrdinalIgnoreCase));
+        bool hasCake = selectedServices.Any(s => s.Contains("Cake", StringComparison.OrdinalIgnoreCase));
+        bool hasTransport = selectedServices.Any(s => s.Contains("Transport", StringComparison.OrdinalIgnoreCase) || s.Contains("Car", StringComparison.OrdinalIgnoreCase) || s.Contains("Bridal", StringComparison.OrdinalIgnoreCase));
 
         decimal budget = ev.BudgetLimit;
-        string eventType = (ev.EventType ?? "Wedding").ToLower();
 
         // 1. Sounds & Lighting
         decimal soundsCost = 0m;
         string soundsName = "Concert Line-Array Sound & Digital Mixer Package";
+        string? soundsPartner = null;
         if (hasSounds)
         {
-            if (budget >= 2000000m) { soundsCost = 250000m; soundsName = "Concert Line-Array Rig + 16 Moving Heads + Beam Trusses"; }
+            var sndVendor = AutoAllocateVendor("SoundLighting", budget);
+            if (sndVendor != null)
+            {
+                soundsCost = sndVendor.PackagePrice ?? 85000m;
+                soundsName = sndVendor.PackageName ?? sndVendor.BusinessName;
+                soundsPartner = sndVendor.BusinessName;
+            }
+            else if (budget >= 2000000m) { soundsCost = 250000m; soundsName = "Concert Line-Array Rig + 16 Moving Heads + Beam Trusses"; }
             else if (budget >= 1200000m) { soundsCost = 180000m; soundsName = "Concert Line-Array Sound & Digital Mixer Package"; }
-            else if (budget >= 700000m) { soundsCost = 120000m; soundsName = "Standard Stage Audio + Ambient Warm LED PAR Cans"; }
-            else { soundsCost = 75000m; soundsName = "Acoustic PA System + Wireless Dual Mics + Mood Uplights"; }
+            else if (budget >= 700000m) { soundsCost = 85000m; soundsName = "Standard Stage Audio + Warm Ambient LED PAR Cans"; }
+            else { soundsCost = 40000m; soundsName = "Compact Speech PA Kit + 2 Wireless Mics"; }
         }
 
         // 2. Deco
         decimal decoCost = 0m;
-        string decoName = "Floral Stage & Tablescape Theme Decoration";
+        string decoName = "Thematic Floral Stage & Decor";
+        string? decoPartner = null;
         if (hasDeco)
         {
-            if (budget >= 2000000m) { decoCost = 200000m; decoName = "Royal Fresh Flower Ceiling Drapes & Grand Stage Decor"; }
-            else if (budget >= 1200000m) { decoCost = 130000m; decoName = "Thematic Floral Stage + Entrance Tunnel Arch Decor"; }
-            else if (budget >= 700000m) { decoCost = 80000m; decoName = "Floral Stage & Tablescape Theme Decoration"; }
-            else { decoCost = 50000m; decoName = "Fairy-Light Star Backdrop + Geometric Floral Frame"; }
+            var decVendor = AutoAllocateVendor("Decor", budget);
+            if (decVendor != null)
+            {
+                decoCost = decVendor.PackagePrice ?? 85000m;
+                decoName = decVendor.PackageName ?? decVendor.BusinessName;
+                decoPartner = decVendor.BusinessName;
+            }
+            else if (budget >= 2000000m) { decoCost = 220000m; decoName = "Royal Fresh Flower Ceiling Drapes & Grand Stage Decor"; }
+            else if (budget >= 1200000m) { decoCost = 140000m; decoName = "Thematic Floral Stage + Entrance Tunnel Arch"; }
+            else if (budget >= 700000m) { decoCost = 85000m; decoName = "Thematic Floral Stage + Table Centerpieces"; }
+            else { decoCost = 45000m; decoName = "Minimalist Floral Arch + Cake Table Styling"; }
         }
 
         // 3. Photography
         decimal photoCost = 0m;
         string photoName = "Professional Event Coverage";
+        string? photoPartner = null;
         if (hasPhoto)
         {
-            if (budget >= 2000000m) { photoCost = 250000m; photoName = "Royal Cinematic Rig + Drone + 3 Senior Photographers"; }
-            else if (budget >= 1200000m) { photoCost = 160000m; photoName = "Master Wedding Photography + 4K Highlights Video + Storybook Album"; }
-            else if (budget >= 700000m) { photoCost = 100000m; photoName = "Professional Event Coverage (2 Photographers + Unlimited Soft Copies)"; }
-            else { photoCost = 60000m; photoName = "Standard Event Photography (Full Day Coverage + Highlights)"; }
+            var phtVendor = AutoAllocateVendor("Photography", budget);
+            if (phtVendor != null)
+            {
+                photoCost = phtVendor.PackagePrice ?? 100000m;
+                photoName = phtVendor.PackageName ?? phtVendor.BusinessName;
+                photoPartner = phtVendor.BusinessName;
+            }
+            else
+            {
+                photoCost = 0m;
+                photoName = "Awaiting Live Registration (Pending Viva Demo)";
+            }
         }
 
-        // 4. Cake (Event-Type Strict Context + Budget Tiering)
+        // 4. Celebration Cakes
         decimal cakeCost = 0m;
         string cakeLabel = "Celebration Cake";
+        string? cakePartner = null;
         if (hasCake)
         {
-            if (eventType.Contains("birthday"))
+            var ckVendor = AutoAllocateVendor("Cake", budget);
+            if (ckVendor != null)
             {
-                if (budget >= 1000000m) { cakeCost = 35000m; cakeLabel = "3-Tier Grand Custom Thematic Birthday Cake"; }
-                else if (budget >= 500000m) { cakeCost = 20000m; cakeLabel = "2-Tier Thematic Custom Fondant Birthday Cake"; }
-                else { cakeCost = 12000m; cakeLabel = "Classic Celebration Birthday Gateau"; }
+                cakeCost = ckVendor.PackagePrice ?? 30000m;
+                cakeLabel = ckVendor.PackageName ?? ckVendor.BusinessName;
+                cakePartner = ckVendor.BusinessName;
             }
-            else if (eventType.Contains("wedding"))
-            {
-                if (budget >= 1800000m) { cakeCost = 65000m; cakeLabel = "5-Tier Royal Handcrafted Fondant Wedding Cake"; }
-                else if (budget >= 1000000m) { cakeCost = 45000m; cakeLabel = "3-Tier Luxury Floral Wedding Cake"; }
-                else { cakeCost = 30000m; cakeLabel = "2-Tier Classic Wedding Cake"; }
-            }
-            else if (eventType.Contains("anniversary") || eventType.Contains("engagement"))
-            {
-                if (budget >= 1200000m) { cakeCost = 40000m; cakeLabel = "3-Tier Luxury Floral Engagement / Anniversary Cake"; }
-                else { cakeCost = 25000m; cakeLabel = "2-Tier Signature Handcrafted Engagement Cake"; }
-            }
-            else
-            {
-                if (budget >= 1000000m) { cakeCost = 35000m; cakeLabel = "Custom 3D Corporate Logo Reveal Branding Cake"; }
-                else { cakeCost = 18000m; cakeLabel = "Signature Celebration Gateau"; }
-            }
+            else if (budget >= 2000000m) { cakeCost = 65000m; cakeLabel = "5-Tier Royal Handcrafted Fondant Wedding Cake"; }
+            else if (budget >= 1200000m) { cakeCost = 45000m; cakeLabel = "3-Tier Luxury Floral Wedding Cake"; }
+            else if (budget >= 700000m) { cakeCost = 30000m; cakeLabel = "2-Tier Custom Handcrafted Fondant Cake"; }
+            else { cakeCost = 15000m; cakeLabel = "2-Tier Classic Buttercream Celebration Cake"; }
         }
 
-        // 5. Luxury Bridal Transport (Strictly 4-Seater Executive Sedan for Weddings)
+        // 5. Luxury Bridal & VIP Transport
         decimal transportCost = 0m;
-        string transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan (4-Seater)";
+        string transportName = "VIP Chauffeur Transport";
+        string? transportPartner = null;
         if (hasTransport)
         {
-            if (eventType.Contains("wedding") || eventType.Contains("engagement"))
+            var trnVendor = AutoAllocateVendor("Transport", budget);
+            if (trnVendor != null)
             {
-                if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / Jaguar Executive Sedan (4-Seater)"; }
-                else if (budget >= 1000000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan (4-Seater)"; }
-                else { transportCost = 50000m; transportName = "BMW 5-Series Executive Bridal Sedan (4-Seater)"; }
+                transportCost = trnVendor.PackagePrice ?? 50000m;
+                transportName = trnVendor.PackageName ?? trnVendor.BusinessName;
+                transportPartner = trnVendor.BusinessName;
             }
-            else
-            {
-                transportCost = 0m;
-                transportName = "Not Applicable (Bridal Transport reserved for Weddings)";
-            }
+            else if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / 1954 Jaguar Mark VII"; }
+            else if (budget >= 1200000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan"; }
+            else if (budget >= 700000m) { transportCost = 50000m; transportName = "BMW 5-Series Executive Bridal Sedan"; }
+            else { transportCost = 35000m; transportName = "Toyota Premio / Allion Executive Chauffeur Sedan"; }
         }
 
         // 6. Food Menu Refreshments & Add-ons Calculation
@@ -379,8 +431,51 @@ public class AiWorkflowService : IAiWorkflowService
             }
         }
 
+        // 7. Weather Marquee Tent Safeguard (Tier-matched with Verified MarqueeTent Vendors)
         decimal othersCost = 0m;
-        decimal weatherTentCost = weather.SafeguardCost; // 0 if indoor or clear weather!
+        decimal weatherTentCost = 0m;
+        string weatherTentName = "Waterproof Marquee Tent safeguard";
+        string? weatherTentPartner = null;
+
+        if (ev.IsOutdoor && weather.SafeguardCost > 0)
+        {
+            var tentVendor = AutoAllocateVendor("MarqueeTent", budget);
+            if (tentVendor != null)
+            {
+                weatherTentCost = tentVendor.PackagePrice ?? 150000m;
+                weatherTentName = tentVendor.PackageName ?? "Waterproof Marquee Tent safeguard";
+                weatherTentPartner = tentVendor.BusinessName;
+            }
+            else if (budget >= 2000000m)
+            {
+                weatherTentCost = 350000m;
+                weatherTentName = "Air-Conditioned Transparent German Hangar Marquee (40x80 ft)";
+                weatherTentPartner = "Grand Royal German Hangar Marquees";
+            }
+            else if (budget >= 1200000m)
+            {
+                weatherTentCost = 150000m;
+                weatherTentName = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)";
+                weatherTentPartner = "Ceylon WeatherShield Marquee Tents";
+            }
+            else if (budget >= 700000m)
+            {
+                weatherTentCost = 80000m;
+                weatherTentName = "High-Peak Waterproof Stretch Canopy (20x30 ft)";
+                weatherTentPartner = "SunShade Canopies & Pergolas Colombo";
+            }
+            else
+            {
+                weatherTentCost = 45000m;
+                weatherTentName = "Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)";
+                weatherTentPartner = "Rohan Canopy Rentals Kaduwela";
+            }
+
+            weather.SafeguardCost = weatherTentCost;
+            weather.Safeguard = weatherTentName;
+            weather.Description = $"High precipitation risk detected ({weather.Condition}). Auto-injecting {weatherTentName} (+Rs. {weatherTentCost:N0}).";
+            weatherJson = JsonSerializer.Serialize(weather);
+        }
 
         decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + refreshmentsTotal + othersCost + weatherTentCost;
 
@@ -391,10 +486,10 @@ public class AiWorkflowService : IAiWorkflowService
             planItems.Add("Weather Assessment: 0% Risk (Indoor Air-Conditioned Venue - Fully Weather-Sheltered)");
             planItems.Add("No Marquee Tent Required (Rs. 150,000 saved for client)");
         }
-        else if (weather.SafeguardCost > 0)
+        else if (weatherTentCost > 0)
         {
             planItems.Add($"Weather Assessment: {weather.RainProbabilityPercent}% ({weather.Condition})");
-            planItems.Add("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)");
+            planItems.Add($"{weatherTentName}{(weatherTentPartner != null ? $" [Partner: {weatherTentPartner}]" : "")} (Rs. {weatherTentCost:N0})");
         }
         else
         {
@@ -430,24 +525,38 @@ public class AiWorkflowService : IAiWorkflowService
             planItems.Add(rEntry);
         }
 
-        if (ev.EventSession == "NightDinner" && hasSounds)
+        if (hasSounds) planItems.Add($"{soundsName}{(soundsPartner != null ? $" [Partner: {soundsPartner}]" : "")} (Rs. {soundsCost:N0})");
+        if (hasDeco) planItems.Add($"{decoName}{(decoPartner != null ? $" [Partner: {decoPartner}]" : "")} (Rs. {decoCost:N0})");
+        if (hasPhoto)
         {
-            soundsName += " + Night Stage Ambient Warm Uplighting Package";
+            if (photoCost > 0)
+                planItems.Add($"{photoName}{(photoPartner != null ? $" [Partner: {photoPartner}]" : "")} (Rs. {photoCost:N0})");
+            else
+                planItems.Add("Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)");
         }
-
-        if (hasSounds) planItems.Add($"{soundsName} (Rs. {soundsCost:N0})");
-        if (hasDeco) planItems.Add($"{decoName} (Rs. {decoCost:N0})");
-        if (hasPhoto) planItems.Add($"{photoName} (Rs. {photoCost:N0})");
-        if (hasCake) planItems.Add($"{cakeLabel} (Rs. {cakeCost:N0})");
-        if (hasTransport) planItems.Add($"{transportName} (Rs. {transportCost:N0})");
+        if (hasCake) planItems.Add($"{cakeLabel}{(cakePartner != null ? $" [Partner: {cakePartner}]" : "")} (Rs. {cakeCost:N0})");
+        if (hasTransport) planItems.Add($"{transportName}{(transportPartner != null ? $" [Partner: {transportPartner}]" : "")} (Rs. {transportCost:N0})");
         if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails)) planItems.Add($"Special Client Request: {ev.AdditionalDetails} (Priced by Manager upon Review)");
 
         var traceLogs = new List<string>
         {
             $"WeatherAgent: Evaluated {eventLocation} on {ev.TargetDate:yyyy-MM-dd} (IsOutdoor: {ev.IsOutdoor}, Session: {ev.EventSession}) -> {weather.RainProbabilityPercent}% ({weather.RiskLevel} Risk)",
             $"ResourceAgent: Compiled venue ({hallRental:N0}), {cateringStyleLabel} ({cateringCost:N0})",
-            $"SafetyAgent: Weather safeguard {(weather.SafeguardCost > 0 ? "INJECTED (Rs. 150,000)" : "NOT REQUIRED (Rs. 0)")}"
+            $"SafetyAgent: Weather safeguard {(weatherTentCost > 0 ? $"INJECTED (Rs. {weatherTentCost:N0})" : "NOT REQUIRED (Rs. 0)")}"
         };
+
+        var existingState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == ev.EventId);
+        if (existingState != null)
+        {
+            existingState.ObjectiveText = $"Autonomous proposal for {ev.Title} ({ev.GuestCount} guests)";
+            existingState.GeneratedPlanJson = JsonSerializer.Serialize(planItems);
+            existingState.WeatherAssessmentJson = weatherJson;
+            existingState.ToolExecutionLogsJson = JsonSerializer.Serialize(traceLogs);
+            existingState.EstimatedTotalCost = computedTotal;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Updated dynamic native AI Workflow for Event {EventId}. Total: {Total}", eventId, computedTotal);
+            return existingState;
+        }
 
         var finalState = new AIWorkflowState
         {

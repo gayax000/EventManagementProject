@@ -505,10 +505,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
                 const SizedBox(height: 5),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF64748B)),
-                    const SizedBox(width: 6),
-                    Text("Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600)),
+                    Row(
+                      children: [
+                        const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF64748B)),
+                        const SizedBox(width: 6),
+                        Text("Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    Text("Package: LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 12.5, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],
@@ -915,8 +921,74 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     final bool isOut = proposal.isOutdoor;
                     final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : (isOut ? 65 : 0);
                     final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Monsoon Showers' : 'Climate Controlled');
-                    final num safeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
-                    final bool hasTent = isOut && (safeguardCost > 0 || rainPct >= 60);
+                    final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
+                    final String rawSafeguardName = wMap != null ? (wMap['Safeguard'] ?? wMap['safeguard'] ?? 'Waterproof Marquee Tent') : 'Waterproof Marquee Tent';
+
+                    double resolvedTentCost = rawSafeguardCost.toDouble();
+                    String resolvedTentLabel = rawSafeguardName.toString();
+                    bool planExplicitlyChecked = false;
+                    bool foundTentInPlan = false;
+
+                    if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
+                      try {
+                        final dynamic decodedPlan = jsonDecode(proposal.generatedPlan!);
+                        if (decodedPlan is List && decodedPlan.isNotEmpty) {
+                          planExplicitlyChecked = true;
+                          for (var rawLine in decodedPlan) {
+                            final String s = rawLine.toString();
+                            final String lower = s.toLowerCase();
+                            if (lower.startsWith('no marquee tent') || lower.contains('safeguard waived')) {
+                              foundTentInPlan = false;
+                              resolvedTentCost = 0;
+                              break;
+                            }
+                            if (!lower.startsWith('weather') &&
+                                (lower.contains('marquee') || lower.contains('canopy') || lower.contains('hangar') || lower.contains('tent safeguard'))) {
+                              final m = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)').firstMatch(s);
+                              if (m != null) {
+                                final vStr = m.group(1) ?? m.group(2);
+                                final parsed = double.tryParse(vStr?.replaceAll(',', '') ?? '');
+                                if (parsed != null && parsed > 0) {
+                                  resolvedTentCost = parsed;
+                                  foundTentInPlan = true;
+                                  resolvedTentLabel = s
+                                      .replaceAll(RegExp(r'\((?:Rs\.|LKR)\s*[\d,]+\)'), '')
+                                      .replaceAll(RegExp(r'\[Partner:.*?\]'), '')
+                                      .trim();
+                                  break;
+                                }
+                              }
+                            }
+                          }
+                          if (planExplicitlyChecked && !foundTentInPlan) {
+                            resolvedTentCost = 0;
+                          }
+                        }
+                      } catch (_) {}
+                    }
+
+                    if (!planExplicitlyChecked && isOut && (resolvedTentCost > 0 || rainPct >= 60)) {
+                      if (resolvedTentCost <= 0 || resolvedTentCost == 150000) {
+                        if (proposal.budgetLimit >= 2000000) {
+                          resolvedTentCost = 350000;
+                          resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                        } else if (proposal.budgetLimit >= 1200000) {
+                          resolvedTentCost = 150000;
+                          resolvedTentLabel = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)';
+                        } else if (proposal.budgetLimit >= 700000) {
+                          resolvedTentCost = 80000;
+                          resolvedTentLabel = 'High-Peak Waterproof Stretch Canopy (20x30 ft)';
+                        } else {
+                          resolvedTentCost = 45000;
+                          resolvedTentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
+                        }
+                      }
+                    }
+
+                    final bool hasTent = isOut && resolvedTentCost > 0;
+                    final String formattedTentCost = resolvedTentCost
+                        .toStringAsFixed(0)
+                        .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
 
                     // Shorten verbose weather conditions for clean mobile responsiveness
                     final String cleanCond = cond
@@ -955,7 +1027,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF15803D), fontSize: 11)),
                             SizedBox(height: 2),
-                            Text("• Safeguard: None needed (Saved Rs. 150,000 tent cost).", 
+                            Text("• Safeguard: None needed (Indoor weather-sheltered venue).", 
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
@@ -993,9 +1065,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF92400E), fontSize: 11)),
                             const SizedBox(height: 2),
-                            const Text("• Safeguard: Waterproof Marquee Tent (Rs. 150,000).", 
+                            Text("• Safeguard: $resolvedTentLabel (Rs. $formattedTentCost).", 
                               softWrap: true,
-                              style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );

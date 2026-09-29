@@ -299,8 +299,22 @@ public static class DbInitializer
         }
         catch { }
 
-        var defaultUser = await context.Users.FirstOrDefaultAsync();
-        var userId = defaultUser?.UserId ?? Guid.Empty;
+        var systemCatalogVendorId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        if (!await context.Users.AnyAsync(u => u.UserId == systemCatalogVendorId))
+        {
+            context.Users.Add(new User
+            {
+                UserId = systemCatalogVendorId,
+                FullName = "EventCraft System Catalog",
+                Email = "catalog-system@eventcraft.lk",
+                PasswordHash = "SystemCatalog@2026",
+                PhoneNumber = "+94112000000",
+                RoleId = managerRole.RoleId,
+                AccountStatus = "Active"
+            });
+            await context.SaveChangesAsync();
+        }
+        var userId = systemCatalogVendorId;
 
         var predefinedVendors = new List<Vendor>
         {
@@ -353,12 +367,36 @@ public static class DbInitializer
             new() { BusinessName = "PrimeGrid Synchronized Heavy Dual Generators", Category = "PowerBackup", ContactNumber = "+94 77 901 3344", VerificationStatus = "Verified", PackageName = "Synchronized Dual 250 kVA Industrial Generator Grid", PackagePrice = 280000, AdminRemarks = "Industrial dual 250 kVA generator grid for large concerts & luxury galas", UserId = userId }
         };
 
+        try
+        {
+            var legacySpamVendors = await context.Vendors
+                .Where(v => v.BusinessName.Contains("Sumane") ||
+                            v.BusinessName.Contains("23yrw") ||
+                            v.BusinessName.Contains("jeiwrk") ||
+                            (v.PackageName == null && (v.BusinessName.Contains("Prestige") || v.BusinessName.Contains("Royal Crown VIP"))))
+                .ToListAsync();
+            if (legacySpamVendors.Any())
+            {
+                context.Vendors.RemoveRange(legacySpamVendors);
+                await context.SaveChangesAsync();
+            }
+        }
+        catch { }
+
         foreach (var pv in predefinedVendors)
         {
-            var exists = await context.Vendors.AnyAsync(v => v.BusinessName == pv.BusinessName);
-            if (!exists)
+            var existing = await context.Vendors.FirstOrDefaultAsync(v => v.BusinessName == pv.BusinessName);
+            if (existing == null)
             {
                 context.Vendors.Add(pv);
+            }
+            else
+            {
+                existing.PackageName = pv.PackageName;
+                existing.PackagePrice = pv.PackagePrice;
+                existing.VerificationStatus = "Verified";
+                existing.Category = pv.Category;
+                existing.UserId = systemCatalogVendorId;
             }
         }
         await context.SaveChangesAsync();

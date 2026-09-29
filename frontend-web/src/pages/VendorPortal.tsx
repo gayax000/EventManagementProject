@@ -335,10 +335,20 @@ export const VendorPortal: React.FC = () => {
     try {
       if (userKey) {
         const saved = localStorage.getItem(`eventcraft_vendor_list_${userKey}`);
-        if (saved) return JSON.parse(saved);
-        const singleSavedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-        if (singleSavedId) {
-          return [{ id: singleSavedId, vendorId: singleSavedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' }] as any;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const currentUserId = authService.getUserId();
+            const currentUserRole = authService.getUserRole();
+            if (currentUserRole === 'Vendor') {
+              return parsed.filter((v: any) => {
+                const vUserId = (v.userId || '').toString().toLowerCase();
+                if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+                return !!(currentUserId && vUserId === currentUserId.toLowerCase());
+              });
+            }
+            return parsed;
+          }
         }
       }
     } catch {}
@@ -360,31 +370,32 @@ export const VendorPortal: React.FC = () => {
   const syncMyVendors = async () => {
     try {
       const currentUserId = authService.getUserId();
+      const currentUserRole = authService.getUserRole();
       // Fetch all vendors from API
       const allVendors = await vendorService.getVendors();
       if (Array.isArray(allVendors)) {
-        const savedIds: string[] = [];
-        try {
-          const rawIds = localStorage.getItem(`eventcraft_vendor_ids_${userKey}`);
-          if (rawIds) savedIds.push(...JSON.parse(rawIds));
-          const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-          if (singleId && !savedIds.includes(singleId)) savedIds.push(singleId);
-        } catch {}
+        let userBusinesses: VendorItem[] = [];
 
-        const userPhone = (authService.getUserPhone() || '').replace(/\D/g, '');
-        const normUserName = (userName || '').toLowerCase().trim();
+        if (currentUserRole === 'Vendor') {
+          // Strictly match vendors owned by this specific logged-in user
+          userBusinesses = allVendors.filter(v => {
+            const vUserId = (v.userId || '').toString().toLowerCase();
+            // Never include system catalog seeded vendors
+            if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+            // Must have currentUserId matching vUserId
+            if (currentUserId && vUserId === currentUserId.toLowerCase()) return true;
 
-        const userBusinesses = allVendors.filter(v => {
-          const vId = (v.vendorId || v.id || '').toString();
-          const matchesUserId = !!(currentUserId && v.userId && v.userId.toLowerCase() === currentUserId.toLowerCase());
-          const matchesSavedId = savedIds.includes(vId);
-          const vPhone = (v.contactNumber || v.contact || '').replace(/\D/g, '');
-          const matchesPhone = !!(userPhone && vPhone && (vPhone.includes(userPhone) || userPhone.includes(vPhone)));
-          const vName = (v.businessName || v.name || '').toLowerCase();
-          const matchesName = !!(normUserName && (vName.includes(normUserName) || (normUserName.includes('sumane') && vName.includes('sumane'))));
+            // Also check saved single ID if registered in this browser session
+            const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+            const vId = (v.vendorId || v.id || '').toString();
+            if (singleId && vId === singleId) return true;
 
-          return matchesUserId || matchesSavedId || matchesPhone || matchesName;
-        });
+            return false;
+          });
+        } else {
+          // For Manager or Admin inspecting the vendor portal
+          userBusinesses = allVendors;
+        }
 
         if (userBusinesses.length > 0) {
           const mapped = userBusinesses.map(v => ({
@@ -401,11 +412,20 @@ export const VendorPortal: React.FC = () => {
             localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
           } catch {}
 
-          if (!selectedVendorId && mapped.length > 0) {
+          if (!selectedVendorId || !mapped.some(v => (v.vendorId || v.id) === selectedVendorId)) {
             const firstId = mapped[0].id || mapped[0].vendorId || null;
             setSelectedVendorId(firstId);
             if (firstId) localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, firstId);
           }
+        } else {
+          // If logged-in vendor has no registered businesses, clear myVendors and stale cache
+          setMyVendors([]);
+          setSelectedVendorId(null);
+          try {
+            localStorage.removeItem(`eventcraft_vendor_list_${userKey}`);
+            localStorage.removeItem(`eventcraft_vendor_ids_${userKey}`);
+            localStorage.removeItem(`eventcraft_active_vendor_id_${userKey}`);
+          } catch {}
         }
       }
     } catch (e) {

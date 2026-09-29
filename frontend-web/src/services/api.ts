@@ -114,6 +114,21 @@ export const eventService = {
     return response.data;
   },
 
+  // Live Synchronize Working Proposal Draft
+  syncProposalDraft: async (
+    eventId: string,
+    payload: {
+      finalTotal: number;
+      weatherTentCost?: number;
+      weatherTentName?: string;
+      assignedVendorsJson?: string;
+      planItems?: string[];
+    }
+  ) => {
+    const response = await apiClient.put(`/events/${eventId}/sync-draft`, payload);
+    return response.data;
+  },
+
   // Get specific event proposal
   getProposal: async (eventId: string) => {
     const response = await apiClient.get(`/events/${eventId}/proposal`);

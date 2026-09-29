@@ -317,6 +317,25 @@ public class EventsController : ControllerBase
             return NotFound(new { message = "Event not found." });
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        if ((ev.Status == "PendingManagerApproval" || ev.Status == "UnderReview") && string.IsNullOrEmpty(ev.AssignedVendorsJson))
+        {
+            if (aiState == null ||
+                string.IsNullOrEmpty(aiState.GeneratedPlanJson) ||
+                aiState.GeneratedPlanJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
+                aiState.GeneratedPlanJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
+                aiState.GeneratedPlanJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
+                aiState.GeneratedPlanJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+            {
+                try
+                {
+                    aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
+                }
+            }
+        }
         var booking = await _context.Bookings
             .Include(b => b.EntryPass)
             .FirstOrDefaultAsync(b => b.EventId == id);
@@ -542,6 +561,29 @@ public class EventsController : ControllerBase
                 var evEntity = await _context.Events.FindAsync(item.EventId);
                 if (evEntity != null)
                 {
+                    if ((item.Status == "PendingManagerApproval" || item.Status == "UnderReview") && string.IsNullOrEmpty(evEntity.AssignedVendorsJson))
+                    {
+                        var existingAi = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == item.EventId);
+                        if (existingAi == null ||
+                            string.IsNullOrEmpty(existingAi.GeneratedPlanJson) ||
+                            existingAi.GeneratedPlanJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
+                            existingAi.GeneratedPlanJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
+                            existingAi.GeneratedPlanJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
+                            existingAi.GeneratedPlanJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+                        {
+                            try
+                            {
+                                var refreshed = await _aiWorkflowService.TriggerAgenticPlanAsync(item.EventId);
+                                if (refreshed != null)
+                                {
+                                    item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
+                                    item.WeatherAssessment = refreshed.WeatherAssessmentJson;
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+
                     if (!string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
                     {
                         try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
@@ -644,6 +686,60 @@ public class EventsController : ControllerBase
             message = "Proposal decision processed successfully.", 
             status = ev.Status, 
             finalTotal = aiState?.EstimatedTotalCost 
+        });
+    }
+
+    // 4.05 PUT: api/events/{id}/sync-draft (Live Synchronize Working Proposal Draft Between Manager Dashboard & Mobile App)
+    [AllowAnonymous]
+    [HttpPut("{id}/sync-draft")]
+    public async Task<ActionResult> SyncProposalDraft(Guid id, [FromBody] SyncProposalDraftDto dto)
+    {
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+            return NotFound(new { message = "Event not found in database." });
+
+        if (!string.IsNullOrWhiteSpace(dto.AssignedVendorsJson))
+        {
+            ev.AssignedVendorsJson = dto.AssignedVendorsJson;
+        }
+
+        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        if (aiState != null)
+        {
+            if (dto.FinalTotal > 0)
+            {
+                aiState.EstimatedTotalCost = dto.FinalTotal;
+            }
+            if (dto.PlanItems != null && dto.PlanItems.Count > 0)
+            {
+                aiState.GeneratedPlanJson = JsonSerializer.Serialize(dto.PlanItems);
+            }
+            if (dto.WeatherTentCost.HasValue && !string.IsNullOrWhiteSpace(aiState.WeatherAssessmentJson))
+            {
+                try
+                {
+                    var wObj = JsonSerializer.Deserialize<Dictionary<string, object>>(aiState.WeatherAssessmentJson);
+                    if (wObj != null)
+                    {
+                        wObj["SafeguardCost"] = dto.WeatherTentCost.Value;
+                        if (!string.IsNullOrWhiteSpace(dto.WeatherTentName))
+                        {
+                            wObj["Safeguard"] = dto.WeatherTentName;
+                        }
+                        aiState.WeatherAssessmentJson = JsonSerializer.Serialize(wObj);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Proposal draft synchronized.",
+            eventId = ev.EventId,
+            estimatedTotalCost = aiState?.EstimatedTotalCost
         });
     }
 
@@ -973,4 +1069,13 @@ public class EventsController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+}
+
+public class SyncProposalDraftDto
+{
+    public decimal FinalTotal { get; set; }
+    public decimal? WeatherTentCost { get; set; }
+    public string? WeatherTentName { get; set; }
+    public string? AssignedVendorsJson { get; set; }
+    public List<string>? PlanItems { get; set; }
 }
