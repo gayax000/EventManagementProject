@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -121,8 +120,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   String _selectedPrivateTown = 'Colombo 07';
   final _customAddressController = TextEditingController();
 
-  // Photo / Moodboard upload (up to 5 images)
-  final List<XFile> _selectedImages = [];
+  // Photo / Moodboard upload (up to 5 images stored directly in memory to prevent Web Blob URL revocation on mobile browsers)
+  final List<Uint8List> _selectedImageBytes = [];
   final ImagePicker _picker = ImagePicker();
 
   bool _isSubmitting = false;
@@ -423,7 +422,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickImages() async {
-    if (_selectedImages.length >= 5) {
+    if (_selectedImageBytes.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Maximum 5 inspiration moodboard photos allowed.'),
@@ -432,21 +431,53 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       return;
     }
-    final picked = await _picker.pickMultiImage();
-    if (picked.isNotEmpty) {
-      setState(() {
+    try {
+      final picked = await _picker.pickMultiImage(
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 75,
+      );
+      if (picked.isNotEmpty) {
+        final List<Uint8List> loadedBytes = [];
         for (var img in picked) {
-          if (_selectedImages.length < 5) {
-            _selectedImages.add(img);
+          if (_selectedImageBytes.length + loadedBytes.length < 5) {
+            try {
+              final bytes = await img.readAsBytes();
+              if (bytes.isNotEmpty) {
+                loadedBytes.add(bytes);
+              }
+            } catch (_) {}
           }
         }
-      });
+        if (mounted && loadedBytes.isNotEmpty) {
+          setState(() {
+            _selectedImageBytes.addAll(loadedBytes);
+          });
+        }
+      }
+    } catch (_) {
+      try {
+        final single = await _picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 75,
+        );
+        if (single != null) {
+          final bytes = await single.readAsBytes();
+          if (mounted && bytes.isNotEmpty && _selectedImageBytes.length < 5) {
+            setState(() {
+              _selectedImageBytes.add(bytes);
+            });
+          }
+        }
+      } catch (_) {}
     }
   }
 
   void _removeImage(int index) {
     setState(() {
-      _selectedImages.removeAt(index);
+      _selectedImageBytes.removeAt(index);
     });
   }
 
@@ -496,10 +527,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     try {
       final List<String> base64Images = [];
-      for (var img in _selectedImages) {
-        final bytes = await img.readAsBytes();
-        final b64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        base64Images.add(b64);
+      for (final bytes in _selectedImageBytes) {
+        if (bytes.isNotEmpty) {
+          final b64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+          base64Images.add(b64);
+        }
       }
 
       String? venueId;
@@ -1885,10 +1917,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
                 label: const Text('Pick Photos from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               ),
-              if (_selectedImages.isNotEmpty) ...[
+              if (_selectedImageBytes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  '${_selectedImages.length} photo(s) attached:',
+                  '${_selectedImageBytes.length} photo(s) attached:',
                   style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
                 ),
                 const SizedBox(height: 8),
@@ -1896,9 +1928,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   height: 90,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _selectedImages.length,
+                    itemCount: _selectedImageBytes.length,
                     itemBuilder: (context, index) {
-                      final xfile = _selectedImages[index];
+                      final imgBytes = _selectedImageBytes[index];
                       return Container(
                         width: 90,
                         margin: const EdgeInsets.only(right: 8),
@@ -1911,9 +1943,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: kIsWeb
-                                  ? Image.network(xfile.path, fit: BoxFit.cover)
-                                  : Image.file(File(xfile.path), fit: BoxFit.cover),
+                              child: Image.memory(imgBytes, fit: BoxFit.cover),
                             ),
                             Positioned(
                               top: 3,
@@ -2038,8 +2068,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               if (_selectedTableRefreshments.isNotEmpty)
                 _buildSummaryRow('Food Refreshments (${_selectedTableRefreshments.length}):', _selectedTableRefreshments.join(' • ')),
 
-              if (_selectedImages.isNotEmpty)
-                _buildSummaryRow('Inspiration Photos:', '${_selectedImages.length} photo(s) attached'),
+              if (_selectedImageBytes.isNotEmpty)
+                _buildSummaryRow('Inspiration Photos:', '${_selectedImageBytes.length} photo(s) attached'),
 
               if (_additionalDetailsController.text.trim().isNotEmpty)
                 _buildSummaryRow('Client Vision Notes:', '${_additionalDetailsController.text.trim()} (Priced by Manager upon Review)'),
