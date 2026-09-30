@@ -12,7 +12,7 @@ class ApiService {
         return 'http://localhost:8080/api';
       }
     }
-    return 'https://eventmanagementproject-production-19c1.up.railway.app/api';
+    return 'https://eventmanagementproject-production-5eee.up.railway.app/api';
   }
 
   // Helper method to build headers with Bearer Token and Customer Id

@@ -253,6 +253,20 @@ public class AiWorkflowService : IAiWorkflowService
         bool hasTransport = selectedServices.Any(s => s.Contains("Transport", StringComparison.OrdinalIgnoreCase) || s.Contains("Car", StringComparison.OrdinalIgnoreCase) || s.Contains("Bridal", StringComparison.OrdinalIgnoreCase));
 
         decimal budget = ev.BudgetLimit;
+        var autoAssignedVendors = new List<object>();
+
+        var catVendor = AutoAllocateVendor("Catering", budget);
+        if (catVendor != null)
+        {
+            autoAssignedVendors.Add(new
+            {
+                category = "Catering",
+                vendorId = catVendor.VendorId,
+                vendorName = catVendor.BusinessName,
+                packageName = $"Banquet Catering Buffet ({ev.GuestCount} guests @ Rs. {cateringPrice:N0})",
+                packagePrice = cateringCost
+            });
+        }
 
         // 1. Sounds & Lighting
         decimal soundsCost = 0m;
@@ -266,6 +280,14 @@ public class AiWorkflowService : IAiWorkflowService
                 soundsCost = sndVendor.PackagePrice ?? 85000m;
                 soundsName = sndVendor.PackageName ?? sndVendor.BusinessName;
                 soundsPartner = sndVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "SoundLighting",
+                    vendorId = sndVendor.VendorId,
+                    vendorName = sndVendor.BusinessName,
+                    packageName = soundsName,
+                    packagePrice = soundsCost
+                });
             }
             else if (budget >= 2000000m) { soundsCost = 250000m; soundsName = "Concert Line-Array Rig + 16 Moving Heads + Beam Trusses"; }
             else if (budget >= 1200000m) { soundsCost = 180000m; soundsName = "Concert Line-Array Sound & Digital Mixer Package"; }
@@ -285,6 +307,14 @@ public class AiWorkflowService : IAiWorkflowService
                 decoCost = decVendor.PackagePrice ?? 85000m;
                 decoName = decVendor.PackageName ?? decVendor.BusinessName;
                 decoPartner = decVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "Decor",
+                    vendorId = decVendor.VendorId,
+                    vendorName = decVendor.BusinessName,
+                    packageName = decoName,
+                    packagePrice = decoCost
+                });
             }
             else if (budget >= 2000000m) { decoCost = 220000m; decoName = "Royal Fresh Flower Ceiling Drapes & Grand Stage Decor"; }
             else if (budget >= 1200000m) { decoCost = 140000m; decoName = "Thematic Floral Stage + Entrance Tunnel Arch"; }
@@ -304,6 +334,14 @@ public class AiWorkflowService : IAiWorkflowService
                 photoCost = phtVendor.PackagePrice ?? 100000m;
                 photoName = phtVendor.PackageName ?? phtVendor.BusinessName;
                 photoPartner = phtVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "Photography",
+                    vendorId = phtVendor.VendorId,
+                    vendorName = phtVendor.BusinessName,
+                    packageName = photoName,
+                    packagePrice = photoCost
+                });
             }
             else
             {
@@ -324,6 +362,14 @@ public class AiWorkflowService : IAiWorkflowService
                 cakeCost = ckVendor.PackagePrice ?? 30000m;
                 cakeLabel = ckVendor.PackageName ?? ckVendor.BusinessName;
                 cakePartner = ckVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "Cake",
+                    vendorId = ckVendor.VendorId,
+                    vendorName = ckVendor.BusinessName,
+                    packageName = cakeLabel,
+                    packagePrice = cakeCost
+                });
             }
             else if (budget >= 2000000m) { cakeCost = 65000m; cakeLabel = "5-Tier Royal Handcrafted Fondant Wedding Cake"; }
             else if (budget >= 1200000m) { cakeCost = 45000m; cakeLabel = "3-Tier Luxury Floral Wedding Cake"; }
@@ -343,6 +389,14 @@ public class AiWorkflowService : IAiWorkflowService
                 transportCost = trnVendor.PackagePrice ?? 50000m;
                 transportName = trnVendor.PackageName ?? trnVendor.BusinessName;
                 transportPartner = trnVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "Transport",
+                    vendorId = trnVendor.VendorId,
+                    vendorName = trnVendor.BusinessName,
+                    packageName = transportName,
+                    packagePrice = transportCost
+                });
             }
             else if (budget >= 2000000m) { transportCost = 95000m; transportName = "Classic Vintage Rolls Royce / 1954 Jaguar Mark VII"; }
             else if (budget >= 1200000m) { transportCost = 65000m; transportName = "Mercedes-Benz S-Class Luxury Chauffeur Sedan"; }
@@ -423,6 +477,14 @@ public class AiWorkflowService : IAiWorkflowService
                 weatherTentCost = tentVendor.PackagePrice ?? 150000m;
                 weatherTentName = tentVendor.PackageName ?? "Waterproof Marquee Tent safeguard";
                 weatherTentPartner = tentVendor.BusinessName;
+                autoAssignedVendors.Add(new
+                {
+                    category = "MarqueeTent",
+                    vendorId = tentVendor.VendorId,
+                    vendorName = tentVendor.BusinessName,
+                    packageName = weatherTentName,
+                    packagePrice = weatherTentCost
+                });
             }
             else if (budget >= 2000000m)
             {
@@ -523,6 +585,8 @@ public class AiWorkflowService : IAiWorkflowService
             $"SafetyAgent: Weather safeguard {(weatherTentCost > 0 ? $"INJECTED (Rs. {weatherTentCost:N0})" : "NOT REQUIRED (Rs. 0)")}"
         };
 
+        string autoAssignedVendorsJson = JsonSerializer.Serialize(autoAssignedVendors);
+
         var existingState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == ev.EventId);
         if (existingState != null)
         {
@@ -532,6 +596,8 @@ public class AiWorkflowService : IAiWorkflowService
             existingState.ToolExecutionLogsJson = JsonSerializer.Serialize(traceLogs);
             existingState.EstimatedTotalCost = computedTotal;
             await _context.SaveChangesAsync();
+            await _context.Events.Where(e => e.EventId == eventId && string.IsNullOrEmpty(e.AssignedVendorsJson))
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, autoAssignedVendorsJson));
             _logger.LogInformation("Updated dynamic native AI Workflow for Event {EventId}. Total: {Total}", eventId, computedTotal);
             return existingState;
         }
@@ -549,7 +615,10 @@ public class AiWorkflowService : IAiWorkflowService
 
         _context.AIWorkflowStates.Add(finalState);
         await _context.SaveChangesAsync();
-        await _context.Events.Where(e => e.EventId == eventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.Status, "PendingManagerApproval"));
+        await _context.Events.Where(e => e.EventId == eventId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(e => e.Status, "PendingManagerApproval")
+                .SetProperty(e => e.AssignedVendorsJson, autoAssignedVendorsJson));
 
         _logger.LogInformation("Persisted dynamic native AI Workflow for Event {EventId}. Total: {Total}", eventId, computedTotal);
         return finalState;

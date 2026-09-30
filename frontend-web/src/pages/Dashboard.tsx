@@ -917,6 +917,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const finalAssignedVendors: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }> = [];
 
     const getVerifiedFallback = (category: string) => {
+      const tierMatch = autoAllocateVendorForCategory(category, Number(selectedEvent.budgetLimit) || 1500000);
+      if (tierMatch) return tierMatch;
       const v = getVerifiedVendorsForCategory(category);
       return v.length > 0 ? v[0] : null;
     };
@@ -971,15 +973,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
     }
 
-    // 5. Photography & Media (Only added if a photographer was actually assigned)
+    // 5. Photography & Media
     if (alloc.hasPhoto) {
       const assigned = selectedVendorAssignments['Photography'];
+      const photoFallback = getVerifiedFallback('Photography');
       if (assigned?.vendorId && !assigned.isPending) {
         finalAssignedVendors.push({
           category: 'Photography',
           vendorId: assigned.vendorId,
           vendorName: assigned.vendorName,
           packageName: assigned.packageName || alloc.photoName,
+          packagePrice: alloc.photoCost
+        });
+      } else if (!assigned?.isPending && photoFallback) {
+        finalAssignedVendors.push({
+          category: 'Photography',
+          vendorId: photoFallback.vendorId || (photoFallback as any).id,
+          vendorName: photoFallback.businessName || photoFallback.name || 'Beyond Horizons Cinema & Aerial Rigs',
+          packageName: photoFallback.packageName || alloc.photoName,
           packagePrice: alloc.photoCost
         });
       }
@@ -1244,29 +1255,86 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (!selectedEvent?.eventId || isApproved || availableVendors.length === 0) return;
 
     const timer = setTimeout(() => {
+      const evBudget = Number(selectedEvent.budgetLimit) || 1500000;
+      const getDraftFallback = (category: string) => {
+        const tierMatch = autoAllocateVendorForCategory(category, evBudget);
+        if (tierMatch) return tierMatch;
+        const v = getVerifiedVendorsForCategory(category);
+        return v.length > 0 ? v[0] : null;
+      };
+
+      const draftAssignedVendors: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }> = [];
+
+      const catAssigned = selectedVendorAssignments['Catering'];
+      const catFallback = getDraftFallback('Catering');
+      draftAssignedVendors.push({
+        category: 'Catering',
+        vendorId: catAssigned?.vendorId || catFallback?.vendorId,
+        vendorName: catAssigned?.vendorName || catFallback?.businessName || 'Perera & Sons (P&S Event Catering)',
+        packageName: catAssigned?.packageName || `Banquet Catering Buffet (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()})`,
+        packagePrice: cateringCost
+      });
+
       const draftPlanItems: string[] = [
         `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
         `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
       ];
 
       if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
+        const refAssigned = selectedVendorAssignments['Refreshments'];
+        const refFallback = getDraftFallback('Refreshments');
+        draftAssignedVendors.push({
+          category: 'Refreshments',
+          vendorId: refAssigned?.vendorId || refFallback?.vendorId,
+          vendorName: refAssigned?.vendorName || refFallback?.businessName || 'Ceylon Tea Trails Mobile Brew Station',
+          packageName: refAssigned?.packageName || alloc.refreshmentsItems.map(r => r.name).join(', '),
+          packagePrice: alloc.refreshmentsCost
+        });
         alloc.refreshmentsItems.forEach(r => {
           draftPlanItems.push(`${r.name} (${selectedEvent.guestCount} guests @ Rs. ${r.itemPerHead.toLocaleString()}) = Rs. ${r.cost.toLocaleString()}`);
         });
       }
 
       if (alloc.hasSounds) {
-        const vName = selectedVendorAssignments['SoundLighting']?.vendorName || selectedVendorAssignments['AudioVisual']?.vendorName;
+        const sndAssigned = selectedVendorAssignments['SoundLighting'] || selectedVendorAssignments['AudioVisual'];
+        const sndFallback = getDraftFallback('SoundLighting');
+        const vName = sndAssigned?.vendorName || sndFallback?.businessName;
         draftPlanItems.push(`${alloc.soundsName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.soundsCost.toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'SoundLighting',
+          vendorId: sndAssigned?.vendorId || sndFallback?.vendorId,
+          vendorName: vName || 'Mano Sounds & Acoustic Setup - Moratuwa',
+          packageName: sndAssigned?.packageName || alloc.soundsName,
+          packagePrice: alloc.soundsCost
+        });
       }
       if (alloc.hasDeco) {
-        const vName = selectedVendorAssignments['Decor']?.vendorName;
+        const decAssigned = selectedVendorAssignments['Decor'];
+        const decFallback = getDraftFallback('Decor');
+        const vName = decAssigned?.vendorName || decFallback?.businessName;
         draftPlanItems.push(`${alloc.decoName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.decoCost.toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'Decor',
+          vendorId: decAssigned?.vendorId || decFallback?.vendorId,
+          vendorName: vName || 'Samanmal Flora & Deco Maharagama',
+          packageName: decAssigned?.packageName || alloc.decoName,
+          packagePrice: alloc.decoCost
+        });
       }
       if (alloc.hasPhoto) {
         const vAssigned = selectedVendorAssignments['Photography'];
-        if (vAssigned?.vendorId && !vAssigned.isPending) {
-          draftPlanItems.push(`${alloc.photoName} [Partner: ${vAssigned.vendorName}] (Rs. ${alloc.photoCost.toLocaleString()})`);
+        const phtFallback = getDraftFallback('Photography');
+        const phtName = (vAssigned?.vendorId && !vAssigned.isPending) ? vAssigned.vendorName : (!vAssigned?.isPending ? (phtFallback?.businessName || phtFallback?.name) : undefined);
+        const phtId = (vAssigned?.vendorId && !vAssigned.isPending) ? vAssigned.vendorId : (!vAssigned?.isPending ? (phtFallback?.vendorId || (phtFallback as any)?.id) : undefined);
+        if (phtName && alloc.photoCost > 0) {
+          draftPlanItems.push(`${alloc.photoName} [Partner: ${phtName}] (Rs. ${alloc.photoCost.toLocaleString()})`);
+          draftAssignedVendors.push({
+            category: 'Photography',
+            vendorId: phtId,
+            vendorName: phtName,
+            packageName: vAssigned?.packageName || phtFallback?.packageName || alloc.photoName,
+            packagePrice: alloc.photoCost
+          });
         } else if (alloc.photoCost > 0) {
           draftPlanItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
         } else {
@@ -1274,34 +1342,73 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
       }
       if (alloc.hasCake) {
-        const vName = selectedVendorAssignments['Cake']?.vendorName || selectedVendorAssignments['Cakes']?.vendorName;
+        const ckAssigned = selectedVendorAssignments['Cake'] || selectedVendorAssignments['Cakes'];
+        const ckFallback = getDraftFallback('Cake');
+        const vName = ckAssigned?.vendorName || ckFallback?.businessName;
         draftPlanItems.push(`${alloc.cakeLabel}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.cakeCost.toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'Cake',
+          vendorId: ckAssigned?.vendorId || ckFallback?.vendorId,
+          vendorName: vName || 'The Fab & Sponge Sweet Treats Colombo',
+          packageName: ckAssigned?.packageName || alloc.cakeLabel,
+          packagePrice: alloc.cakeCost
+        });
       }
       if (alloc.hasTransport) {
-        const vName = selectedVendorAssignments['Transport']?.vendorName || selectedVendorAssignments['VIPTransport']?.vendorName;
+        const trnAssigned = selectedVendorAssignments['Transport'] || selectedVendorAssignments['VIPTransport'];
+        const trnFallback = getDraftFallback('Transport');
+        const vName = trnAssigned?.vendorName || trnFallback?.businessName;
         draftPlanItems.push(`${alloc.transportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'Transport',
+          vendorId: trnAssigned?.vendorId || trnFallback?.vendorId,
+          vendorName: vName || 'SilverLine Executive BMW Fleet',
+          packageName: trnAssigned?.packageName || alloc.transportName,
+          packagePrice: alloc.transportCost
+        });
       }
       if (alloc.hasSpecialRequests) {
         draftPlanItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
       }
       if (isEventOutdoor && weatherTentCost > 0) {
-        draftPlanItems.push(`${weatherTentName} [Partner: ${selectedVendorAssignments['MarqueeTent']?.vendorName || 'Ceylon WeatherShield Marquee Tents'}] (Rs. ${weatherTentCost.toLocaleString()})`);
+        const tntAssigned = selectedVendorAssignments['MarqueeTent'];
+        const tntFallback = getDraftFallback('MarqueeTent');
+        const tntVendorName = tntAssigned?.vendorName || tntFallback?.businessName || 'Ceylon WeatherShield Marquee Tents';
+        draftPlanItems.push(`${weatherTentName} [Partner: ${tntVendorName}] (Rs. ${weatherTentCost.toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'MarqueeTent',
+          vendorId: tntAssigned?.vendorId || tntFallback?.vendorId,
+          vendorName: tntVendorName,
+          packageName: weatherTentName,
+          packagePrice: weatherTentCost
+        });
       }
       if (isEventOutdoor && selectedVendorAssignments['PowerBackup']?.vendorId) {
-        draftPlanItems.push(`${selectedVendorAssignments['PowerBackup'].packageName || 'Backup Diesel Silent Generator'} [Partner: ${selectedVendorAssignments['PowerBackup'].vendorName}] (Rs. ${(selectedVendorAssignments['PowerBackup'].agreedPayout || 50000).toLocaleString()})`);
+        const pwr = selectedVendorAssignments['PowerBackup'];
+        draftPlanItems.push(`${pwr.packageName || 'Backup Diesel Silent Generator'} [Partner: ${pwr.vendorName}] (Rs. ${(pwr.agreedPayout || 50000).toLocaleString()})`);
+        draftAssignedVendors.push({
+          category: 'PowerBackup',
+          vendorId: pwr.vendorId,
+          vendorName: pwr.vendorName,
+          packageName: pwr.packageName || 'Backup Diesel Silent Generator',
+          packagePrice: pwr.agreedPayout || 50000
+        });
       }
       if (specialDiscount > 0) {
         draftPlanItems.push(`Manager Courtesy Discount (-Rs. ${specialDiscount.toLocaleString()})`);
       }
 
+      const draftAssignedVendorsJson = JSON.stringify(draftAssignedVendors);
+
       eventService.syncProposalDraft(selectedEvent.eventId, {
         finalTotal: displayedFinalTotal,
         weatherTentCost: isEventOutdoor ? weatherTentCost : 0,
         weatherTentName,
+        assignedVendorsJson: draftAssignedVendorsJson,
         planItems: draftPlanItems
       }).catch(() => {});
 
-      setEvents(prev => prev.map(ev => ev.eventId === selectedEvent.eventId ? { ...ev, estimatedTotalCost: displayedFinalTotal } : ev));
+      setEvents(prev => prev.map(ev => ev.eventId === selectedEvent.eventId ? { ...ev, estimatedTotalCost: displayedFinalTotal, assignedVendors: draftAssignedVendors, assignedVendorsJson: draftAssignedVendorsJson } : ev));
     }, 350);
 
     return () => clearTimeout(timer);

@@ -296,7 +296,7 @@ public class EventsController : ControllerBase
             RevisionNotes = ev.RevisionNotes,
             AssignedVendorsJson = ev.AssignedVendorsJson,
             AssignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
-                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson)
+                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
                 : new List<AssignedVendorDto>(),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
@@ -618,7 +618,7 @@ public class EventsController : ControllerBase
                 }
                 if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
                 {
-                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson); }
+                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
                     catch { }
                 }
 

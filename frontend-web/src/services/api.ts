@@ -4,11 +4,14 @@ const isLocalhost = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 let rawUrl = import.meta.env.VITE_API_URL || 
-  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-19c1.up.railway.app/api');
+  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-5eee.up.railway.app/api');
 
-rawUrl = rawUrl.trim();
+rawUrl = rawUrl.trim().replace(/\/+$/, '');
 if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
   rawUrl = `https://${rawUrl}`;
+}
+if (!rawUrl.endsWith('/api')) {
+  rawUrl = `${rawUrl}/api`;
 }
 const API_BASE_URL = rawUrl;
 
