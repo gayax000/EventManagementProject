@@ -2107,13 +2107,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               final bool isUnfinalized = proposal.status != 'ApprovedByManager' && proposal.status != 'Confirmed';
               if (isUnfinalized && proposal.budgetLimit >= 2000000) {
                 final String lowerLabel = label.toLowerCase();
-                if (cost == 150000 && (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee'))) {
-                  cost = 350000.0;
+                if (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee')) {
                   label = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
-                  wasLegacyUpgraded = true;
-                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower ceiling drapes')) {
-                  cost = 220000.0;
-                  wasLegacyUpgraded = true;
                 }
               }
 
@@ -2129,13 +2124,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Prepend Venue Rental if not already in items
           final hasVenue = items.any((it) => it['label'].toString().toLowerCase().contains('rental') || it['label'].toString().toLowerCase().contains('venue'));
           if (!hasVenue) {
-            final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
-            items.insert(0, {
-              'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
-              'cost': hallPrice,
-              'isDiscount': false,
-              'isSpecial': false,
-            });
+            final bool isPrivateOrCustomVenue = (proposal.banquetHallName == null || proposal.banquetHallName!.isEmpty) && (proposal.hallRentalPrice == null || proposal.hallRentalPrice == 0);
+            String venueTitle = proposal.venueName.isNotEmpty ? proposal.venueName : "Selected Venue";
+            if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
+              venueTitle = proposal.banquetHallName!;
+            }
+            final double hallPrice = isPrivateOrCustomVenue ? 0.0 : (proposal.hallRentalPrice ?? 350000.0);
+            if (hallPrice > 0 || !isPrivateOrCustomVenue) {
+              items.insert(0, {
+                'label': '$venueTitle Rental',
+                'cost': hallPrice,
+                'isDiscount': false,
+                'isSpecial': false,
+              });
+            }
           }
 
           // Append Special Client Request if missing
@@ -2176,18 +2178,25 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         });
       }
 
-      final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
+      final bool isPrivateOrCustomVenue = (proposal.banquetHallName == null || proposal.banquetHallName!.isEmpty) && (proposal.hallRentalPrice == null || proposal.hallRentalPrice == 0);
+      final double hallPrice = isPrivateOrCustomVenue ? 0.0 : (proposal.hallRentalPrice ?? 350000.0);
+      String venueTitle = proposal.venueName.isNotEmpty ? proposal.venueName : "Selected Venue";
+      if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
+        venueTitle = proposal.banquetHallName!;
+      }
       double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
 
-      items.add({
-        'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
-        'cost': hallPrice,
-        'isDiscount': false,
-        'isSpecial': false,
-      });
+      if (hallPrice > 0 || !isPrivateOrCustomVenue) {
+        items.add({
+          'label': '$venueTitle Rental',
+          'cost': hallPrice,
+          'isDiscount': false,
+          'isSpecial': false,
+        });
+      }
 
       items.add({
-        'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
+        'label': 'Banquet Catering Buffet (${proposal.guestCount} Guests)',
         'cost': cateringPrice,
         'isDiscount': false,
         'isSpecial': false,
@@ -2197,8 +2206,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         String desc = s;
         double cost = 100000;
         if (s.toLowerCase().contains('photo')) {
-          desc = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
-          cost = 250000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
+            cost = 180000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Cinematic 4K Rig + Drone Coverage + 2 Photographers';
+            cost = 120000.0;
+          } else {
+            desc = 'Professional Event Photography & Coverage';
+            cost = 100000.0;
+          }
         } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
           if (proposal.budgetLimit >= 2000000) {
             desc = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';

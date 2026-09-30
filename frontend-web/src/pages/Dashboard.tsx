@@ -826,8 +826,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const basePerPlate = selectedEvent.perPlatePrice || 5000;
     const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
     const cateringCost = selectedEvent.guestCount * perPlate;
-    const isPrivateVenue = !selectedEvent.banquetHallId && (
-      !selectedEvent.venueId ||
+    const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0 || (
       (selectedEvent.venueName?.toLowerCase().includes('private') ?? false) ||
       (selectedEvent.preferredLocation?.toLowerCase().includes('private') ?? false)
     );
@@ -1165,8 +1164,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const basePerPlate = selectedEvent?.perPlatePrice || 5000;
   const perPlate = customPerPlateCost !== null ? customPerPlateCost : basePerPlate;
   const cateringCost = (selectedEvent?.guestCount || 0) * perPlate;
-  const isPrivateVenue = !selectedEvent?.banquetHallId && (
-    !selectedEvent?.venueId ||
+  const isPrivateVenue = !selectedEvent?.banquetHallId || selectedEvent?.hallRentalPrice === 0 || (
     (selectedEvent?.venueName?.toLowerCase().includes('private') ?? false) ||
     (selectedEvent?.preferredLocation?.toLowerCase().includes('private') ?? false)
   );
