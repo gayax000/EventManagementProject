@@ -895,10 +895,6 @@ class _HomeScreenState extends State<HomeScreen> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final m = event.targetDate.month >= 1 && event.targetDate.month <= 12 ? months[event.targetDate.month - 1] : '';
     final formattedDate = '$m ${event.targetDate.day.toString().padLeft(2, '0')}, ${event.targetDate.year}';
-    final formattedBudget = event.budgetLimit.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
 
     final isConfirmed = event.status == 'Confirmed';
     final isApproved = event.status == 'ApprovedByManager';
@@ -1050,28 +1046,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(child: _buildMetaPill(Icons.payments_outlined, costLabel, "LKR $formattedCost")),
                     ],
                   ),
-                  if (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0 && (event.estimatedTotalCost! - event.budgetLimit).abs() > 10) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Client Budget: LKR $formattedBudget",
-                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          event.estimatedTotalCost! > event.budgetLimit 
-                              ? "+LKR ${((event.estimatedTotalCost! - event.budgetLimit)).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}"
-                              : "-LKR ${((event.budgetLimit - event.estimatedTotalCost!)).toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}",
-                          style: TextStyle(
-                            color: event.estimatedTotalCost! > event.budgetLimit ? const Color(0xFFD97706) : const Color(0xFF16A34A),
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                   const SizedBox(height: 14),
 
                   // AI Multi-Agent & Weather Safeguard Card

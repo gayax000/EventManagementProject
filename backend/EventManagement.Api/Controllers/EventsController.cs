@@ -304,36 +304,62 @@ public class EventsController : ControllerBase
         });
     }
 
+    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson)
+    {
+        if (status == "ApprovedByManager" || status == "Confirmed" || status == "Completed")
+            return false;
+
+        if (string.IsNullOrEmpty(planJson))
+            return true;
+
+        if (planJson.Contains("1. Weather & Environmental Assessment") ||
+            planJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
+            planJson.Contains("Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls (Rs. 150,000)") ||
+            planJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
+            planJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
+            planJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+        {
+            return true;
+        }
+
+        if (isOutdoor && budgetLimit >= 2000000m)
+        {
+            if (!string.IsNullOrEmpty(weatherJson) &&
+                (weatherJson.Contains("\"SafeguardCost\":150000") || weatherJson.Contains("\"SafeguardCost\": 150000")))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // 2.1 GET: api/events/{id}/proposal (Detailed Proposal & Booking Pass for Mobile)
+    [AllowAnonymous]
     [HttpGet("{id}/proposal")]
     public async Task<ActionResult> GetEventProposal(Guid id)
     {
         var ev = await _context.Events
+            .AsNoTracking()
             .Include(e => e.Venue)
             .Include(e => e.BanquetHall)
+            .ThenInclude(h => h!.Venue)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
             return NotFound(new { message = "Event not found." });
 
-        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
-        if ((ev.Status == "PendingManagerApproval" || ev.Status == "UnderReview") && string.IsNullOrEmpty(ev.AssignedVendorsJson))
+        var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
+        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
         {
-            if (aiState == null ||
-                string.IsNullOrEmpty(aiState.GeneratedPlanJson) ||
-                aiState.GeneratedPlanJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
-                aiState.GeneratedPlanJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
-                aiState.GeneratedPlanJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
-                aiState.GeneratedPlanJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+            try
             {
-                try
-                {
-                    aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
-                }
+                await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
             }
         }
         var booking = await _context.Bookings
@@ -511,95 +537,92 @@ public class EventsController : ControllerBase
                 }
             }
 
-            var query = _context.Events.AsQueryable();
+            var query = _context.Events.AsNoTracking().AsQueryable();
             if (targetCustomerId != Guid.Empty)
             {
-                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
+                var sampleCustomer = await _context.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
                 Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
 
                 query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
             }
 
-            var events = await query
-                .Include(e => e.Venue)
-                .Include(e => e.BanquetHall)
-                .Include(e => e.AIWorkflowState)
+            var rawRows = await query
                 .OrderByDescending(e => e.CreatedAt)
-                .Select(ev => new EventResponseDto
+                .Select(ev => new
                 {
-                    EventId = ev.EventId,
-                    Title = ev.Title,
-                    EventType = ev.EventType,
-                    TargetDate = ev.TargetDate,
-                    GuestCount = ev.GuestCount,
-                    BudgetLimit = ev.BudgetLimit,
-                    IsOutdoor = ev.IsOutdoor,
-                    AdditionalDetails = ev.AdditionalDetails,
-                    EventSession = ev.EventSession,
-                    CateringStyle = ev.CateringStyle,
-                    TableRefreshments = null,
-                    RevisionNotes = ev.RevisionNotes,
-                    AssignedVendorsJson = ev.AssignedVendorsJson,
-                    Status = ev.Status,
-                    VenueId = ev.VenueId,
-                    VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
-                    BanquetHallId = ev.BanquetHallId,
-                    BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
-                    HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
-                    PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
-                    PreferredLocation = ev.PreferredLocation,
-                    InspirationImageUrl = null,
-                    EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
-                    WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
-                    CreatedAt = ev.CreatedAt
+                    Dto = new EventResponseDto
+                    {
+                        EventId = ev.EventId,
+                        Title = ev.Title,
+                        EventType = ev.EventType,
+                        TargetDate = ev.TargetDate,
+                        GuestCount = ev.GuestCount,
+                        BudgetLimit = ev.BudgetLimit,
+                        IsOutdoor = ev.IsOutdoor,
+                        AdditionalDetails = ev.AdditionalDetails,
+                        EventSession = ev.EventSession,
+                        CateringStyle = ev.CateringStyle,
+                        TableRefreshments = null,
+                        RevisionNotes = ev.RevisionNotes,
+                        AssignedVendorsJson = ev.AssignedVendorsJson,
+                        Status = ev.Status,
+                        VenueId = ev.VenueId,
+                        VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
+                        BanquetHallId = ev.BanquetHallId,
+                        BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
+                        HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
+                        PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
+                        PreferredLocation = ev.PreferredLocation,
+                        InspirationImageUrl = null,
+                        EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                        WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        CreatedAt = ev.CreatedAt
+                    },
+                    TableRefreshmentsJson = ev.TableRefreshmentsJson,
+                    SelectedServicesJson = ev.SelectedServicesJson,
+                    GeneratedPlanJson = ev.AIWorkflowState != null ? ev.AIWorkflowState.GeneratedPlanJson : null
                 })
                 .ToListAsync();
 
-            foreach (var item in events)
+            var events = new List<EventResponseDto>(rawRows.Count);
+            foreach (var row in rawRows)
             {
+                var item = row.Dto;
                 item.InspirationImages = new List<string>();
-                var evEntity = await _context.Events.FindAsync(item.EventId);
-                if (evEntity != null)
+
+                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment))
                 {
-                    if ((item.Status == "PendingManagerApproval" || item.Status == "UnderReview") && string.IsNullOrEmpty(evEntity.AssignedVendorsJson))
+                    try
                     {
-                        var existingAi = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == item.EventId);
-                        if (existingAi == null ||
-                            string.IsNullOrEmpty(existingAi.GeneratedPlanJson) ||
-                            existingAi.GeneratedPlanJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
-                            existingAi.GeneratedPlanJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
-                            existingAi.GeneratedPlanJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
-                            existingAi.GeneratedPlanJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+                        await _context.Events.Where(e => e.EventId == item.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                        item.AssignedVendorsJson = null;
+                        var refreshed = await _aiWorkflowService.TriggerAgenticPlanAsync(item.EventId);
+                        if (refreshed != null)
                         {
-                            try
-                            {
-                                var refreshed = await _aiWorkflowService.TriggerAgenticPlanAsync(item.EventId);
-                                if (refreshed != null)
-                                {
-                                    item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
-                                    item.WeatherAssessment = refreshed.WeatherAssessmentJson;
-                                }
-                            }
-                            catch { }
+                            item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
+                            item.WeatherAssessment = refreshed.WeatherAssessmentJson;
                         }
                     }
-
-                    if (!string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
-                    {
-                        try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
-                        catch { }
-                    }
-                    if (!string.IsNullOrEmpty(evEntity.SelectedServicesJson))
-                    {
-                        try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(evEntity.SelectedServicesJson); }
-                        catch { }
-                    }
-                    if (!string.IsNullOrEmpty(evEntity.AssignedVendorsJson))
-                    {
-                        try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(evEntity.AssignedVendorsJson); }
-                        catch { }
-                    }
+                    catch { }
                 }
+
+                if (!string.IsNullOrEmpty(row.TableRefreshmentsJson))
+                {
+                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(row.TableRefreshmentsJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(row.SelectedServicesJson))
+                {
+                    try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(row.SelectedServicesJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
+                {
+                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson); }
+                    catch { }
+                }
+
+                events.Add(item);
             }
 
             return Ok(events);
@@ -694,13 +717,14 @@ public class EventsController : ControllerBase
     [HttpPut("{id}/sync-draft")]
     public async Task<ActionResult> SyncProposalDraft(Guid id, [FromBody] SyncProposalDraftDto dto)
     {
-        var ev = await _context.Events.FindAsync(id);
-        if (ev == null)
+        bool exists = await _context.Events.AsNoTracking().AnyAsync(e => e.EventId == id);
+        if (!exists)
             return NotFound(new { message = "Event not found in database." });
 
         if (!string.IsNullOrWhiteSpace(dto.AssignedVendorsJson))
         {
-            ev.AssignedVendorsJson = dto.AssignedVendorsJson;
+            await _context.Events.Where(e => e.EventId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, dto.AssignedVendorsJson));
         }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
@@ -718,15 +742,18 @@ public class EventsController : ControllerBase
             {
                 try
                 {
-                    var wObj = JsonSerializer.Deserialize<Dictionary<string, object>>(aiState.WeatherAssessmentJson);
-                    if (wObj != null)
+                    var wEval = JsonSerializer.Deserialize<EventManagement.Infrastructure.Services.WeatherEvaluation>(aiState.WeatherAssessmentJson);
+                    if (wEval != null)
                     {
-                        wObj["SafeguardCost"] = dto.WeatherTentCost.Value;
+                        wEval.SafeguardCost = dto.WeatherTentCost.Value;
                         if (!string.IsNullOrWhiteSpace(dto.WeatherTentName))
                         {
-                            wObj["Safeguard"] = dto.WeatherTentName;
+                            wEval.Safeguard = dto.WeatherTentName;
+                            wEval.Description = dto.WeatherTentCost.Value > 0
+                                ? $"High precipitation risk detected ({wEval.Condition}). Auto-injecting {dto.WeatherTentName} (+Rs. {dto.WeatherTentCost.Value:N0})."
+                                : "Outdoor grounds weather risk waived or clear skies forecast; no marquee tent required.";
                         }
-                        aiState.WeatherAssessmentJson = JsonSerializer.Serialize(wObj);
+                        aiState.WeatherAssessmentJson = JsonSerializer.Serialize(wEval);
                     }
                 }
                 catch { }
@@ -738,7 +765,7 @@ public class EventsController : ControllerBase
         return Ok(new
         {
             message = "Proposal draft synchronized.",
-            eventId = ev.EventId,
+            eventId = id,
             estimatedTotalCost = aiState?.EstimatedTotalCost
         });
     }

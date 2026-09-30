@@ -349,7 +349,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     final m = proposal.targetDate.month >= 1 && proposal.targetDate.month <= 12 ? months[proposal.targetDate.month - 1] : '';
     final formattedDate = '$m ${proposal.targetDate.day.toString().padLeft(2, '0')}, ${proposal.targetDate.year}';
-    final formattedCost = proposal.estimatedTotalCost.toStringAsFixed(0).replaceAllMapped(
+    final double effectiveTotalCost = _getEffectiveProposalTotal(proposal);
+    final formattedCost = effectiveTotalCost.toStringAsFixed(0).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
     );
@@ -503,18 +504,18 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     Text("Guests: ${proposal.guestCount}  |  Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF64748B)),
-                        const SizedBox(width: 6),
-                        Text("Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        Icon(Icons.payments_outlined, size: 14, color: Color(0xFF059669)),
+                        SizedBox(width: 6),
+                        Text("Proposal Total:", style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
                       ],
                     ),
-                    Text("Package: LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 12.5, fontWeight: FontWeight.bold)),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 13.5, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],
@@ -955,6 +956,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                       .replaceAll(RegExp(r'\((?:Rs\.|LKR)\s*[\d,]+\)'), '')
                                       .replaceAll(RegExp(r'\[Partner:.*?\]'), '')
                                       .trim();
+                                  if (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000 &&
+                                      (lower.contains('auto-injected') || lower.contains('aluminium'))) {
+                                    resolvedTentCost = 350000;
+                                    resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                                  }
                                   break;
                                 }
                               }
@@ -967,7 +973,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       } catch (_) {}
                     }
 
-                    if (!planExplicitlyChecked && isOut && (resolvedTentCost > 0 || rainPct >= 60)) {
+                    if (isOut && (!planExplicitlyChecked || (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000)) && (resolvedTentCost > 0 || rainPct >= 60)) {
                       if (resolvedTentCost <= 0 || resolvedTentCost == 150000) {
                         if (proposal.budgetLimit >= 2000000) {
                           resolvedTentCost = 350000;
@@ -1992,8 +1998,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     );
   }
 
-  Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
+  double _getEffectiveProposalTotal(EventProposalDetail proposal) {
+    final res = _resolveBreakdownItems(proposal);
+    final bool wasLegacyUpgraded = res['wasLegacyUpgraded'] == true;
+    final List<Map<String, dynamic>> items = res['items'] as List<Map<String, dynamic>>;
+    if (wasLegacyUpgraded) {
+      return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+    }
+    if (proposal.estimatedTotalCost > 0) {
+      return proposal.estimatedTotalCost;
+    }
+    return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+  }
+
+  Map<String, dynamic> _resolveBreakdownItems(EventProposalDetail proposal) {
     final List<Map<String, dynamic>> items = [];
+    bool wasLegacyUpgraded = false;
 
     if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
       try {
@@ -2023,6 +2043,19 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
               if (label.startsWith('Catering Style:')) {
                 label = label.replaceFirst('Catering Style:', '').trim();
+              }
+
+              final bool isUnfinalized = proposal.status != 'ApprovedByManager' && proposal.status != 'Confirmed';
+              if (isUnfinalized && proposal.budgetLimit >= 2000000) {
+                final String lowerLabel = label.toLowerCase();
+                if (cost == 150000 && (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee'))) {
+                  cost = 350000.0;
+                  label = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
+                  wasLegacyUpgraded = true;
+                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower ceiling drapes')) {
+                  cost = 220000.0;
+                  wasLegacyUpgraded = true;
+                }
               }
 
               items.add({
@@ -2063,6 +2096,27 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     if (items.isEmpty) {
+      if (proposal.isOutdoor) {
+        double tentCost = 45000.0;
+        String tentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
+        if (proposal.budgetLimit >= 2000000) {
+          tentCost = 350000.0;
+          tentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
+        } else if (proposal.budgetLimit >= 1200000) {
+          tentCost = 150000.0;
+          tentLabel = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft) [Partner: Ceylon WeatherShield Marquee Tents]';
+        } else if (proposal.budgetLimit >= 700000) {
+          tentCost = 80000.0;
+          tentLabel = 'High-Peak Waterproof Stretch Canopy (20x30 ft) [Partner: SunShade Canopies & Pergolas Colombo]';
+        }
+        items.add({
+          'label': tentLabel,
+          'cost': tentCost,
+          'isDiscount': false,
+          'isSpecial': false,
+        });
+      }
+
       final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
       double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
 
@@ -2084,20 +2138,64 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         String desc = s;
         double cost = 100000;
         if (s.toLowerCase().contains('photo')) {
-          desc = 'Master Photography & 4K Highlights Video';
-          cost = proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0;
+          desc = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
+          cost = 250000.0;
         } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-          desc = 'Concert Line-Array Sound & Digital Mixer';
-          cost = proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';
+            cost = 250000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Concert Line-Array Sound & Digital Mixer Package';
+            cost = 180000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'Standard Stage Audio + Warm Ambient LED PAR Cans';
+            cost = 85000.0;
+          } else {
+            desc = 'Compact Speech PA Kit + 2 Wireless Mics';
+            cost = 40000.0;
+          }
         } else if (s.toLowerCase().contains('deco')) {
-          desc = 'Stage Styling & Theme Decor';
-          cost = proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor';
+            cost = 220000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Thematic Floral Stage + Entrance Tunnel Arch';
+            cost = 140000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'Thematic Floral Stage + Table Centerpieces';
+            cost = 85000.0;
+          } else {
+            desc = 'Minimalist Floral Arch + Cake Table Styling';
+            cost = 45000.0;
+          }
         } else if (s.toLowerCase().contains('cake')) {
-          desc = 'Luxury Celebration Cake';
-          cost = proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = '5-Tier Royal Handcrafted Fondant Wedding Cake';
+            cost = 65000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = '3-Tier Luxury Floral Wedding Cake';
+            cost = 45000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = '2-Tier Custom Handcrafted Fondant Cake';
+            cost = 30000.0;
+          } else {
+            desc = '2-Tier Classic Buttercream Celebration Cake';
+            cost = 15000.0;
+          }
         } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-          desc = 'Chauffeur VIP Transport';
-          cost = proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII';
+            cost = 95000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
+            cost = 65000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'BMW 5-Series Executive Bridal Sedan';
+            cost = 50000.0;
+          } else {
+            desc = 'Toyota Premio / Allion Executive Chauffeur Sedan';
+            cost = 35000.0;
+          }
         }
         items.add({
           'label': desc,
@@ -2144,7 +2242,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     // Exact Synchronized Balance Guardrail between breakdown items and proposal.estimatedTotalCost
-    if (proposal.estimatedTotalCost > 0) {
+    if (!wasLegacyUpgraded && proposal.estimatedTotalCost > 0) {
       double currentSum = items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
       final double diff = currentSum - proposal.estimatedTotalCost;
       if (diff > 100 && !items.any((it) => it['isDiscount'] == true)) {
@@ -2163,6 +2261,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         });
       }
     }
+
+    return {
+      'items': items,
+      'wasLegacyUpgraded': wasLegacyUpgraded,
+    };
+  }
+
+  Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
+    final res = _resolveBreakdownItems(proposal);
+    final List<Map<String, dynamic>> items = res['items'] as List<Map<String, dynamic>>;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

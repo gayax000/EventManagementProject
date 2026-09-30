@@ -283,9 +283,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }> = {};
       
       // 1. Load previously saved assignments if present
+      const evBudgetNum = Number(selectedEvent.budgetLimit) || 1000000;
+      const isLegacyTentAssignment = (a: any) =>
+        a?.category === 'MarqueeTent' &&
+        evBudgetNum >= 2000000 &&
+        (a?.packagePrice === 150000 || a?.agreedPayout === 150000) &&
+        (!a?.packageName || a.packageName.includes('Aluminium') || a.packageName.includes('Autonomous') || a.packageName.includes('Auto-injected'));
+
       if (selectedEvent.assignedVendors && Array.isArray(selectedEvent.assignedVendors) && selectedEvent.assignedVendors.length > 0) {
         selectedEvent.assignedVendors.forEach(a => {
-          if (a.category) {
+          if (a.category && !isLegacyTentAssignment(a)) {
             const matchVendor = availableVendors.find(v => (v.vendorId || (v as any).id) === a.vendorId);
             currentMap[a.category] = {
               vendorId: a.vendorId || '',
@@ -301,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           const parsed = JSON.parse(selectedEvent.assignedVendorsJson);
           if (Array.isArray(parsed) && parsed.length > 0) {
             parsed.forEach((a: any) => {
-              if (a.category) {
+              if (a.category && !isLegacyTentAssignment(a)) {
                 const matchVendor = availableVendors.find(v => (v.vendorId || (v as any).id) === a.vendorId);
                 currentMap[a.category] = {
                   vendorId: a.vendorId || '',
@@ -687,8 +694,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         photoCost = 0;
         photoName = 'Awaiting Live Registration (Pending Viva Demo)';
       } else {
-        photoCost = 0;
-        photoName = 'Awaiting Live Registration (Pending Viva Demo)';
+        const phtFallback = autoAllocateVendorForCategory('Photography', budget);
+        if (phtFallback && phtFallback.packagePrice) {
+          photoCost = phtFallback.packagePrice;
+          photoName = phtFallback.packageName || phtFallback.businessName;
+        } else {
+          photoCost = 0;
+          photoName = 'Awaiting Live Registration (Pending Viva Demo)';
+        }
       }
     }
 
@@ -866,14 +879,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = 25000;
           weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
         }
-      } else {
-        weatherTentCost = weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0);
-        if (weatherTentCost === 150000) {
-          weatherTentName = 'Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls';
-        } else if (weatherTentCost === 85000) {
-          weatherTentName = 'Waterproof Stretch Canopy & Rain Drapes';
-        } else if (weatherTentCost === 45000) {
-          weatherTentName = 'Standard High-Peak Modular Canopies';
+      } else if (weatherSafeguardCost > 0 || rainPct >= 60) {
+        const evBudget = Number(selectedEvent.budgetLimit) || 1500000;
+        const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
+        if (tentFallback && tentFallback.packagePrice) {
+          weatherTentCost = tentFallback.packagePrice;
+          weatherTentName = tentFallback.packageName || tentFallback.businessName;
+        } else if (evBudget >= 2000000) {
+          weatherTentCost = 350000;
+          weatherTentName = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+        } else if (evBudget >= 1200000) {
+          weatherTentCost = 150000;
+          weatherTentName = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)';
+        } else if (evBudget >= 700000) {
+          weatherTentCost = 80000;
+          weatherTentName = 'High-Peak Waterproof Stretch Canopy (20x30 ft)';
+        } else {
+          weatherTentCost = 45000;
+          weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
         }
       }
     }
@@ -1186,14 +1209,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
         weatherTentCost = 25000;
         weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
       }
-    } else {
-      weatherTentCost = weatherSafeguardCost > 0 ? weatherSafeguardCost : (rainPct >= 60 ? 150000 : 0);
-      if (weatherTentCost === 150000) {
-        weatherTentName = 'Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls';
-      } else if (weatherTentCost === 85000) {
-        weatherTentName = 'Waterproof Stretch Canopy & Rain Drapes';
-      } else if (weatherTentCost === 45000) {
-        weatherTentName = 'Standard High-Peak Modular Canopies';
+    } else if (weatherSafeguardCost > 0 || rainPct >= 60) {
+      const evBudget = Number(selectedEvent?.budgetLimit) || 1500000;
+      const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
+      if (tentFallback && tentFallback.packagePrice) {
+        weatherTentCost = tentFallback.packagePrice;
+        weatherTentName = tentFallback.packageName || tentFallback.businessName;
+      } else if (evBudget >= 2000000) {
+        weatherTentCost = 350000;
+        weatherTentName = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+      } else if (evBudget >= 1200000) {
+        weatherTentCost = 150000;
+        weatherTentName = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)';
+      } else if (evBudget >= 700000) {
+        weatherTentCost = 80000;
+        weatherTentName = 'High-Peak Waterproof Stretch Canopy (20x30 ft)';
+      } else {
+        weatherTentCost = 45000;
+        weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
       }
     }
   }
@@ -1479,7 +1512,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {ev.guestCount} Guests
                       </span>
                       <span className={`font-bold ${isSelected ? 'text-sky-300' : 'text-indigo-600'}`}>
-                        Rs. {(Number(ev.budgetLimit) / 1000000).toFixed(1)}M
+                        Rs. {Number(ev.estimatedTotalCost || ev.budgetLimit).toLocaleString()}
                       </span>
                     </div>
 
@@ -1914,11 +1947,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </span>
                         </div>
                         <p className="text-xs text-amber-800 mt-1">
-                          {weatherAction || "Autonomous environmental contingency triggered on outdoor venue."}
+                          {`High precipitation probability (${rainPct}%) predicted for outdoor grounds. Autonomous safeguard: ${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()}) included to secure the event.`}
                         </p>
                         <p className="text-xs font-semibold text-emerald-800 mt-2 flex items-center">
                           <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" />
-                          Autonomous Safeguard: Rain contingency Marquee Tent active in breakdown below.
+                          {`Autonomous Safeguard: ${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()}) active in breakdown below.`}
                         </p>
                       </div>
                     </div>

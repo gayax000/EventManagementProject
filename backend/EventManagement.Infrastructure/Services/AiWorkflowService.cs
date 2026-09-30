@@ -39,7 +39,7 @@ public class AiWorkflowService : IAiWorkflowService
         _aiServiceUrl = configuration["AiServiceUrl"] ?? "http://localhost:8000/api/ai/plan";
     }
 
-    public static WeatherEvaluation EvaluateWeatherRisk(DateTime targetDate, string location, bool isOutdoor)
+    public static WeatherEvaluation EvaluateWeatherRisk(DateTime targetDate, string location, bool isOutdoor, decimal budgetLimit = 0m)
     {
         if (!isOutdoor)
         {
@@ -111,9 +111,27 @@ public class AiWorkflowService : IAiWorkflowService
             condition = (month >= 5 && month <= 9) 
                 ? "South-West Monsoon Rain Showers" 
                 : (month >= 10 && month <= 12 ? "North-East Monsoon Showers" : "Inter-Monsoon Thunderstorms");
-            safeguard = "Heavy-Duty Waterproof Marquee Tent & Backup Power";
-            safeguardCost = 150000m;
-            description = $"High precipitation probability ({rainPct}%) predicted for outdoor grounds in {location} on {targetDate:yyyy-MM-dd}. Autonomous safeguard: Waterproof Marquee Tent (Rs. 150,000) included to secure the event.";
+            if (budgetLimit >= 2000000m)
+            {
+                safeguard = "Air-Conditioned Transparent German Hangar Marquee (40x80 ft)";
+                safeguardCost = 350000m;
+            }
+            else if (budgetLimit >= 1200000m || budgetLimit <= 0m)
+            {
+                safeguard = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)";
+                safeguardCost = 150000m;
+            }
+            else if (budgetLimit >= 700000m)
+            {
+                safeguard = "High-Peak Waterproof Stretch Canopy (20x30 ft)";
+                safeguardCost = 80000m;
+            }
+            else
+            {
+                safeguard = "Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)";
+                safeguardCost = 45000m;
+            }
+            description = $"High precipitation probability ({rainPct}%) predicted for outdoor grounds in {location} on {targetDate:yyyy-MM-dd}. Autonomous safeguard: {safeguard} (Rs. {safeguardCost:N0}) included to secure the event.";
         }
         else if (rainPct >= 35)
         {
@@ -147,10 +165,32 @@ public class AiWorkflowService : IAiWorkflowService
     public async Task<AIWorkflowState?> TriggerAgenticPlanAsync(Guid eventId)
     {
         var ev = await _context.Events
-            .Include(e => e.Venue)
-            .Include(e => e.BanquetHall)
-            .ThenInclude(h => h!.Venue)
-            .FirstOrDefaultAsync(e => e.EventId == eventId);
+            .AsNoTracking()
+            .Where(e => e.EventId == eventId)
+            .Select(e => new
+            {
+                e.EventId,
+                e.Title,
+                e.TargetDate,
+                e.GuestCount,
+                e.BudgetLimit,
+                e.IsOutdoor,
+                e.PreferredLocation,
+                e.SelectedServicesJson,
+                e.TableRefreshmentsJson,
+                e.EventSession,
+                e.CateringStyle,
+                e.AdditionalDetails,
+                e.Status,
+                VenueName = e.Venue != null ? e.Venue.Name : null,
+                VenueAddress = e.Venue != null ? e.Venue.LocationAddress : null,
+                HasBanquetHall = e.BanquetHall != null,
+                BanquetHallName = e.BanquetHall != null ? e.BanquetHall.HallName : null,
+                BanquetHallVenueName = e.BanquetHall != null && e.BanquetHall.Venue != null ? e.BanquetHall.Venue.Name : null,
+                HallRentalPrice = e.BanquetHall != null ? e.BanquetHall.HallRentalPrice : 0m,
+                PerPlatePrice = e.BanquetHall != null ? e.BanquetHall.PerPlatePrice : 5000m
+            })
+            .FirstOrDefaultAsync();
 
         if (ev == null)
         {
@@ -158,80 +198,18 @@ public class AiWorkflowService : IAiWorkflowService
             return null;
         }
 
-        string eventLocation = ev.BanquetHall != null 
-            ? $"{ev.BanquetHall.Venue?.Name ?? "Selected Hotel"} ({ev.BanquetHall.HallName})" 
-            : (ev.Venue != null ? $"{ev.Venue.Name}, {ev.Venue.LocationAddress}" : (!string.IsNullOrWhiteSpace(ev.PreferredLocation) ? ev.PreferredLocation : "Colombo"));
+        string eventLocation = ev.HasBanquetHall 
+            ? $"{ev.BanquetHallVenueName ?? "Selected Hotel"} ({ev.BanquetHallName})" 
+            : (ev.VenueName != null ? $"{ev.VenueName}, {ev.VenueAddress}" : (!string.IsNullOrWhiteSpace(ev.PreferredLocation) ? ev.PreferredLocation : "Colombo"));
 
         // 1. Evaluate Dynamic Date-Aware & Location-Aware Weather
-        var weather = EvaluateWeatherRisk(ev.TargetDate, eventLocation, ev.IsOutdoor);
+        var weather = EvaluateWeatherRisk(ev.TargetDate, eventLocation, ev.IsOutdoor, ev.BudgetLimit);
         string weatherJson = JsonSerializer.Serialize(weather);
-
-        var payload = new
-        {
-            eventId = ev.EventId.ToString(),
-            title = ev.Title,
-            targetDate = ev.TargetDate.ToString("yyyy-MM-dd"),
-            guestCount = ev.GuestCount,
-            budgetLimit = (double)ev.BudgetLimit,
-            location = eventLocation,
-            isOutdoor = ev.IsOutdoor
-        };
-
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            _logger.LogInformation("Calling Agentic AI Subsystem at {Url} for Event {EventId}...", _aiServiceUrl, eventId);
-
-            var response = await _httpClient.PostAsync(_aiServiceUrl, content, cts.Token);
-            if (response.IsSuccessStatusCode)
-            {
-                var jsonString = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(jsonString);
-                var root = doc.RootElement;
-
-                var estimatedCost = root.TryGetProperty("subtotal", out var subProp) ? subProp.GetDecimal() : 800000m;
-                var planJson = root.TryGetProperty("multiStepPlan", out var planProp) ? planProp.GetRawText() : "[]";
-                var traceJson = root.TryGetProperty("auditTraceLogs", out var tProp) ? tProp.GetRawText() : "[]";
-
-                var existingHttpState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == ev.EventId);
-                if (existingHttpState != null)
-                {
-                    existingHttpState.GeneratedPlanJson = planJson;
-                    existingHttpState.WeatherAssessmentJson = weatherJson;
-                    existingHttpState.ToolExecutionLogsJson = traceJson;
-                    existingHttpState.EstimatedTotalCost = estimatedCost;
-                    await _context.SaveChangesAsync();
-                    return existingHttpState;
-                }
-
-                var aiState = new AIWorkflowState
-                {
-                    EventId = ev.EventId,
-                    ObjectiveText = $"Autonomous proposal for {ev.Title} ({ev.GuestCount} guests)",
-                    GeneratedPlanJson = planJson,
-                    WeatherAssessmentJson = weatherJson,
-                    ToolExecutionLogsJson = traceJson,
-                    EstimatedTotalCost = estimatedCost,
-                    ApprovalStatus = "PendingManagerApproval"
-                };
-
-                _context.AIWorkflowStates.Add(aiState);
-                ev.Status = "PendingManagerApproval";
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Successfully persisted AI Workflow {WorkflowId} for Event {EventId}.", aiState.WorkflowId, eventId);
-                return aiState;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogInformation("Agentic AI local socket skipped ({Msg}). Building dynamic intelligence plan natively.", ex.Message);
-        }
 
         // 2. Intelligent Proposal Engine (Native in .NET for High Availability & Zero Failure)
         // Synchronized 100% with Verified Vendor Catalog & Manager Dashboard Tier Allocation
         var verifiedVendors = await _context.Vendors
+            .AsNoTracking()
             .Where(v => v.VerificationStatus == "Verified" && v.PackagePrice != null && v.PackagePrice > 0)
             .ToListAsync();
 
@@ -256,9 +234,9 @@ public class AiWorkflowService : IAiWorkflowService
             return matching[targetIndex];
         }
 
-        bool isPrivateVenue = ev.BanquetHall == null;
-        decimal hallRental = isPrivateVenue ? 0m : ev.BanquetHall!.HallRentalPrice;
-        decimal cateringPrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : 5000m;
+        bool isPrivateVenue = !ev.HasBanquetHall;
+        decimal hallRental = isPrivateVenue ? 0m : ev.HallRentalPrice;
+        decimal cateringPrice = ev.HasBanquetHall ? ev.PerPlatePrice : 5000m;
         decimal cateringCost = ev.GuestCount * cateringPrice;
 
         List<string> selectedServices = new();
@@ -501,7 +479,7 @@ public class AiWorkflowService : IAiWorkflowService
         planItems.Add($"Event Session: {sessionTitle}");
         string venueRentalLabel = isPrivateVenue
             ? $"Private Residence ({ev.PreferredLocation ?? "Client Premises"})"
-            : (ev.BanquetHall != null ? $"{ev.BanquetHall.HallName} Hall Rental" : $"{ev.Venue?.Name ?? "Selected Venue"} Rental");
+            : (ev.HasBanquetHall ? $"{ev.BanquetHallName} Hall Rental" : $"{ev.VenueName ?? "Selected Venue"} Rental");
         if (isPrivateVenue)
         {
             planItems.Add($"{venueRentalLabel} = Rs. 0 (Venue rental waived - Client owned property)");
@@ -570,8 +548,8 @@ public class AiWorkflowService : IAiWorkflowService
         };
 
         _context.AIWorkflowStates.Add(finalState);
-        ev.Status = "PendingManagerApproval";
         await _context.SaveChangesAsync();
+        await _context.Events.Where(e => e.EventId == eventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.Status, "PendingManagerApproval"));
 
         _logger.LogInformation("Persisted dynamic native AI Workflow for Event {EventId}. Total: {Total}", eventId, computedTotal);
         return finalState;
