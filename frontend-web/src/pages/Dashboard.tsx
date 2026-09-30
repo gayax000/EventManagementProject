@@ -519,6 +519,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             setSelectedEvent(prev => (prev && prev.eventId === selectedEvent.eventId) ? { 
               ...prev, 
+              status: p.status || prev.status,
+              revisionNotes: p.revisionNotes ?? prev.revisionNotes,
               estimatedTotalCost: p.estimatedTotalCost ?? prev.estimatedTotalCost,
               eventType: p.eventType || prev.eventType,
               venueName: p.venueName || prev.venueName,
@@ -1483,10 +1485,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center space-x-1 ${
                           isEvApproved
                             ? (isSelected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-emerald-100 text-emerald-800')
+                            : ev.status === 'ClientChoiceSubmitted'
+                            ? (isSelected ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' : 'bg-teal-100 text-teal-800 border border-teal-200')
                             : (isSelected ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-amber-100 text-amber-800')
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${isEvApproved ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                          <span>{isEvApproved ? 'Approved' : 'Pending'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isEvApproved ? 'bg-emerald-400' : ev.status === 'ClientChoiceSubmitted' ? 'bg-teal-500' : 'bg-amber-400 animate-pulse'}`} />
+                          <span>{isEvApproved ? 'Approved' : ev.status === 'ClientChoiceSubmitted' ? 'Client Agreed' : 'Pending'}</span>
                         </span>
                       </div>
 
@@ -1757,7 +1761,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       isApproved
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : selectedEvent.revisionNotes?.includes('AcceptedPremium')
+                        : (selectedEvent.revisionNotes?.includes('AcceptedPremium') || selectedEvent.revisionNotes?.includes('ClientChoiceSubmitted') || (selectedEvent.status === 'ClientChoiceSubmitted' && !selectedEvent.revisionNotes?.includes('RequestedBudgetFit')))
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         : selectedEvent.revisionNotes?.includes('RequestedBudgetFit')
                         ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
@@ -1765,8 +1769,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }`}>
                       {isApproved 
                         ? '✓ Approved' 
-                        : selectedEvent.revisionNotes?.includes('AcceptedPremium')
-                        ? '✓ Client Accepted Premium'
+                        : (selectedEvent.revisionNotes?.includes('AcceptedPremium') || selectedEvent.revisionNotes?.includes('ClientChoiceSubmitted') || (selectedEvent.status === 'ClientChoiceSubmitted' && !selectedEvent.revisionNotes?.includes('RequestedBudgetFit')))
+                        ? '✓ Client Agreed to Proposal'
                         : selectedEvent.revisionNotes?.includes('RequestedBudgetFit')
                         ? '⚡ Client: Budget-Fit Requested'
                         : '⏳ Awaiting Manager Approval'}
@@ -1978,28 +1982,105 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   )}
 
-                  {/* Client Requested Custom Revision Alert Banner */}
-                  {(selectedEvent.status === 'RevisionRequested' || (selectedEvent.revisionNotes && selectedEvent.revisionNotes.trim().length > 0)) && (
-                    <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-xl space-y-2 shadow-xs">
-                      <div className="flex items-center space-x-2">
-                        <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
-                        <h4 className="text-sm font-bold text-rose-950 uppercase tracking-wide">
-                          Client Requested Custom Proposal Revisions
-                        </h4>
-                        <span className="text-[10px] bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-full">
-                          Action Required
-                        </span>
-                      </div>
-                      <div className="bg-white/90 p-3 rounded-lg border border-rose-200">
-                        <p className="text-xs font-semibold text-rose-900 italic">
-                          "{selectedEvent.revisionNotes || 'Client has requested adjustments to this event proposal.'}"
-                        </p>
-                      </div>
-                      <p className="text-[11px] text-rose-700">
-                        Review the client's request above. You can adjust service package tiers below, update the special request allocation, or apply courtesy discounts before final approval.
-                      </p>
-                    </div>
-                  )}
+                  {/* Client Decision / Custom Revision Status Banner */}
+                  {(() => {
+                    const revText = (selectedEvent.revisionNotes || '').trim();
+                    const isClientAgreed =
+                      selectedEvent.status === 'ClientChoiceSubmitted' && !revText.includes('RequestedBudgetFit') ||
+                      revText.includes('ClientChoiceSubmitted') ||
+                      revText.includes('AcceptedPremium');
+                    const isBudgetFitReq = revText.includes('RequestedBudgetFit');
+                    const hasCustomRevision =
+                      selectedEvent.status === 'RevisionRequested' ||
+                      (revText.length > 0 && !revText.startsWith('ClientChoice:'));
+
+                    if (isClientAgreed) {
+                      return (
+                        <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-xl space-y-2.5 shadow-xs">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                              <h4 className="text-sm font-bold text-emerald-950 uppercase tracking-wide">
+                                Client Agreed & Accepted Proposal
+                              </h4>
+                            </div>
+                            <span className="text-[10px] bg-emerald-200/80 text-emerald-900 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+                              ✓ Ready for Final Approval
+                            </span>
+                          </div>
+                          <div className="bg-white/95 p-3 rounded-lg border border-emerald-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-semibold text-emerald-950">
+                                Client reviewed the itemized AI package breakdown on the Mobile App and officially agreed to proceed.
+                              </p>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                Stated Client Budget: Rs. {Number(selectedEvent.budgetLimit).toLocaleString()} • Status: Awaiting Manager Confirmation
+                              </p>
+                            </div>
+                            <div className="sm:text-right flex-shrink-0 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+                              <span className="text-[10px] uppercase font-bold text-emerald-700 block">Agreed Total</span>
+                              <span className="text-sm font-extrabold text-emerald-800">Rs. {displayedFinalTotal.toLocaleString()}</span>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 font-medium">
+                            Click <strong>"Approve & Send to Client"</strong> in the right panel to finalize this booking proposal and unlock the client's bank deposit slip upload.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    if (isBudgetFitReq) {
+                      return (
+                        <div className="p-4 bg-sky-50 border-2 border-sky-300 rounded-xl space-y-2 shadow-xs">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center space-x-2">
+                              <ShieldCheck className="w-5 h-5 text-sky-600 flex-shrink-0" />
+                              <h4 className="text-sm font-bold text-sky-950 uppercase tracking-wide">
+                                Client Requested Budget-Fit Standard Package
+                              </h4>
+                            </div>
+                            <span className="text-[10px] bg-sky-200 text-sky-900 font-bold px-2.5 py-0.5 rounded-full">
+                              Auto-Fit Requested
+                            </span>
+                          </div>
+                          <div className="bg-white/90 p-3 rounded-lg border border-sky-200">
+                            <p className="text-xs font-semibold text-sky-950">
+                              The client requested to scale down optional service package tiers to fit within their stated budget limit of <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>.
+                            </p>
+                          </div>
+                          <p className="text-[11px] text-sky-800">
+                            Use the <strong>"Auto-Fit Packages to Budget"</strong> button on the right panel before giving final approval.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    if (hasCustomRevision) {
+                      return (
+                        <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-xl space-y-2 shadow-xs">
+                          <div className="flex items-center space-x-2">
+                            <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                            <h4 className="text-sm font-bold text-rose-950 uppercase tracking-wide">
+                              Client Requested Custom Proposal Revisions
+                            </h4>
+                            <span className="text-[10px] bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-full">
+                              Action Required
+                            </span>
+                          </div>
+                          <div className="bg-white/90 p-3 rounded-lg border border-rose-200">
+                            <p className="text-xs font-semibold text-rose-900 italic">
+                              "{revText || 'Client has requested adjustments to this event proposal.'}"
+                            </p>
+                          </div>
+                          <p className="text-[11px] text-rose-700">
+                            Review the client's request above. You can adjust service package tiers below, update the special request allocation, or apply courtesy discounts before final approval.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })()}
 
                   {/* AI Compiled Package Breakdown List */}
                   <div>
@@ -3191,7 +3272,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     
                     {/* Smart Budget Overrun Guardrail Box */}
                     {(() => {
-                      const isClientAccepted = selectedEvent.revisionNotes?.includes('AcceptedPremium') || (selectedEvent.status === 'ClientChoiceSubmitted' && overrunAmount <= 0);
+                      const isClientAccepted =
+                        selectedEvent.revisionNotes?.includes('AcceptedPremium') ||
+                        selectedEvent.revisionNotes?.includes('ClientChoiceSubmitted') ||
+                        (selectedEvent.status === 'ClientChoiceSubmitted' && !selectedEvent.revisionNotes?.includes('RequestedBudgetFit'));
                       const isClientBudgetFit = selectedEvent.revisionNotes?.includes('RequestedBudgetFit');
 
                       if (isClientAccepted) {
@@ -3201,10 +3285,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                               <div>
                                 <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                                  ✅ CLIENT ACCEPTED PREMIUM BUDGET
+                                  ✅ CLIENT AGREED & ACCEPTED PROPOSAL
                                 </h5>
                                 <p className="text-xs text-emerald-900 mt-1">
-                                  Client agreed to increase their budget to <strong>Rs. {displayedFinalTotal.toLocaleString()}</strong> to preserve full luxury specifications.
+                                  Client officially agreed to the proposal total of <strong>Rs. {displayedFinalTotal.toLocaleString()}</strong>. Ready for final manager approval.
                                 </p>
                               </div>
                             </div>

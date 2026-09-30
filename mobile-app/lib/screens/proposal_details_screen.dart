@@ -569,11 +569,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "We compiled your ${proposal.title} with premium 4K Video Coverage & Fresh Floral Tunnel Arch to match your venue luxury.",
-                    style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
-                  ),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(10),
@@ -1156,7 +1151,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 border: Border.all(
                   color: proposal.status == 'RevisionRequested' 
                       ? const Color(0xFFFDA4AF) 
-                      : const Color(0xFFCBD5E1),
+                      : isChoiceSubmitted
+                          ? const Color(0xFF6EE7B7)
+                          : const Color(0xFFCBD5E1),
                 ),
                 boxShadow: const [
                   BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -1213,6 +1210,68 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                     ),
+                  ] else if (isChoiceSubmitted) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Proposal Agreement Submitted",
+                            style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF6EE7B7)),
+                          ),
+                          child: const Text(
+                            "✓ Agreed",
+                            style: TextStyle(color: Color(0xFF047857), fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "You have officially agreed to this proposal (LKR $formattedCost). The Hotel Operations Manager has been notified to give final confirmation and unlock your bank deposit slip.",
+                              style: const TextStyle(color: Color(0xFF065F46), fontSize: 12, height: 1.4, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showRevisionDialog(proposal),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFF64748B)),
+                        label: const Text("Need Modifications Instead? Request Changes", style: TextStyle(fontSize: 11.5, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
                   ] else ...[
                     const Row(
                       children: [
@@ -1236,7 +1295,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               setState(() => _isLoading = true);
-                              final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', proposal.estimatedTotalCost);
+                              final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', effectiveTotalCost);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
