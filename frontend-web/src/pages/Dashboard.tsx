@@ -2209,68 +2209,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
                             </div>
                           ))}
-                          <p className="text-[11px] text-emerald-700 font-semibold flex items-center space-x-1 pt-1 border-t border-emerald-100">
-                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline mr-1" />
-                            Assigned Partner: <strong>{selectedVendorAssignments['Refreshments']?.vendorName || 'Ceylon Tea Trails Mobile Brew Station'}</strong>
-                            <span className="text-[10px] text-emerald-800 bg-emerald-100 font-bold px-1.5 py-0.2 rounded-full ml-1">Verified Supplier</span>
-                          </p>
-                          {!isApproved && (
-                            <>
-                              <div className="pt-2 border-t border-emerald-200/60 flex flex-wrap items-center justify-between gap-2 text-xs">
-                                <div className="flex items-center space-x-1.5">
-                                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                                  <span className="font-bold text-emerald-950">🔄 Switch Refreshment Station / Partner:</span>
-                                </div>
-                                <select
-                                  value={selectedVendorAssignments['Refreshments']?.vendorId || ''}
-                                  onChange={(e) => {
-                                    const vId = e.target.value;
-                                    const found = availableVendors.find(v => (v.vendorId || (v as any).id) === vId);
-                                    if (found) {
-                                      const perHead = Number(found.packagePrice) || 0;
-                                      const totalCost = perHead * (selectedEvent.guestCount || 100);
-                                      setSelectedVendorAssignments(prev => ({
-                                        ...prev,
-                                        Refreshments: {
-                                          vendorId: vId,
-                                          vendorName: found.businessName || found.name || 'Verified Supplier',
-                                          packageName: found.packageName,
-                                          agreedPayout: totalCost,
-                                          isCustomPackage: true
-                                        }
-                                      }));
-                                    }
-                                  }}
-                                  className="bg-white border border-emerald-300 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-md w-full sm:w-auto"
-                                >
-                                  {getVerifiedVendorsForCategory('Refreshments')
-                                    .sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0))
-                                    .map(v => (
-                                      <option key={v.vendorId || (v as any).id} value={v.vendorId || (v as any).id}>
-                                        Rs. {Number(v.packagePrice).toLocaleString()}/head — {v.businessName || v.name} ({v.packageName})
-                                      </option>
-                                    ))}
-                                </select>
-                              </div>
-                              {selectedVendorAssignments['Refreshments']?.isCustomPackage && (
-                                <div className="flex justify-end pt-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedVendorAssignments(prev => {
-                                        const next = { ...prev };
-                                        delete next['Refreshments'];
-                                        return next;
-                                      });
-                                    }}
-                                    className="text-[10px] text-emerald-800 font-semibold underline hover:text-emerald-950"
-                                  >
-                                    (Reset to Client Selected Stations)
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          )}
                         </div>
                       )}
 
