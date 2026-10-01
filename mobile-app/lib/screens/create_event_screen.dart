@@ -606,7 +606,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  Future<void> _showEventCreatedSuccessDialog(BuildContext context, EventModel createdEvent) async {
+  Future<void> _showEventCreatedSuccessDialog(BuildContext context, EventSummary createdEvent) async {
     final currencyFmt = NumberFormat("#,##0", "en_US");
     final formattedBudget = currencyFmt.format(createdEvent.budgetLimit);
     final dateStr = DateFormat("MMM dd, yyyy").format(createdEvent.targetDate);
