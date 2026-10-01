@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
     // Member 4 Tables
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
