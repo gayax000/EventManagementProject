@@ -134,9 +134,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState('');
+
+  // Custom Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+    isDeleting: boolean;
+  } | null>(null);
 
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
@@ -1164,24 +1173,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  // Delete Event Request Action
-  const handleDeleteEvent = async (e: React.MouseEvent, eventId: string, eventTitle: string) => {
+  // Delete Event Request Action - Prompts Custom High-End Modal
+  const handleDeleteEvent = (e: React.MouseEvent, eventId: string, eventTitle: string) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete "${eventTitle}"? This action will permanently remove the proposal from the database.`)) {
-      try {
-        await eventService.deleteEvent(eventId);
-        setActionSuccess(`Event "${eventTitle}" deleted successfully!`);
-        if (selectedEvent?.eventId === eventId) {
-          setSelectedEvent(null);
-        }
-        if (viewModalEvent?.eventId === eventId) {
-          setViewModalEvent(null);
-        }
-        loadEvents();
-      } catch (err) {
-        console.error("Failed to delete event proposal", err);
-        alert("Failed to delete event proposal. Please try again.");
+    setDeleteModal({
+      isOpen: true,
+      eventId,
+      eventTitle,
+      isDeleting: false
+    });
+  };
+
+  // Confirmed Delete Event from Custom Modal
+  const confirmDeleteEvent = async () => {
+    if (!deleteModal) return;
+    setDeleteModal(prev => prev ? { ...prev, isDeleting: true } : null);
+    try {
+      await eventService.deleteEvent(deleteModal.eventId);
+      setActionSuccess(`Event "${deleteModal.eventTitle}" deleted successfully!`);
+      if (selectedEvent?.eventId === deleteModal.eventId) {
+        setSelectedEvent(null);
       }
+      if (viewModalEvent?.eventId === deleteModal.eventId) {
+        setViewModalEvent(null);
+      }
+      setDeleteModal(null);
+      loadEvents();
+    } catch (err) {
+      console.error("Failed to delete event proposal", err);
+      setActionError("Failed to delete event proposal. Please try again.");
+      setDeleteModal(null);
     }
   };
 
@@ -1487,6 +1508,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <span>{actionSuccess}</span>
           </div>
           <button onClick={() => setActionSuccess(null)} className="text-emerald-600 hover:text-emerald-900 font-bold">&times;</button>
+        </div>
+      )}
+
+      {/* Error Notification Alert */}
+      {actionError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-medium flex items-center justify-between shadow-xs">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError(null)} className="text-rose-600 hover:text-rose-900 font-bold">&times;</button>
         </div>
       )}
 
@@ -3734,6 +3766,82 @@ export const Dashboard: React.FC<DashboardProps> = ({
               alt="High Definition Preview" 
               className="w-full h-auto max-h-[85vh] object-contain" 
             />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. ENTERPRISE CUSTOM DELETE CONFIRMATION MODAL (z-[100])                   */}
+      {/* ========================================================================= */}
+      {deleteModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => !deleteModal.isDeleting && setDeleteModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Top Accent Gradient Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500" />
+
+            <div className="flex items-start space-x-4 pt-1">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 text-rose-600 shadow-xs">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black tracking-wider uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Irreversible Action
+                  </span>
+                  {!deleteModal.isDeleting && (
+                    <button 
+                      onClick={() => setDeleteModal(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                      title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <h3 className="text-lg font-black text-slate-900 mt-2">
+                  Permanently Delete Proposal?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  Are you sure you want to delete <span className="font-bold text-slate-800">"{deleteModal.eventTitle}"</span>? This will permanently remove the proposal, AI allocated budgets, and associated records from the database.
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={() => setDeleteModal(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={confirmDeleteEvent}
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleteModal.isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Permanently Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
