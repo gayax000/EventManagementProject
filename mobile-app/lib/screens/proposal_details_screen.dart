@@ -2086,19 +2086,29 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
             final bool isDiscount = str.toLowerCase().contains('discount') || str.contains('-Rs.') || str.contains('- LKR') || str.contains('(-Rs.');
 
-            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+            // Prioritize '=' match first (which represents the item total e.g. '= Rs. 1,300,000')
+            final eqMatch = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)').firstMatch(str);
+            final match = eqMatch ?? RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+
             if (match != null) {
-              final valStr = match.group(1) ?? match.group(2) ?? match.group(4);
+              final valStr = eqMatch != null 
+                  ? eqMatch.group(1) 
+                  : (match.group(1) ?? match.group(2) ?? match.group(3));
               double cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
               if (isDiscount && cost > 0) {
                 cost = -cost;
               }
 
-              String label = str
-                  .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*-?[\d,]+'), '')
-                  .replaceAll(RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*-?[\d,]+\)'), '')
-                  .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
-                  .trim();
+              String label;
+              if (eqMatch != null) {
+                // If matched by '=', label is everything before '='
+                label = str.split('=').first.trim();
+              } else {
+                label = str
+                    .replaceAll(RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*-?[\d,]+\)'), '')
+                    .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
+                    .trim();
+              }
 
               if (label.startsWith('Catering Style:')) {
                 label = label.replaceFirst('Catering Style:', '').trim();
