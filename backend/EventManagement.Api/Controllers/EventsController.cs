@@ -216,19 +216,18 @@ public class EventsController : ControllerBase
             try
             {
                 var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
-                if (manager != null)
+                var managerId = manager?.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+                _context.Notifications.Add(new Notification
                 {
-                    _context.Notifications.Add(new Notification
-                    {
-                        UserId = manager.UserId,
-                        EventId = newEvent.EventId,
-                        Title = "🆕 New Event Created",
-                        Message = $"New {newEvent.EventType} event \"{newEvent.Title}\" created by client. Budget: LKR {newEvent.BudgetLimit:N0}",
-                        Type = "NewEvent",
-                        CreatedAt = DateTime.UtcNow
-                    });
-                    await _context.SaveChangesAsync();
-                }
+                    UserId = managerId,
+                    EventId = newEvent.EventId,
+                    Title = "🆕 New Event Created",
+                    Message = $"New {newEvent.EventType} event \"{newEvent.Title}\" created by client. Budget: LKR {newEvent.BudgetLimit:N0}",
+                    Type = "NewEvent",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
             }
             catch { }
 
@@ -513,34 +512,33 @@ public class EventsController : ControllerBase
         try
         {
             var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
-            if (manager != null)
+            var managerId = manager?.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+            if (isRevision)
             {
-                if (isRevision)
+                _context.Notifications.Add(new Notification
                 {
-                    _context.Notifications.Add(new Notification
-                    {
-                        UserId = manager.UserId,
-                        EventId = ev.EventId,
-                        Title = "📝 Revision Requested",
-                        Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
-                        Type = "RevisionRequest",
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
-                else
-                {
-                    _context.Notifications.Add(new Notification
-                    {
-                        UserId = manager.UserId,
-                        EventId = ev.EventId,
-                        Title = "✅ Proposal Option Accepted",
-                        Message = $"Client submitted proposal choice \"{clientAction}\" for \"{ev.Title}\".",
-                        Type = "ProposalAccepted",
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
-                await _context.SaveChangesAsync();
+                    UserId = managerId,
+                    EventId = ev.EventId,
+                    Title = "📝 Revision Requested",
+                    Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
+                    Type = "RevisionRequest",
+                    CreatedAt = DateTime.UtcNow
+                });
             }
+            else
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = managerId,
+                    EventId = ev.EventId,
+                    Title = "✅ Proposal Option Accepted",
+                    Message = $"Client submitted proposal choice \"{clientAction}\" for \"{ev.Title}\".",
+                    Type = "ProposalAccepted",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
         }
         catch { }
 
