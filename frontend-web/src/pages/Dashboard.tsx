@@ -131,7 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [viewModalEvent, setViewModalEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
+  const [specialDiscount, setSpecialDiscount] = useState<number>(0);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -537,6 +537,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (selectedEvent?.eventId) {
       setIsBudgetAutoFitted(false);
       setClientApprovalRequested(false);
+      setSpecialDiscount(0);
       setSpecialAllocation(0);
       setCustomHallCost(null);
       setCustomPerPlateCost(null);
