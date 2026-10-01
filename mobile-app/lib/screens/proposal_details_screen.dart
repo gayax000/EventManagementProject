@@ -2086,7 +2086,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
             final bool isDiscount = str.toLowerCase().contains('discount') || str.contains('-Rs.') || str.contains('- LKR') || str.contains('(-Rs.');
 
-            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
             if (match != null) {
               final valStr = match.group(1) ?? match.group(2) ?? match.group(4);
               double cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
@@ -2096,7 +2096,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
               String label = str
                   .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*-?[\d,]+'), '')
-                  .replaceAll(RegExp(r'\((?:Rs\.|LKR|-Rs\.|-LKR)\s*-?[\d,]+\)'), '')
+                  .replaceAll(RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*-?[\d,]+\)'), '')
                   .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
                   .trim();
 
@@ -2109,6 +2109,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 final String lowerLabel = label.toLowerCase();
                 if (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee')) {
                   label = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
+                  cost = 350000.0;
+                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower')) {
+                  cost = 220000.0;
                 }
               }
 

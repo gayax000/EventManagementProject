@@ -1071,8 +1071,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const vAssigned = selectedVendorAssignments['Photography'];
       if (vAssigned?.vendorId && !vAssigned.isPending) {
         planItems.push(`${alloc.photoName} [Partner: ${vAssigned.vendorName}] (Rs. ${alloc.photoCost.toLocaleString()})`);
+      } else if (alloc.photoCost > 0) {
+        planItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
       } else {
-        planItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)`);
+        planItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Rs. 0)`);
       }
     }
     if (alloc.hasCake) {
@@ -1083,7 +1085,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const vName = selectedVendorAssignments['Transport']?.vendorName || selectedVendorAssignments['VIPTransport']?.vendorName;
       planItems.push(`${alloc.transportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
     }
-    if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
+    if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} [Partner: ${selectedVendorAssignments['MarqueeTent']?.vendorName || 'Ceylon WeatherShield'}] (Rs. ${weatherTentCost.toLocaleString()})`);
     if (isEventOutdoor && selectedVendorAssignments['PowerBackup']?.vendorId) {
       planItems.push(`${selectedVendorAssignments['PowerBackup'].packageName || 'Backup Diesel Silent Generator'} [Partner: ${selectedVendorAssignments['PowerBackup'].vendorName}] (Rs. ${(selectedVendorAssignments['PowerBackup'].agreedPayout || 50000).toLocaleString()})`);
@@ -1336,7 +1338,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         } else if (alloc.photoCost > 0) {
           draftPlanItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
         } else {
-          draftPlanItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)`);
+          draftPlanItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Rs. 0)`);
         }
       }
       if (alloc.hasCake) {
@@ -1366,7 +1368,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         });
       }
       if (alloc.hasSpecialRequests) {
-        draftPlanItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
+        draftPlanItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Rs. ${alloc.otherCost.toLocaleString()})`);
       }
       if (isEventOutdoor && weatherTentCost > 0) {
         const tntAssigned = selectedVendorAssignments['MarqueeTent'];
