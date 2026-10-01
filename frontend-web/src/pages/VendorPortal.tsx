@@ -588,7 +588,6 @@ export const VendorPortal: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
               Supplier & Partner Portal
             </span>
-            <span className="text-xs text-slate-400">• Member 1 Component</span>
           </div>
           <h1 className="text-2xl font-black mt-2">Vendor Business Management & Onboarding</h1>
           <p className="text-slate-400 text-sm mt-1">Onboard your business across all 8 certified event services for autonomous AI-assisted event proposal allocation.</p>

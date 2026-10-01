@@ -143,7 +143,6 @@ export const VenuesPage: React.FC = () => {
               <Building2 className="w-3.5 h-3.5 mr-1" />
               Luxury Venues & Hotels Directory
             </span>
-            <span className="text-xs text-slate-400">• Member 1 Component</span>
           </div>
           <h1 className="text-2xl font-black mt-2">Sri Lankan Venues & Banquet Halls</h1>
           <p className="text-slate-400 text-sm mt-1">Explore certified star hotels and event venues in Colombo, Kandy, Nuwara Eliya, Galle and across Sri Lanka.</p>
@@ -179,7 +178,7 @@ export const VenuesPage: React.FC = () => {
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
-            {city === 'All' ? '🌟 All Cities' : `📍 ${city}`}
+            {city === 'All' ? 'All Cities' : city}
           </button>
         ))}
       </div>
@@ -307,7 +306,7 @@ export const VenuesPage: React.FC = () => {
                             ? 'bg-amber-100 text-amber-900 border border-amber-200' 
                             : 'bg-indigo-100 text-indigo-900 border border-indigo-200'
                         }`}>
-                          <span>{hall.isOutdoor ? '🌳 Outdoor Space' : '🏛️ Indoor Hall'}</span>
+                          <span>{hall.isOutdoor ? 'Outdoor Space' : 'Indoor Hall'}</span>
                         </span>
                       </div>
                       

@@ -207,7 +207,6 @@ export const VendorsPage: React.FC = () => {
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  <span>{cat.icon}</span>
                   <span>{cat.label}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     pendingCategory === cat.id ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'
@@ -234,7 +233,6 @@ export const VendorsPage: React.FC = () => {
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">{badge.icon}</span>
                       <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                     </div>
                     {(vendor.packageName || vendor.adminRemarks) && (
@@ -329,7 +327,6 @@ export const VendorsPage: React.FC = () => {
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
-                  <span>{cat.icon}</span>
                   <span>{cat.label}</span>
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     confirmedCategory === cat.id ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-500'
@@ -356,7 +353,6 @@ export const VendorsPage: React.FC = () => {
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">{badge.icon}</span>
                       <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
                     </div>
                     {(vendor.packageName || vendor.adminRemarks) && (
@@ -418,7 +414,9 @@ export const VendorsPage: React.FC = () => {
             </button>
 
             <div className="flex items-center space-x-3 mb-4">
-              <span className="text-3xl bg-slate-100 p-2.5 rounded-xl">{getCategoryBadge(selectedVendorForView.category).icon}</span>
+              <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 flex-shrink-0">
+                <Briefcase className="w-6 h-6" />
+              </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{selectedVendorForView.name}</h3>
                 <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mt-0.5 ${
