@@ -134,9 +134,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [specialDiscount, setSpecialDiscount] = useState<number>(20000);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState('');
+
+  // Custom Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    eventId: string;
+    eventTitle: string;
+    isDeleting: boolean;
+  } | null>(null);
 
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
@@ -1122,8 +1131,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const vAssigned = selectedVendorAssignments['Photography'];
       if (vAssigned?.vendorId && !vAssigned.isPending) {
         planItems.push(`${alloc.photoName} [Partner: ${vAssigned.vendorName}] (Rs. ${alloc.photoCost.toLocaleString()})`);
+      } else if (alloc.photoCost > 0) {
+        planItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
       } else {
-        planItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)`);
+        planItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Rs. 0)`);
       }
     }
     if (alloc.hasCake) {
@@ -1134,7 +1145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const vName = selectedVendorAssignments['Transport']?.vendorName || selectedVendorAssignments['VIPTransport']?.vendorName;
       planItems.push(`${alloc.transportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
     }
-    if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
+    if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} [Partner: ${selectedVendorAssignments['MarqueeTent']?.vendorName || 'Ceylon WeatherShield'}] (Rs. ${weatherTentCost.toLocaleString()})`);
     if (isEventOutdoor && selectedVendorAssignments['PowerBackup']?.vendorId) {
       planItems.push(`${selectedVendorAssignments['PowerBackup'].packageName || 'Backup Diesel Silent Generator'} [Partner: ${selectedVendorAssignments['PowerBackup'].vendorName}] (Rs. ${(selectedVendorAssignments['PowerBackup'].agreedPayout || 50000).toLocaleString()})`);
@@ -1162,24 +1173,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  // Delete Event Request Action
-  const handleDeleteEvent = async (e: React.MouseEvent, eventId: string, eventTitle: string) => {
+  // Delete Event Request Action - Prompts Custom High-End Modal
+  const handleDeleteEvent = (e: React.MouseEvent, eventId: string, eventTitle: string) => {
     e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete "${eventTitle}"? This action will permanently remove the proposal from the database.`)) {
-      try {
-        await eventService.deleteEvent(eventId);
-        setActionSuccess(`Event "${eventTitle}" deleted successfully!`);
-        if (selectedEvent?.eventId === eventId) {
-          setSelectedEvent(null);
-        }
-        if (viewModalEvent?.eventId === eventId) {
-          setViewModalEvent(null);
-        }
-        loadEvents();
-      } catch (err) {
-        console.error("Failed to delete event proposal", err);
-        alert("Failed to delete event proposal. Please try again.");
+    setDeleteModal({
+      isOpen: true,
+      eventId,
+      eventTitle,
+      isDeleting: false
+    });
+  };
+
+  // Confirmed Delete Event from Custom Modal
+  const confirmDeleteEvent = async () => {
+    if (!deleteModal) return;
+    setDeleteModal(prev => prev ? { ...prev, isDeleting: true } : null);
+    try {
+      await eventService.deleteEvent(deleteModal.eventId);
+      setActionSuccess(`Event "${deleteModal.eventTitle}" deleted successfully!`);
+      if (selectedEvent?.eventId === deleteModal.eventId) {
+        setSelectedEvent(null);
       }
+      if (viewModalEvent?.eventId === deleteModal.eventId) {
+        setViewModalEvent(null);
+      }
+      setDeleteModal(null);
+      loadEvents();
+    } catch (err) {
+      console.error("Failed to delete event proposal", err);
+      setActionError("Failed to delete event proposal. Please try again.");
+      setDeleteModal(null);
     }
   };
 
@@ -1387,7 +1410,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         } else if (alloc.photoCost > 0) {
           draftPlanItems.push(`${alloc.photoName} (Rs. ${alloc.photoCost.toLocaleString()})`);
         } else {
-          draftPlanItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)`);
+          draftPlanItems.push(`Photography & Cinematography: Pending Live Photographer Registration (Rs. 0)`);
         }
       }
       if (alloc.hasCake) {
@@ -1417,7 +1440,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         });
       }
       if (alloc.hasSpecialRequests) {
-        draftPlanItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Manager Allocated: Rs. ${alloc.otherCost.toLocaleString()})`);
+        draftPlanItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Rs. ${alloc.otherCost.toLocaleString()})`);
       }
       if (isEventOutdoor && weatherTentCost > 0) {
         const tntAssigned = selectedVendorAssignments['MarqueeTent'];
@@ -1488,6 +1511,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       )}
 
+      {/* Error Notification Alert */}
+      {actionError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-medium flex items-center justify-between shadow-xs">
+          <div className="flex items-center space-x-2">
+            <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <span>{actionError}</span>
+          </div>
+          <button onClick={() => setActionError(null)} className="text-rose-600 hover:text-rose-900 font-bold">&times;</button>
+        </div>
+      )}
+
       {/* ========================================================================= */}
       {/* LIVE CLIENT EVENT PROPOSALS & OPERATIONAL MANAGEMENT HUB                  */}
       {/* ========================================================================= */}
@@ -1499,7 +1533,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                 Client Event Proposals & AI Budgets
               </span>
-              <span className="text-xs text-slate-400">• Synchronized with PostgreSQL DB</span>
             </div>
             <h2 className="text-2xl font-black mt-2">Active Celebrations & Curation Workspace</h2>
             <p className="text-slate-400 text-sm mt-1">Review live hotel catering, hall rentals, audio/visual gear, and autonomous weather safeguards.</p>
@@ -1594,13 +1627,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold shadow-sm transition"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
-              <span>Sync Live DB</span>
+              <span>Reload</span>
             </button>
           </div>
         </div>
 
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Inquiries</p>
@@ -1623,14 +1656,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-2xl font-black text-emerald-600 mt-1">{confirmedCount}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100"><CheckCircle className="w-5 h-5" /></div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Curated Portfolio</p>
-              <p className="text-2xl font-black text-indigo-600 mt-1">Rs. 4.2M</p>
-            </div>
-            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100"><DollarSign className="w-5 h-5" /></div>
           </div>
         </div>
 
@@ -3741,6 +3766,82 @@ export const Dashboard: React.FC<DashboardProps> = ({
               alt="High Definition Preview" 
               className="w-full h-auto max-h-[85vh] object-contain" 
             />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 8. ENTERPRISE CUSTOM DELETE CONFIRMATION MODAL (z-[100])                   */}
+      {/* ========================================================================= */}
+      {deleteModal && (
+        <div 
+          className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => !deleteModal.isDeleting && setDeleteModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Top Accent Gradient Bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500" />
+
+            <div className="flex items-start space-x-4 pt-1">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 text-rose-600 shadow-xs">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black tracking-wider uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Irreversible Action
+                  </span>
+                  {!deleteModal.isDeleting && (
+                    <button 
+                      onClick={() => setDeleteModal(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                      title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <h3 className="text-lg font-black text-slate-900 mt-2">
+                  Permanently Delete Proposal?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  Are you sure you want to delete <span className="font-bold text-slate-800">"{deleteModal.eventTitle}"</span>? This will permanently remove the proposal, AI allocated budgets, and associated records from the database.
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={() => setDeleteModal(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteModal.isDeleting}
+                onClick={confirmDeleteEvent}
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleteModal.isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Permanently Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

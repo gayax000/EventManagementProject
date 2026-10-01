@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X } from 'lucide-react';
+import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X, RefreshCw } from 'lucide-react';
 import { vendorService } from '../services/api';
 
 const VENDOR_CATEGORIES = [
@@ -57,6 +57,11 @@ export const VendorsPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [selectedVendorForView, setSelectedVendorForView] = useState<any | null>(null);
+  const [deleteVendorModal, setDeleteVendorModal] = useState<{
+    id: string;
+    name: string;
+    isDeleting: boolean;
+  } | null>(null);
   
   // Separate states for Pending list
   const [pendingSearch, setPendingSearch] = useState('');
@@ -111,17 +116,23 @@ export const VendorsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteVendor = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete vendor "${name}"? This action cannot be undone.`)) {
-      try {
-        const updated = vendors.filter(v => v.id !== id);
-        setVendors(updated);
-        localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(updated));
-        await vendorService.deleteVendor(id);
-        await fetchVendors();
-      } catch (e) {
-        console.warn("Backend deleteVendor call warning", e);
-      }
+  const handleDeleteVendor = (id: string, name: string) => {
+    setDeleteVendorModal({ id, name, isDeleting: false });
+  };
+
+  const confirmDeleteVendor = async () => {
+    if (!deleteVendorModal) return;
+    setDeleteVendorModal(prev => prev ? { ...prev, isDeleting: true } : null);
+    try {
+      const updated = vendors.filter(v => v.id !== deleteVendorModal.id);
+      setVendors(updated);
+      localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(updated));
+      await vendorService.deleteVendor(deleteVendorModal.id);
+      await fetchVendors();
+      setDeleteVendorModal(null);
+    } catch (e) {
+      console.warn("Backend deleteVendor call warning", e);
+      setDeleteVendorModal(null);
     }
   };
 
@@ -478,6 +489,79 @@ export const VendorsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Custom Delete Vendor Confirmation Modal */}
+      {deleteVendorModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => !deleteVendorModal.isDeleting && setDeleteVendorModal(null)}
+        >
+          <div 
+            className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-rose-500 via-red-500 to-amber-500" />
+
+            <div className="flex items-start space-x-4 pt-1">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center flex-shrink-0 text-rose-600 shadow-xs">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black tracking-wider uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                    Irreversible Action
+                  </span>
+                  {!deleteVendorModal.isDeleting && (
+                    <button 
+                      onClick={() => setDeleteVendorModal(null)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                      title="Cancel"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <h3 className="text-lg font-black text-slate-900 mt-2">
+                  Permanently Delete Vendor?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                  Are you sure you want to delete vendor <span className="font-bold text-slate-800">"{deleteVendorModal.name}"</span>? This action cannot be undone and will remove the vendor profile from the directory.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                disabled={deleteVendorModal.isDeleting}
+                onClick={() => setDeleteVendorModal(null)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteVendorModal.isDeleting}
+                onClick={confirmDeleteVendor}
+                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+              >
+                {deleteVendorModal.isDeleting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Vendor</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

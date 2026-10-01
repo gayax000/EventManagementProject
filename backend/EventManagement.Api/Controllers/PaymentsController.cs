@@ -79,20 +79,19 @@ public class PaymentsController : ControllerBase
             try
             {
                 var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
-                if (manager != null)
+                var managerId = manager?.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+                var evTitle = booking.Event?.Title ?? "Event Reservation";
+
+                _context.Notifications.Add(new Notification
                 {
-                    var evTitle = booking.Event?.Title ?? "Event Reservation";
-                    _context.Notifications.Add(new Notification
-                    {
-                        UserId = manager.UserId,
-                        EventId = booking.EventId,
-                        Title = "💳 Payment Slip Uploaded",
-                        Message = $"Payment slip of LKR {payment.AmountPaid:N0} uploaded for \"{evTitle}\". Pending Manager Verification.",
-                        Type = "PaymentSlipUploaded",
-                        CreatedAt = DateTime.UtcNow
-                    });
-                    await _context.SaveChangesAsync();
-                }
+                    UserId = managerId,
+                    EventId = booking.EventId,
+                    Title = "💳 Payment Slip Uploaded",
+                    Message = $"Payment slip of LKR {payment.AmountPaid:N0} uploaded for \"{evTitle}\". Pending Manager Verification.",
+                    Type = "PaymentSlipUploaded",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
             }
             catch { }
 

@@ -591,7 +591,7 @@ public class AiWorkflowService : IAiWorkflowService
             if (photoCost > 0)
                 planItems.Add($"{photoName}{(photoPartner != null ? $" [Partner: {photoPartner}]" : "")} (Rs. {photoCost:N0})");
             else
-                planItems.Add("Photography & Cinematography: Pending Live Photographer Registration (Viva Demo Ready)");
+                planItems.Add("Photography & Cinematography: Pending Live Photographer Registration (Rs. 0)");
         }
         if (hasCake) planItems.Add($"{cakeLabel}{(cakePartner != null ? $" [Partner: {cakePartner}]" : "")} (Rs. {cakeCost:N0})");
         if (hasTransport) planItems.Add($"{transportName}{(transportPartner != null ? $" [Partner: {transportPartner}]" : "")} (Rs. {transportCost:N0})");
