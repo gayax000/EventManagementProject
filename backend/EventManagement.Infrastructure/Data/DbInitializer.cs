@@ -23,6 +23,16 @@ public static class DbInitializer
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
                 ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackageName"" text;
                 ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackagePrice"" numeric;
+                CREATE TABLE IF NOT EXISTS ""Notifications"" (
+                    ""NotificationId"" uuid NOT NULL CONSTRAINT ""PK_Notifications"" PRIMARY KEY,
+                    ""UserId"" uuid NOT NULL,
+                    ""EventId"" uuid NULL,
+                    ""Title"" text NOT NULL,
+                    ""Message"" text NOT NULL,
+                    ""Type"" text NOT NULL DEFAULT 'General',
+                    ""IsRead"" boolean NOT NULL DEFAULT false,
+                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT NOW()
+                );
             ");
         }
         catch { }

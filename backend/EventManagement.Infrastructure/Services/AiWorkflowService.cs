@@ -515,6 +515,25 @@ public class AiWorkflowService : IAiWorkflowService
             weather.Safeguard = weatherTentName;
             weather.Description = $"High precipitation risk detected ({weather.Condition}). Auto-injecting {weatherTentName} (+Rs. {weatherTentCost:N0}).";
             weatherJson = JsonSerializer.Serialize(weather);
+
+            // Create Manager Notification for Weather Safeguard Alert
+            try
+            {
+                var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
+                if (manager != null)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = manager.UserId,
+                        EventId = ev.EventId,
+                        Title = "🌦️ Weather Safeguard Alert",
+                        Message = $"High rain risk ({weather.RainProbabilityPercent}%) detected for outdoor event \"{ev.Title}\". Weather tent injected (+Rs. {weatherTentCost:N0}).",
+                        Type = "WeatherAlert",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            catch { }
         }
 
         decimal computedTotal = hallRental + cateringCost + soundsCost + decoCost + photoCost + cakeCost + transportCost + refreshmentsTotal + othersCost + weatherTentCost;

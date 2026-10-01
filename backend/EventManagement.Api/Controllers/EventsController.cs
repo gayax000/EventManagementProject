@@ -212,6 +212,26 @@ public class EventsController : ControllerBase
                 _logger.LogWarning(aiEx, "AI Plan generation experienced non-fatal warning for Event {EventId}", newEvent.EventId);
             }
 
+            // Create Manager Notification for New Event
+            try
+            {
+                var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
+                if (manager != null)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = manager.UserId,
+                        EventId = newEvent.EventId,
+                        Title = "🆕 New Event Created",
+                        Message = $"New {newEvent.EventType} event \"{newEvent.Title}\" created by client. Budget: LKR {newEvent.BudgetLimit:N0}",
+                        Type = "NewEvent",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch { }
+
             var response = new EventResponseDto
             {
                 EventId = newEvent.EventId,
@@ -488,6 +508,41 @@ public class EventsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+        // Create Manager Notification for Revision or Choice Acceptance
+        try
+        {
+            var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
+            if (manager != null)
+            {
+                if (isRevision)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = manager.UserId,
+                        EventId = ev.EventId,
+                        Title = "📝 Revision Requested",
+                        Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
+                        Type = "RevisionRequest",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = manager.UserId,
+                        EventId = ev.EventId,
+                        Title = "✅ Proposal Option Accepted",
+                        Message = $"Client submitted proposal choice \"{clientAction}\" for \"{ev.Title}\".",
+                        Type = "ProposalAccepted",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch { }
 
         return Ok(new
         {

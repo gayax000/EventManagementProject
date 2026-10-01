@@ -240,3 +240,29 @@ export const paymentService = {
     return res.data;
   },
 };
+
+export interface ManagerNotificationItem {
+  notificationId: string;
+  userId: string;
+  eventId?: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const notificationService = {
+  getManagerNotifications: async (): Promise<{ unreadCount: number; notifications: ManagerNotificationItem[] }> => {
+    const res = await apiClient.get('/notifications/manager');
+    return res.data;
+  },
+  markAsRead: async (id: string) => {
+    const res = await apiClient.post(`/notifications/${id}/mark-read`);
+    return res.data;
+  },
+  markAllAsRead: async () => {
+    const res = await apiClient.post('/notifications/mark-all-read');
+    return res.data;
+  },
+};
