@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import 'proposal_details_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final String? initialEventType;
@@ -577,13 +578,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
         if (createdEvent != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Celebration Inquiry Created! AI agents are generating your proposal.'),
-              backgroundColor: Color(0xFF059669),
-            ),
-          );
-          Navigator.pop(context, true);
+          _showEventCreatedSuccessDialog(context, createdEvent);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -609,6 +604,210 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showEventCreatedSuccessDialog(BuildContext context, EventModel createdEvent) async {
+    final currencyFmt = NumberFormat("#,##0", "en_US");
+    final formattedBudget = currencyFmt.format(createdEvent.budgetLimit);
+    final dateStr = DateFormat("MMM dd, yyyy").format(createdEvent.targetDate);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 12,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Celebration Icon Hero Badge
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.celebration_rounded,
+                    color: Colors.white,
+                    size: 38,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Title
+                const Text(
+                  "Event Inquiry Created! 🎉",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Your celebration inquiry is registered in the cloud.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Event Details Card
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.event_seat_rounded, size: 18, color: Color(0xFF0284C7)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              createdEvent.title,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(dateStr, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.people_alt_rounded, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text("${createdEvent.guestCount} Guests", style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Budget Target:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            "LKR $formattedBudget",
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // AI Workflow Active Indicator Box
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Color(0xFF16A34A), size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Agentic AI is calculating hotel catering, venue rentals & weather forecasts for your proposal.",
+                          style: TextStyle(fontSize: 11.5, color: Color(0xFF15803D), height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                // Action Buttons
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context, true);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProposalDetailsScreen(eventId: createdEvent.eventId),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.description_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text("View AI Proposal Draft", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text(
+                      "Back to My Events",
+                      style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
