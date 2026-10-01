@@ -1450,7 +1450,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
                 Client Event Proposals & AI Budgets
               </span>
-              <span className="text-xs text-slate-400">• Synchronized with PostgreSQL DB</span>
             </div>
             <h2 className="text-2xl font-black mt-2">Active Celebrations & Curation Workspace</h2>
             <p className="text-slate-400 text-sm mt-1">Review live hotel catering, hall rentals, audio/visual gear, and autonomous weather safeguards.</p>
@@ -1460,12 +1459,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
             className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold shadow-sm transition"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
-            <span>Sync Live DB</span>
+            <span>Reload</span>
           </button>
         </div>
 
         {/* KPI Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Inquiries</p>
@@ -1488,14 +1487,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <p className="text-2xl font-black text-emerald-600 mt-1">{confirmedCount}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100"><CheckCircle className="w-5 h-5" /></div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Curated Portfolio</p>
-              <p className="text-2xl font-black text-indigo-600 mt-1">Rs. 4.2M</p>
-            </div>
-            <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100"><DollarSign className="w-5 h-5" /></div>
           </div>
         </div>
 
