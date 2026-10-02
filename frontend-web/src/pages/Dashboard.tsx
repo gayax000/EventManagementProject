@@ -1218,6 +1218,68 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const pendingCount = events.filter(e => e.status === 'PendingManagerApproval' || e.status === 'UnderReview').length;
   const confirmedCount = events.filter(e => e.status === 'ApprovedByManager' || e.status === 'Confirmed').length;
 
+  // Real Vendor Switching Auto-Fit Logic
+  const handleExecuteAutoFit = () => {
+    if (!selectedEvent) return;
+    setIsBudgetAutoFitted(true);
+    setClientApprovalRequested(false);
+
+    const budget = Number(selectedEvent.budgetLimit) || 800000;
+    const newAssignments = { ...selectedVendorAssignments };
+
+    // Categories to auto-fit to lowest budget vendors
+    const categories = ['SoundLighting', 'Decor', 'Photography', 'Cake', 'Transport', 'MarqueeTent', 'Catering', 'Refreshments'];
+
+    categories.forEach(catKey => {
+      const matching = getVerifiedVendorsForCategory(catKey);
+      if (matching && matching.length > 0) {
+        // Sort by packagePrice ascending (lowest budget vendor first!)
+        const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
+        const lowestVendor = sorted[0];
+
+        newAssignments[catKey] = {
+          vendorId: lowestVendor.vendorId,
+          vendorName: lowestVendor.businessName,
+          packageName: lowestVendor.packageName || `${lowestVendor.businessName} (Budget Auto-Fit)`,
+          agreedPayout: Number(lowestVendor.packagePrice) || 35000,
+          isCustomPackage: false
+        };
+      }
+    });
+
+    setSelectedVendorAssignments(newAssignments);
+
+    // Set per-plate catering to lowest budget rate
+    setCustomPerPlateCost(3500);
+
+    // If outdoor, set tent cost to lowest canopy
+    if (selectedEvent.isOutdoor) {
+      setCustomTentCost(45000);
+    }
+
+    // Calculate remaining difference and apply special discount so total is <= budget!
+    setTimeout(() => {
+      const guestCnt = selectedEvent.guestCount || 100;
+      const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0;
+      const hallRentalCost = isPrivateVenue ? 0 : (selectedEvent.hallRentalPrice || 0);
+      const cateringCostVal = guestCnt * 3500;
+      const soundsCost = newAssignments['SoundLighting']?.agreedPayout || 40000;
+      const decoCost = newAssignments['Decor']?.agreedPayout || 45000;
+      const photoCost = newAssignments['Photography']?.agreedPayout || 40000;
+      const cakeCost = newAssignments['Cake']?.agreedPayout || 15000;
+      const transportCost = newAssignments['Transport']?.agreedPayout || 35000;
+      const tentCost = selectedEvent.isOutdoor ? 45000 : 0;
+
+      const autoFittedSubtotal = hallRentalCost + cateringCostVal + soundsCost + decoCost + photoCost + cakeCost + transportCost + tentCost;
+      if (autoFittedSubtotal > budget) {
+        const discountAmount = autoFittedSubtotal - budget;
+        setSpecialDiscount(Math.max(0, Math.round(discountAmount)));
+      } else {
+        setSpecialDiscount(0);
+      }
+    }, 100);
+  };
+
   // Filter events based on active tab and search query
   const filteredEvents = events.filter(ev => {
     const matchesTab = 
@@ -3623,11 +3685,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setIsBudgetAutoFitted(true);
-                                  setClientApprovalRequested(false);
-                                  setSpecialDiscount(0);
-                                }}
+                                onClick={handleExecuteAutoFit}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
                                   isBudgetAutoFitted
                                     ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
