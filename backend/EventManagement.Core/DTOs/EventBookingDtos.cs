@@ -68,6 +68,10 @@ public class EventResponseDto
     public List<AssignedVendorDto>? AssignedVendors { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public string? WeatherAssessment { get; set; }
+    public Guid? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

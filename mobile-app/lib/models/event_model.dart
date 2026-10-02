@@ -59,7 +59,10 @@ class EventSummary {
     DateTime parsedTarget = DateTime.now();
     final rawTarget = json['targetDate']?.toString();
     if (rawTarget != null && rawTarget.isNotEmpty) {
-      parsedTarget = DateTime.tryParse(rawTarget) ?? DateTime.now();
+      final dt = DateTime.tryParse(rawTarget);
+      if (dt != null) {
+        parsedTarget = dt.isUtc ? dt.toLocal() : dt;
+      }
     }
 
     DateTime parsedCreated = DateTime.now();
@@ -230,7 +233,10 @@ class EventProposalDetail {
     DateTime parsedTarget = DateTime.now();
     final rawTarget = json['targetDate']?.toString();
     if (rawTarget != null && rawTarget.isNotEmpty) {
-      parsedTarget = DateTime.tryParse(rawTarget) ?? DateTime.now();
+      final dt = DateTime.tryParse(rawTarget);
+      if (dt != null) {
+        parsedTarget = dt.isUtc ? dt.toLocal() : dt;
+      }
     }
 
     return EventProposalDetail(

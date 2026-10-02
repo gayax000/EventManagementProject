@@ -281,6 +281,7 @@ public class EventsController : ControllerBase
             .Include(e => e.Venue)
             .Include(e => e.BanquetHall)
             .Include(e => e.AIWorkflowState)
+            .Include(e => e.Customer)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
@@ -306,6 +307,10 @@ public class EventsController : ControllerBase
             PreferredLocation = ev.PreferredLocation,
             InspirationImageUrl = ev.InspirationImageUrl,
             InspirationImages = ParseInspirationImages(ev.InspirationImageUrl),
+            CustomerId = ev.CustomerId,
+            CustomerName = ev.Customer?.FullName ?? "Kasun Customer",
+            CustomerEmail = ev.Customer?.Email ?? "customer@eventcraft.lk",
+            CustomerPhone = ev.Customer?.PhoneNumber ?? "+94 77 123 4567",
             SelectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
                 ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
                 : new List<string>(),
@@ -631,6 +636,10 @@ public class EventsController : ControllerBase
                         InspirationImageUrl = null,
                         EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                         WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        CustomerId = ev.CustomerId,
+                        CustomerName = ev.Customer != null ? ev.Customer.FullName : "Kasun Customer",
+                        CustomerEmail = ev.Customer != null ? ev.Customer.Email : "customer@eventcraft.lk",
+                        CustomerPhone = ev.Customer != null ? ev.Customer.PhoneNumber : "+94 77 123 4567",
                         CreatedAt = ev.CreatedAt
                     },
                     TableRefreshmentsJson = ev.TableRefreshmentsJson,

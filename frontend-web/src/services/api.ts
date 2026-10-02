@@ -64,6 +64,10 @@ export interface EventItem {
   estimatedTotalCost?: number;
   assignedVendors?: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>;
   assignedVendorsJson?: string;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   createdAt: string;
 }
 

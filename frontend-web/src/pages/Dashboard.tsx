@@ -2375,8 +2375,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-xs text-slate-500 mt-1">
                       Event ID: <span className="font-mono text-xs text-slate-400">{selectedEvent.eventId}</span>
                     </p>
-                    <p className="text-xs text-slate-600 mt-1 font-medium">
-                      Target Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString()}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
+
+                    {/* Client Owner Information Box */}
+                    <div className="mt-2.5 p-3 bg-gradient-to-r from-blue-50/90 to-indigo-50/70 border border-blue-200/80 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                          {(selectedEvent.customerName || 'Kasun Customer').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800 flex items-center">
+                            <span>Client: {selectedEvent.customerName || 'Kasun Customer'}</span>
+                            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-800 rounded">Event Owner</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 flex items-center gap-3 mt-0.5">
+                            <span className="flex items-center"><Mail className="w-3 h-3 mr-1 text-blue-500" />{selectedEvent.customerEmail || 'customer@eventcraft.lk'}</span>
+                            <span className="flex items-center"><Phone className="w-3 h-3 mr-1 text-emerald-500" />{selectedEvent.customerPhone || '+94 77 123 4567'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-600 mt-2.5 font-medium">
+                      Target Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
                     </p>
                   </div>
 
