@@ -37,6 +37,7 @@ public class EventsController : ControllerBase
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""CustomPrompt"" text;
             ");
             _schemaEnsured = true;
         }

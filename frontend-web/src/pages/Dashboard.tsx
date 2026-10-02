@@ -149,6 +149,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
+  const [preFitSnapshot, setPreFitSnapshot] = useState<{
+    vendorAssignments: Record<string, any>;
+    perPlateCost: number | null;
+    tentCost: number | null;
+    specialDiscount: number;
+  } | null>(null);
   const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
   const [specialAllocation, setSpecialAllocation] = useState<number>(0);
   const [customHallCost, setCustomHallCost] = useState<number | null>(null);
@@ -1218,66 +1224,148 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const pendingCount = events.filter(e => e.status === 'PendingManagerApproval' || e.status === 'UnderReview').length;
   const confirmedCount = events.filter(e => e.status === 'ApprovedByManager' || e.status === 'Confirmed').length;
 
-  // Real Vendor Switching Auto-Fit Logic
+  // Undo / Reset Auto-Fit Logic - Restores exact pre-fit snapshot
+  const handleResetAutoFit = () => {
+    if (preFitSnapshot) {
+      setSelectedVendorAssignments(JSON.parse(JSON.stringify(preFitSnapshot.vendorAssignments)));
+      setCustomPerPlateCost(preFitSnapshot.perPlateCost);
+      setCustomTentCost(preFitSnapshot.tentCost);
+      setSpecialDiscount(preFitSnapshot.specialDiscount);
+    }
+    setIsBudgetAutoFitted(false);
+  };
+
+  // Smart Budget-Tier Vendor Switching Auto-Fit Logic
   const handleExecuteAutoFit = () => {
     if (!selectedEvent) return;
+
+    // 1. Save Pre-fit snapshot for Undo / Reset
+    setPreFitSnapshot({
+      vendorAssignments: JSON.parse(JSON.stringify(selectedVendorAssignments)),
+      perPlateCost: customPerPlateCost,
+      tentCost: customTentCost,
+      specialDiscount: specialDiscount
+    });
+
     setIsBudgetAutoFitted(true);
     setClientApprovalRequested(false);
 
     const budget = Number(selectedEvent.budgetLimit) || 800000;
+    const guestCnt = selectedEvent.guestCount || 100;
+    const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0;
+    const hallRentalCost = isPrivateVenue ? 0 : (selectedEvent.hallRentalPrice || 0);
+
+    // 2. Determine catering per-plate rate based on budget tier
+    const autoCateringRate = budget >= 2000000 ? 4500 : (budget >= 1200000 ? 3800 : (budget >= 700000 ? 3000 : 2500));
+    setCustomPerPlateCost(autoCateringRate);
+
+    // 3. Determine outdoor tent cost if outdoor venue
+    const autoTentCost = selectedEvent.isOutdoor ? (budget >= 2000000 ? 100000 : (budget >= 1200000 ? 60000 : 45000)) : 0;
+    if (selectedEvent.isOutdoor) {
+      setCustomTentCost(autoTentCost);
+    }
+
+    const cateringCostVal = guestCnt * autoCateringRate;
+    const fixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost;
+
+    // 4. Calculate available vendor budget pool
+    const vendorBudgetPool = Math.max(100000, budget - fixedCostsTotal);
+
+    // Dynamic category weights for proportioned vendor selection
+    const categoryWeights: Record<string, number> = {
+      'Decor': 0.30,
+      'Photography': 0.25,
+      'SoundLighting': 0.20,
+      'Transport': 0.15,
+      'Cake': 0.10
+    };
+
     const newAssignments = { ...selectedVendorAssignments };
 
-    // Categories to auto-fit to lowest budget vendors
-    const categories = ['SoundLighting', 'Decor', 'Photography', 'Cake', 'Transport', 'MarqueeTent', 'Catering', 'Refreshments'];
-
-    categories.forEach(catKey => {
+    // Allocate vendor for each category by matching category target budget
+    Object.entries(categoryWeights).forEach(([catKey, weight]) => {
+      const targetCatBudget = vendorBudgetPool * weight;
       const matching = getVerifiedVendorsForCategory(catKey);
+
       if (matching && matching.length > 0) {
-        // Sort by packagePrice ascending (lowest budget vendor first!)
+        // Sort ascending by package price
         const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
-        const lowestVendor = sorted[0];
+
+        // Find vendor closest to target cat budget without exceeding 1.25x target
+        let bestVendor = sorted[0];
+        let minDiff = Infinity;
+
+        for (const vendor of sorted) {
+          const price = Number(vendor.packagePrice) || 0;
+          if (price <= targetCatBudget * 1.25) {
+            const diff = Math.abs(targetCatBudget - price);
+            if (diff < minDiff) {
+              minDiff = diff;
+              bestVendor = vendor;
+            }
+          }
+        }
 
         newAssignments[catKey] = {
-          vendorId: lowestVendor.vendorId,
-          vendorName: lowestVendor.businessName,
-          packageName: lowestVendor.packageName || `${lowestVendor.businessName} (Budget Auto-Fit)`,
-          agreedPayout: Number(lowestVendor.packagePrice) || 35000,
+          vendorId: bestVendor.vendorId,
+          vendorName: bestVendor.businessName,
+          packageName: bestVendor.packageName || `${bestVendor.businessName} (Auto-Fit)`,
+          agreedPayout: Number(bestVendor.packagePrice) || 35000,
           isCustomPackage: false
         };
       }
     });
 
-    setSelectedVendorAssignments(newAssignments);
+    // 5. Check if initial vendor selection exceeds budget, step down vendors iteratively if needed
+    let compiledSubtotal = fixedCostsTotal + Object.values(newAssignments).reduce((sum, v) => sum + (v.agreedPayout || 0), 0);
 
-    // Set per-plate catering to lowest budget rate
-    setCustomPerPlateCost(3500);
+    if (compiledSubtotal > budget) {
+      // Step down category by category starting with highest payout vendor
+      const catKeys = Object.keys(categoryWeights);
+      for (let i = 0; i < 3; i++) {
+        if (compiledSubtotal <= budget) break;
 
-    // If outdoor, set tent cost to lowest canopy
-    if (selectedEvent.isOutdoor) {
-      setCustomTentCost(45000);
+        let candidateCat: string | null = null;
+        let candidateCheaperVendor: any = null;
+        let maxPayout = 0;
+
+        catKeys.forEach(catKey => {
+          const currentAssignment = newAssignments[catKey];
+          if (currentAssignment && currentAssignment.agreedPayout > maxPayout) {
+            const matching = getVerifiedVendorsForCategory(catKey);
+            const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
+            const cheaper = sorted.find(v => (Number(v.packagePrice) || 0) < currentAssignment.agreedPayout);
+            if (cheaper) {
+              maxPayout = currentAssignment.agreedPayout;
+              candidateCat = catKey;
+              candidateCheaperVendor = cheaper;
+            }
+          }
+        });
+
+        if (candidateCat && candidateCheaperVendor) {
+          newAssignments[candidateCat] = {
+            vendorId: candidateCheaperVendor.vendorId,
+            vendorName: candidateCheaperVendor.businessName,
+            packageName: candidateCheaperVendor.packageName || candidateCheaperVendor.businessName,
+            agreedPayout: Number(candidateCheaperVendor.packagePrice) || 30000,
+            isCustomPackage: false
+          };
+          compiledSubtotal = fixedCostsTotal + Object.values(newAssignments).reduce((sum, v) => sum + (v.agreedPayout || 0), 0);
+        } else {
+          break;
+        }
+      }
     }
 
-    // Calculate remaining difference and apply special discount so total is <= budget!
-    setTimeout(() => {
-      const guestCnt = selectedEvent.guestCount || 100;
-      const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0;
-      const hallRentalCost = isPrivateVenue ? 0 : (selectedEvent.hallRentalPrice || 0);
-      const cateringCostVal = guestCnt * 3500;
-      const soundsCost = newAssignments['SoundLighting']?.agreedPayout || 40000;
-      const decoCost = newAssignments['Decor']?.agreedPayout || 45000;
-      const photoCost = newAssignments['Photography']?.agreedPayout || 40000;
-      const cakeCost = newAssignments['Cake']?.agreedPayout || 15000;
-      const transportCost = newAssignments['Transport']?.agreedPayout || 35000;
-      const tentCost = selectedEvent.isOutdoor ? 45000 : 0;
+    setSelectedVendorAssignments(newAssignments);
 
-      const autoFittedSubtotal = hallRentalCost + cateringCostVal + soundsCost + decoCost + photoCost + cakeCost + transportCost + tentCost;
-      if (autoFittedSubtotal > budget) {
-        const discountAmount = autoFittedSubtotal - budget;
-        setSpecialDiscount(Math.max(0, Math.round(discountAmount)));
-      } else {
-        setSpecialDiscount(0);
-      }
-    }, 100);
+    // 6. Apply courtesy discount if total still exceeds budget slightly, so Final Total <= budgetLimit strictly!
+    if (compiledSubtotal > budget) {
+      setSpecialDiscount(Math.round(compiledSubtotal - budget));
+    } else {
+      setSpecialDiscount(0);
+    }
   };
 
   // Filter events based on active tab and search query
@@ -3645,10 +3733,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
                               <button
                                 type="button"
-                                onClick={() => setIsBudgetAutoFitted(false)}
-                                className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold"
+                                onClick={handleResetAutoFit}
+                                className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold flex items-center gap-1 bg-emerald-100/80 px-2.5 py-1 rounded transition"
                               >
-                                🔄 Reset Packages
+                                ↩️ Reset Packages (Undo)
                               </button>
                             </div>
                           </div>
@@ -3705,7 +3793,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   type="button"
                                   onClick={() => {
                                     setClientApprovalRequested(!clientApprovalRequested);
-                                    setIsBudgetAutoFitted(false);
+                                    handleResetAutoFit();
                                   }}
                                   className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between border transition ${
                                     clientApprovalRequested
