@@ -181,6 +181,7 @@ public class AiWorkflowService : IAiWorkflowService
                 e.EventSession,
                 e.CateringStyle,
                 e.AdditionalDetails,
+                e.CustomPrompt,
                 e.Status,
                 VenueName = e.Venue != null ? e.Venue.Name : null,
                 VenueAddress = e.Venue != null ? e.Venue.LocationAddress : null,

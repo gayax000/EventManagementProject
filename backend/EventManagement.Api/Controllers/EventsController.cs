@@ -190,6 +190,7 @@ public class EventsController : ControllerBase
                 BudgetLimit = dto.BudgetLimit,
                 IsOutdoor = isOutdoor,
                 AdditionalDetails = additionalDetails,
+                CustomPrompt = dto.CustomPrompt,
                 InspirationImageUrl = inspirationJson,
                 SelectedServicesJson = servicesJson,
                 EventSession = eventSession,

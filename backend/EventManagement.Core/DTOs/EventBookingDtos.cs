@@ -34,6 +34,7 @@ public class CreateEventRequestDto
     public string? EventSession { get; set; } = "DayLunch";
     public string? CateringStyle { get; set; } = "InternationalBuffet";
     public List<string>? TableRefreshments { get; set; }
+    public string? CustomPrompt { get; set; }
 }
 
 // 2. Event Response DTO
@@ -47,6 +48,7 @@ public class EventResponseDto
     public decimal BudgetLimit { get; set; }
     public bool IsOutdoor { get; set; } = false;
     public string? AdditionalDetails { get; set; }
+    public string? CustomPrompt { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? VenueId { get; set; }
     public string? VenueName { get; set; }

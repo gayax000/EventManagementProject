@@ -49,10 +49,6 @@ dependencies:
   geocoding: ^3.0.0        # Geocoding
   mobile_scanner: ^5.0.0   # QR Code Camera Scanner (Staff Entry Verification)
 
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

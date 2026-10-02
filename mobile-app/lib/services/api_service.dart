@@ -160,6 +160,7 @@ class ApiService {
     String? eventSession,
     String? cateringStyle,
     List<String>? tableRefreshments,
+    String? customPrompt,
   }) async {
     try {
       final userId = await AuthService.getUserId();
@@ -173,6 +174,7 @@ class ApiService {
         'budgetLimit': budgetLimit,
         'isOutdoor': isOutdoor,
         'additionalDetails': additionalDetails,
+        'customPrompt': customPrompt,
         'venueId': venueId,
         'banquetHallId': banquetHallId,
         'customerId': userId,

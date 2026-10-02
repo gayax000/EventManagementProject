@@ -264,3 +264,59 @@ def query_venue_and_inventory(location: str, guest_count: int) -> dict:
         "soundRigPrice": 150000.0,  # Line-Array Rig
         "marqueeTentPrice": 150000.0 # Weather Safeguard
     }
+
+# Tool 3: Allow-listed NLP Entity & Intent Extraction Tool (Member 2 - Planning & Delegation Agent)
+def extract_event_entities_tool(prompt_text: str = "", title: str = "", location: str = "", budget: float = 0.0, guests: int = 0) -> dict:
+    """
+    Allow-listed Tool owned by Member 2 (Planning & Delegation Agent).
+    Extracts structured domain entities from natural language user prompts and structured objectives.
+    """
+    text = f"{prompt_text} {title} {location}".lower()
+    
+    # 1. Event Category Intent Extraction
+    if any(k in text for k in ["wedding", "nuptial", "bridal", "marriage"]):
+        event_category = "Wedding"
+    elif any(k in text for k in ["birthday", "bday", "anniversary", "party", "celebration"]):
+        event_category = "Birthday/Celebration"
+    elif any(k in text for k in ["corporate", "conference", "gala", "banquet", "summit", "launch"]):
+        event_category = "Corporate Event"
+    else:
+        event_category = "General Celebration"
+
+    # 2. Theme / Atmosphere Extraction
+    if any(k in text for k in ["beach", "sea", "ocean", "coastal", "sunset"]):
+        theme = "Coastal Sunset / Beachside"
+    elif any(k in text for k in ["luxury", "royal", "grand", "5-star"]):
+        theme = "Royal Luxury"
+    elif any(k in text for k in ["vintage", "rustic", "boho"]):
+        theme = "Vintage Rustic"
+    elif any(k in text for k in ["garden", "lawn", "nature", "outdoor"]):
+        theme = "Outdoor Botanical Lawn"
+    else:
+        theme = "Contemporary Elegant"
+
+    # 3. Special Requested Services Extraction
+    services = []
+    if any(k in text for k in ["sound", "music", "band", "dj", "acoustic", "audio", "lighting"]):
+        services.append("Concert Audio & Stage Lighting")
+    if any(k in text for k in ["deco", "floral", "flower", "arch", "drapes"]):
+        services.append("Thematic Floral Styling")
+    if any(k in text for k in ["photo", "video", "cinema", "4k", "media"]):
+        services.append("Cinematic 4K Photography")
+    if any(k in text for k in ["cake", "dessert"]):
+        services.append("Celebration Cake Counter")
+    if any(k in text for k in ["transport", "car", "limo", "bridal car"]):
+        services.append("VIP Chauffeur Transport")
+
+    # 4. Prompt Sanitization & Security Check
+    is_injection_attempt = any(k in text for k in ["ignore instructions", "system prompt", "drop database", "<script>", "sql"])
+    
+    return {
+        "eventCategory": event_category,
+        "theme": theme,
+        "extractedServices": services if services else ["Catering Buffet", "Basic Stage Setup"],
+        "guestTier": "Large Scale" if guests >= 200 else ("Medium Scale" if guests >= 80 else "Intimate"),
+        "budgetTier": "Luxury Tier" if budget >= 1500000 else ("Standard Tier" if budget >= 800000 else "Essential Tier"),
+        "sanitizationPassed": not is_injection_attempt,
+        "promptLength": len(prompt_text)
+    }

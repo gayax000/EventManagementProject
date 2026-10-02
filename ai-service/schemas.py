@@ -13,6 +13,7 @@ class EventObjectiveInput(BaseModel):
     location: str
     isOutdoor: bool = True
     inspirationImageUrl: Optional[str] = None
+    customPrompt: Optional[str] = Field(default=None, description="Natural language event vision prompt")
 
 # 2. Individual Resource Item in Proposal
 class ProposedItem(BaseModel):
@@ -26,6 +27,7 @@ class ProposedItem(BaseModel):
 class AgentGraphState(TypedDict, total=False):
     workflow_id: str
     objective: EventObjectiveInput
+    extracted_entities: Optional[Dict[str, Any]]
     multi_step_plan: List[str]
     weather_assessment: Dict[str, Any]
     safeguard_item: Optional[ProposedItem]
@@ -44,6 +46,7 @@ class AgentWorkflowResult(BaseModel):
     workflowId: str
     eventId: str
     objectiveSummary: str
+    extractedEntities: Optional[Dict[str, Any]] = None
     multiStepPlan: List[str]
     weatherRiskAssessment: Dict[str, Any]
     selectedVenue: str

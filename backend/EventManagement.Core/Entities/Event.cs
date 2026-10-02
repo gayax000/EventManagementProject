@@ -28,6 +28,7 @@ public class Event : BaseEntity
     public bool IsOutdoor { get; set; } = false;
     public string? AdditionalDetails { get; set; }
     public string? InspirationImageUrl { get; set; }
+    public string? CustomPrompt { get; set; }
 
     public string? SelectedServicesJson { get; set; }
 

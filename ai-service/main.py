@@ -37,10 +37,11 @@ safety_agent = ValidationSafetyAgent()                 # Member 4: Deterministic
 # 2. Define LangGraph Node Functions (State Transitions)
 # ---------------------------------------------------------------------------
 def planner_node(state: AgentGraphState) -> dict:
-    """Node 1 (Member 2): Decomposes natural language objective into structured multi-step execution tasks."""
+    """Node 1 (Member 2): Decomposes natural language objective into structured multi-step execution tasks using NLP Entity Extractor tool."""
     res = planner_agent.execute(state["objective"])
     logs = list(state.get("audit_trace_logs", [])) + res["trace"]
     return {
+        "extracted_entities": res.get("extractedEntities"),
         "multi_step_plan": res["multiStepPlan"],
         "audit_trace_logs": logs
     }
@@ -140,6 +141,7 @@ def execute_multi_agent_workflow(event_req: EventObjectiveInput):
             workflowId=workflow_id,
             eventId=event_req.eventId,
             objectiveSummary=f"Autonomous plan for {event_req.title} with {event_req.guestCount} guests in {event_req.location}",
+            extractedEntities=final_state.get("extracted_entities"),
             multiStepPlan=final_state.get("multi_step_plan", []),
             weatherRiskAssessment=final_state.get("weather_assessment", {}),
             selectedVenue=final_state.get("selected_venue", ""),

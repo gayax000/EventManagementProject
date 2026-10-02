@@ -102,6 +102,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // Special Client Requests & Additional Details
   final _additionalDetailsController = TextEditingController();
+  final _customPromptController = TextEditingController();
 
   // Location / Venue Selection
   String _locationMode = 'hotel';
@@ -573,6 +574,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         eventSession: _selectedSession,
         cateringStyle: _selectedCateringStyle,
         tableRefreshments: _selectedTableRefreshments,
+        customPrompt: _customPromptController.text.trim().isNotEmpty ? _customPromptController.text.trim() : null,
       );
 
       if (mounted) {
@@ -1001,6 +1003,43 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         const Text(
           'Select your celebration occasion and scale for AI multi-agent orchestration.',
           style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+        ),
+        const SizedBox(height: 16),
+
+        // AI Natural Language Prompt Card (Member 2 PlanningAgent Input)
+        _buildCard(
+          color: const Color(0xFFF0F9FF),
+          borderColor: const Color(0xFFBAE6FD),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: Color(0xFF0284C7), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI Prompt Assistant (Natural Language)',
+                    style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Describe your dream event vision in free text. PlanningAgent parses your intent, extracts theme & services.',
+                style: TextStyle(color: Color(0xFF0369A1), fontSize: 11.5),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _customPromptController,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 12.5, color: Color(0xFF0F172A)),
+                decoration: _inputDecoration(
+                  'Describe Event Vision in Your Words (Optional)',
+                  hint: 'e.g., I want a romantic sunset beach wedding in Bentota for 200 guests with acoustic live music under 1.8M budget.',
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
 
