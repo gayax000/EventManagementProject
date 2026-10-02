@@ -836,8 +836,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let refreshmentsCost = 0;
     const refreshmentsItems: { name: string; itemPerHead: number; cost: number }[] = [];
     const isHotelVenue = Boolean(ev.banquetHallId && ev.hallRentalPrice && ev.hallRentalPrice > 0);
-    const clientSelectedRefreshmentItems = ev.tableRefreshments || [];
     const guestCnt = ev.guestCount || 100;
+
+    let clientSelectedRefreshmentItems: string[] = [];
+    let rawRefData = (ev as any).tableRefreshments || (ev as any).tableRefreshmentsJson || (ev as any).TableRefreshmentsJson;
+    if (Array.isArray(rawRefData)) {
+      clientSelectedRefreshmentItems = rawRefData;
+    } else if (typeof rawRefData === 'string' && rawRefData.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(rawRefData);
+        if (Array.isArray(parsed)) clientSelectedRefreshmentItems = parsed;
+        else clientSelectedRefreshmentItems = [rawRefData];
+      } catch (e) {
+        if (rawRefData.includes(',')) clientSelectedRefreshmentItems = rawRefData.split(',').map(s => s.trim());
+        else clientSelectedRefreshmentItems = [rawRefData];
+      }
+    }
 
     if (selectedVendorAssignments['Refreshments']?.agreedPayout) {
       // Custom or Vendor Assigned Flat Refreshment Package
@@ -1318,7 +1332,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     // 4. Determine flat refreshment cost based on client-selected checkboxes, guest count range & budget tier
     let autoRefreshmentsCost = 0;
-    const clientSelectedItems = selectedEvent.tableRefreshments || [];
+    let clientSelectedItems: string[] = [];
+    let rawRefData = (selectedEvent as any).tableRefreshments || (selectedEvent as any).tableRefreshmentsJson || (selectedEvent as any).TableRefreshmentsJson;
+    if (Array.isArray(rawRefData)) {
+      clientSelectedItems = rawRefData;
+    } else if (typeof rawRefData === 'string' && rawRefData.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(rawRefData);
+        if (Array.isArray(parsed)) clientSelectedItems = parsed;
+        else clientSelectedItems = [rawRefData];
+      } catch (e) {
+        if (rawRefData.includes(',')) clientSelectedItems = rawRefData.split(',').map(s => s.trim());
+        else clientSelectedItems = [rawRefData];
+      }
+    }
     const rangeIdx = guestCnt <= 150 ? 0 : (guestCnt <= 250 ? 1 : 2);
     const isLuxury = budget >= 2000000;
     const isPremium = budget >= 1000000;
@@ -2771,12 +2798,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                       {/* Refreshments */}
                       {alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0 && (
-                        <div className="text-sm py-2.5 px-3 bg-emerald-50/60 rounded-lg border border-emerald-100 space-y-2">
+                        <div className="text-sm py-2.5 px-3 bg-emerald-50/70 rounded-lg border border-emerald-200 space-y-2">
                           {alloc.refreshmentsItems.map((r, idx) => (
-                            <div key={idx} className="flex justify-between items-center">
+                            <div key={idx} className="flex justify-between items-center border-b border-emerald-100 last:border-0 pb-1.5 last:pb-0">
                               <div>
                                 <span className="text-emerald-950 font-medium">🍹 {r.name}</span>
-                                <p className="text-[11px] text-emerald-600">{selectedEvent.guestCount} Guests x Rs. {r.itemPerHead.toLocaleString()}</p>
+                                <p className="text-[11px] text-emerald-700 font-medium">Flat Item Package Price • {selectedEvent.guestCount} Guests served</p>
                               </div>
                               <span className="font-semibold text-slate-900">Rs. {r.cost.toLocaleString()}</span>
                             </div>
