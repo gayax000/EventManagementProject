@@ -872,6 +872,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
             itemLabel = "Chilled Mint Lime & Fruit Cordial Punch";
             itemPrice = [12000, 20000, 32000][rangeIdx];
           }
+        } else if (item.includes('midnight') || item.includes('action')) {
+          if (isLuxury) {
+            itemLabel = "Live Action Midnight Street Food, Hopper & Satay Bar";
+            itemPrice = [55000, 85000, 125000][rangeIdx];
+          } else if (isPremium) {
+            itemLabel = "Live Kottu & Mini Burger Midnight Station";
+            itemPrice = [32000, 50000, 75000][rangeIdx];
+          } else {
+            itemLabel = "Midnight Hot Savory Snack Station";
+            itemPrice = [20000, 30000, 45000][rangeIdx];
+          }
         } else if (item.includes('snack') || item.includes('savory') || item.includes('table refreshment')) {
           if (isLuxury) {
             itemLabel = "Gourmet Savory Canapés, Cheese Platters & Vol-au-Vents";
@@ -904,17 +915,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           } else {
             itemLabel = "Traditional Ceylon Plain & Milk Tea Station";
             itemPrice = [8000, 12000, 18000][rangeIdx];
-          }
-        } else if (item.includes('midnight') || item.includes('action')) {
-          if (isLuxury) {
-            itemLabel = "Live Action Midnight Street Food, Hopper & Satay Bar";
-            itemPrice = [55000, 85000, 125000][rangeIdx];
-          } else if (isPremium) {
-            itemLabel = "Live Kottu & Mini Burger Midnight Station";
-            itemPrice = [32000, 50000, 75000][rangeIdx];
-          } else {
-            itemLabel = "Midnight Hot Savory Snack Station";
-            itemPrice = [20000, 30000, 45000][rangeIdx];
           }
         }
 
@@ -1307,19 +1307,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0;
     const hallRentalCost = isPrivateVenue ? 0 : (selectedEvent.hallRentalPrice || 0);
 
-    // 2. Determine catering per-plate rate based on budget tier
-    const autoCateringRate = budget >= 2000000 ? 4500 : (budget >= 1200000 ? 3800 : (budget >= 700000 ? 3000 : 2500));
-    setCustomPerPlateCost(autoCateringRate);
+    // Calculate current fixed costs
+    const cateringCostVal = guestCnt * customPerPlateCost;
+    const autoTentCost = selectedEvent.isOutdoor ? customTentCost : 0;
 
-    // 3. Determine outdoor tent cost if outdoor venue
-    const autoTentCost = selectedEvent.isOutdoor ? (budget >= 2000000 ? 100000 : (budget >= 1200000 ? 60000 : 45000)) : 0;
-    if (selectedEvent.isOutdoor) {
-      setCustomTentCost(autoTentCost);
-    }
-
-    const cateringCostVal = guestCnt * autoCateringRate;
-
-    // 4. Determine flat refreshment cost based on client-selected checkboxes, guest count range & budget tier
     let autoRefreshmentsCost = 0;
     let clientSelectedItems: string[] = [];
     let rawRefData = (selectedEvent as any).tableRefreshments || (selectedEvent as any).tableRefreshmentsJson || (selectedEvent as any).TableRefreshmentsJson;
@@ -1343,24 +1334,89 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const item = rawItem.toLowerCase();
       if (item.includes('mocktail') || item.includes('drink')) {
         autoRefreshmentsCost += isLuxury ? [38000, 58000, 85000][rangeIdx] : (isPremium ? [22000, 35000, 52000][rangeIdx] : [12000, 20000, 32000][rangeIdx]);
+      } else if (item.includes('midnight') || item.includes('action')) {
+        autoRefreshmentsCost += isLuxury ? [55000, 85000, 125000][rangeIdx] : (isPremium ? [32000, 50000, 75000][rangeIdx] : [20000, 30000, 45000][rangeIdx]);
       } else if (item.includes('snack') || item.includes('savory') || item.includes('table refreshment')) {
         autoRefreshmentsCost += isLuxury ? [42000, 65000, 95000][rangeIdx] : (isPremium ? [25000, 40000, 60000][rangeIdx] : [15000, 25000, 38000][rangeIdx]);
       } else if (item.includes('dessert') || item.includes('sweet')) {
         autoRefreshmentsCost += isLuxury ? [48000, 75000, 110000][rangeIdx] : (isPremium ? [28000, 45000, 68000][rangeIdx] : [15000, 25000, 40000][rangeIdx]);
       } else if (item.includes('tea') || item.includes('coffee')) {
         autoRefreshmentsCost += isLuxury ? [25000, 38000, 55000][rangeIdx] : (isPremium ? [15000, 22000, 32000][rangeIdx] : [8000, 12000, 18000][rangeIdx]);
-      } else if (item.includes('midnight') || item.includes('action')) {
-        autoRefreshmentsCost += isLuxury ? [55000, 85000, 125000][rangeIdx] : (isPremium ? [32000, 50000, 75000][rangeIdx] : [20000, 30000, 45000][rangeIdx]);
       }
     });
 
     const specialReqCost = (selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0) ? specialAllocation : 0;
-    const fixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost + autoRefreshmentsCost + specialReqCost;
+    const currentFixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost + autoRefreshmentsCost + specialReqCost;
 
-    // 5. Calculate available vendor budget pool
+    const currentVendorPayouts = Object.values(selectedVendorAssignments).reduce((sum, v) => sum + (v.agreedPayout || 0), 0);
+    const initialSubtotal = currentFixedCostsTotal + currentVendorPayouts;
+    const overrunAmount = initialSubtotal - budget;
+
+    // Zero discount if already within budget limit!
+    if (overrunAmount <= 0) {
+      setSpecialDiscount(0);
+      return;
+    }
+
+    // SURGICAL MINIMAL AUTO-FIT FOR SMALL OVERRUNS (overrun <= 150,000 LKR)
+    if (overrunAmount <= 150000) {
+      const surgicalAssignments = { ...selectedVendorAssignments };
+      let bestCatToStepDown: string | null = null;
+      let bestCheaperVendor: any = null;
+      let minDifferenceToOverrun = Infinity;
+
+      Object.keys(surgicalAssignments).forEach(catKey => {
+        const currentAssignment = surgicalAssignments[catKey];
+        if (currentAssignment && currentAssignment.agreedPayout > 0) {
+          const matching = getVerifiedVendorsForCategory(catKey);
+          const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
+          const cheaper = sorted.find(v => (Number(v.packagePrice) || 0) < currentAssignment.agreedPayout);
+          if (cheaper) {
+            const savings = currentAssignment.agreedPayout - (Number(cheaper.packagePrice) || 0);
+            if (savings >= overrunAmount) {
+              const diff = savings - overrunAmount;
+              if (diff < minDifferenceToOverrun) {
+                minDifferenceToOverrun = diff;
+                bestCatToStepDown = catKey;
+                bestCheaperVendor = cheaper;
+              }
+            }
+          }
+        }
+      });
+
+      if (bestCatToStepDown && bestCheaperVendor) {
+        surgicalAssignments[bestCatToStepDown] = {
+          vendorId: bestCheaperVendor.vendorId,
+          vendorName: bestCheaperVendor.businessName,
+          packageName: bestCheaperVendor.packageName || bestCheaperVendor.businessName,
+          agreedPayout: Number(bestCheaperVendor.packagePrice) || 30000,
+          isCustomPackage: false
+        };
+        setSelectedVendorAssignments(surgicalAssignments);
+        const newSubtotal = currentFixedCostsTotal + Object.values(surgicalAssignments).reduce((sum, v) => sum + (v.agreedPayout || 0), 0);
+        setSpecialDiscount(newSubtotal > budget ? Math.round(newSubtotal - budget) : 0);
+        return;
+      }
+
+      // Exact courtesy discount if single vendor step down isn't sufficient
+      setSpecialDiscount(Math.round(overrunAmount));
+      return;
+    }
+
+    // FULL AUTO-FIT TIER RE-ALLOCATION FOR LARGE OVERRUNS (> 150,000 LKR)
+    const autoCateringRate = budget >= 2000000 ? 4500 : (budget >= 1200000 ? 3800 : (budget >= 700000 ? 3000 : 2500));
+    setCustomPerPlateCost(autoCateringRate);
+
+    const reTentCost = selectedEvent.isOutdoor ? (budget >= 2000000 ? 100000 : (budget >= 1200000 ? 60000 : 45000)) : 0;
+    if (selectedEvent.isOutdoor) {
+      setCustomTentCost(reTentCost);
+    }
+
+    const reCateringCostVal = guestCnt * autoCateringRate;
+    const fixedCostsTotal = hallRentalCost + reCateringCostVal + reTentCost + autoRefreshmentsCost + specialReqCost;
     const vendorBudgetPool = Math.max(100000, budget - fixedCostsTotal);
 
-    // Dynamic category weights for proportioned vendor selection
     const categoryWeights: Record<string, number> = {
       'Decor': 0.30,
       'Photography': 0.25,
@@ -1371,16 +1427,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const newAssignments = { ...selectedVendorAssignments };
 
-    // Allocate vendor for each category by matching category target budget
     Object.entries(categoryWeights).forEach(([catKey, weight]) => {
       const targetCatBudget = vendorBudgetPool * weight;
       const matching = getVerifiedVendorsForCategory(catKey);
 
       if (matching && matching.length > 0) {
-        // Sort ascending by package price
         const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
-
-        // Find vendor closest to target cat budget without exceeding 1.25x target
         let bestVendor = sorted[0];
         let minDiff = Infinity;
 
@@ -1405,11 +1457,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
-    // 5. Check if initial vendor selection exceeds budget, step down vendors iteratively if needed
     let compiledSubtotal = fixedCostsTotal + Object.values(newAssignments).reduce((sum, v) => sum + (v.agreedPayout || 0), 0);
 
     if (compiledSubtotal > budget) {
-      // Step down category by category starting with highest payout vendor
       const catKeys = Object.keys(categoryWeights);
       for (let i = 0; i < 3; i++) {
         if (compiledSubtotal <= budget) break;
@@ -1449,7 +1499,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     setSelectedVendorAssignments(newAssignments);
 
-    // 6. Apply courtesy discount if total still exceeds budget slightly, so Final Total <= budgetLimit strictly!
     if (compiledSubtotal > budget) {
       setSpecialDiscount(Math.round(compiledSubtotal - budget));
     } else {

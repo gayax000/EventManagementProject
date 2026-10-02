@@ -433,6 +433,12 @@ public class AiWorkflowService : IAiWorkflowService
                 else if (isPremium) { itemLabel = "Tropical Fresh Fruit Juices & Chilled Mocktails"; itemPrice = new[] { 22000m, 35000m, 52000m }[rangeIdx]; }
                 else { itemLabel = "Chilled Mint Lime & Fruit Cordial Punch"; itemPrice = new[] { 12000m, 20000m, 32000m }[rangeIdx]; }
             }
+            else if (item.Contains("midnight") || item.Contains("action"))
+            {
+                if (isLuxury) { itemLabel = "Live Action Midnight Street Food, Hopper & Satay Bar"; itemPrice = new[] { 55000m, 85000m, 125000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Live Kottu & Mini Burger Midnight Station"; itemPrice = new[] { 32000m, 50000m, 75000m }[rangeIdx]; }
+                else { itemLabel = "Midnight Hot Savory Snack Station"; itemPrice = new[] { 20000m, 30000m, 45000m }[rangeIdx]; }
+            }
             else if (item.Contains("snack") || item.Contains("savory") || item.Contains("table refreshment"))
             {
                 if (isLuxury) { itemLabel = "Gourmet Savory Canapés, Cheese Platters & Vol-au-Vents"; itemPrice = new[] { 42000m, 65000m, 95000m }[rangeIdx]; }
@@ -450,12 +456,6 @@ public class AiWorkflowService : IAiWorkflowService
                 if (isLuxury) { itemLabel = "Artisanal Ceylon Tea & Brewed Espresso Coffee Lounge"; itemPrice = new[] { 25000m, 38000m, 55000m }[rangeIdx]; }
                 else if (isPremium) { itemLabel = "Premium Ceylon Milk Tea & Brewed Coffee Counter"; itemPrice = new[] { 15000m, 22000m, 32000m }[rangeIdx]; }
                 else { itemLabel = "Traditional Ceylon Plain & Milk Tea Station"; itemPrice = new[] { 8000m, 12000m, 18000m }[rangeIdx]; }
-            }
-            else if (item.Contains("midnight") || item.Contains("action"))
-            {
-                if (isLuxury) { itemLabel = "Live Action Midnight Street Food, Hopper & Satay Bar"; itemPrice = new[] { 55000m, 85000m, 125000m }[rangeIdx]; }
-                else if (isPremium) { itemLabel = "Live Kottu & Mini Burger Midnight Station"; itemPrice = new[] { 32000m, 50000m, 75000m }[rangeIdx]; }
-                else { itemLabel = "Midnight Hot Savory Snack Station"; itemPrice = new[] { 20000m, 30000m, 45000m }[rangeIdx]; }
             }
 
             refreshmentsTotal += itemPrice;
