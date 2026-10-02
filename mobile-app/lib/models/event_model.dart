@@ -56,14 +56,7 @@ class EventSummary {
       parsedEstCost = double.tryParse(rawEstCost.toString());
     }
 
-    DateTime parsedTarget = DateTime.now();
-    final rawTarget = json['targetDate']?.toString();
-    if (rawTarget != null && rawTarget.isNotEmpty) {
-      final dt = DateTime.tryParse(rawTarget);
-      if (dt != null) {
-        parsedTarget = dt.isUtc ? dt.toLocal() : dt;
-      }
-    }
+    DateTime parsedTarget = _parseTargetDate(json['targetDate']?.toString());
 
     DateTime parsedCreated = DateTime.now();
     final rawCreated = json['createdAt']?.toString();
@@ -230,14 +223,7 @@ class EventProposalDetail {
       parsedSpecialAlloc = double.tryParse(rawSpecialAlloc.toString());
     }
 
-    DateTime parsedTarget = DateTime.now();
-    final rawTarget = json['targetDate']?.toString();
-    if (rawTarget != null && rawTarget.isNotEmpty) {
-      final dt = DateTime.tryParse(rawTarget);
-      if (dt != null) {
-        parsedTarget = dt.isUtc ? dt.toLocal() : dt;
-      }
-    }
+    DateTime parsedTarget = _parseTargetDate(json['targetDate']?.toString());
 
     return EventProposalDetail(
       eventId: json['eventId']?.toString() ?? '',
@@ -312,6 +298,27 @@ class BanquetHallItem {
   }
 
   String get hotelName => venueName;
+}
+
+DateTime _parseTargetDate(String? rawTarget) {
+  if (rawTarget == null || rawTarget.isEmpty) return DateTime.now();
+  if (rawTarget.contains('-')) {
+    final dateOnlyPart = rawTarget.split('T')[0];
+    final parts = dateOnlyPart.split('-');
+    if (parts.length >= 3) {
+      final y = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      final d = int.tryParse(parts[2]);
+      if (y != null && m != null && d != null) {
+        return DateTime(y, m, d);
+      }
+    }
+  }
+  final dt = DateTime.tryParse(rawTarget);
+  if (dt != null) {
+    return dt.isUtc ? dt.toLocal() : dt;
+  }
+  return DateTime.now();
 }
 
 typedef BanquetHallSummary = BanquetHallItem;

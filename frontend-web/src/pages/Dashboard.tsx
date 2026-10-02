@@ -139,6 +139,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [eventFilterTab, setEventFilterTab] = useState<'all' | 'pending' | 'approved'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState('');
 
+  const formatEventDate = (rawDateStr: string | undefined | null) => {
+    if (!rawDateStr) return '';
+    if (rawDateStr.includes('-')) {
+      const dateOnlyPart = rawDateStr.split('T')[0];
+      const parts = dateOnlyPart.split('-').map(Number);
+      if (parts.length >= 3 && parts[0] && parts[1] && parts[2]) {
+        return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      }
+    }
+    return new Date(rawDateStr).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   // Custom Delete Confirmation Modal State
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -2065,7 +2077,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }`}>
                       <span className="flex items-center">
                         <Calendar className="w-3 h-3 mr-1 opacity-70" />
-                        {new Date(ev.targetDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatEventDate(ev.targetDate)}
                       </span>
                       <span className="flex items-center">
                         <Users className="w-3 h-3 mr-1 opacity-70" />
@@ -2396,7 +2408,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
 
                     <p className="text-xs text-slate-600 mt-2.5 font-medium">
-                      Target Date: <strong>{new Date(selectedEvent.targetDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
+                      Target Date: <strong>{formatEventDate(selectedEvent.targetDate)}</strong> • Guests: <strong>{selectedEvent.guestCount}</strong> • Budget Limit: <strong>Rs. {Number(selectedEvent.budgetLimit).toLocaleString()}</strong>
                     </p>
                   </div>
 
