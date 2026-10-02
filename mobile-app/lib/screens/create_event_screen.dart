@@ -373,6 +373,107 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  void _autoFillFormFromPrompt() {
+    final text = _customPromptController.text.trim().toLowerCase();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an event vision prompt first to auto-fill details.'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      // 1. Detect Event Category / Occasion
+      if (text.contains('wedding') || text.contains('nuptial') || text.contains('marriage')) {
+        _selectedEventType = 'Wedding';
+      } else if (text.contains('birthday') || text.contains('bday')) {
+        _selectedEventType = 'Birthday Party';
+      } else if (text.contains('gala') || text.contains('dinner')) {
+        _selectedEventType = 'Dinner/Gala';
+      } else if (text.contains('anniversary')) {
+        _selectedEventType = 'Anniversary';
+      } else if (text.contains('engagement')) {
+        _selectedEventType = 'Engagement Party';
+      } else if (text.contains('launch') || text.contains('product')) {
+        _selectedEventType = 'Product Launch';
+      }
+      _applyOccasionAutoPreset(_selectedEventType);
+
+      // 2. Detect Guest Count (e.g. "150 guests", "with 150", "150 people")
+      final guestReg = RegExp(r'(?:with|for|\b)\s*(\d{2,4})\s*(?:guests?|people|pax|persons|\b)');
+      final matches = guestReg.allMatches(text);
+      for (final m in matches) {
+        final val = int.tryParse(m.group(1) ?? '');
+        if (val != null && val >= 10 && val <= 5000) {
+          if (val != 2024 && val != 2025 && val != 2026 && val != 2027) {
+            _guestController.text = val.toString();
+            break;
+          }
+        }
+      }
+
+      // 3. Detect Event Session (Day Lunch, Night Dinner, Evening High Tea)
+      if (text.contains('night') || text.contains('dinner') || text.contains('evening')) {
+        _selectedSession = 'NightDinner';
+      } else if (text.contains('high tea') || text.contains('tea time')) {
+        _selectedSession = 'EveningHighTea';
+      } else if (text.contains('lunch') || text.contains('day')) {
+        _selectedSession = 'DayLunch';
+      }
+
+      // 4. Detect Indoor / Outdoor
+      if (text.contains('outdoor') || text.contains('beach') || text.contains('garden') || text.contains('lawn')) {
+        _isOutdoor = true;
+      } else if (text.contains('indoor') || text.contains('hall') || text.contains('ballroom')) {
+        _isOutdoor = false;
+      }
+
+      // 5. Detect District/Location (e.g. "kandy", "colombo", "galle", "bentota", "nuwara eliya")
+      for (final d in _sriLankaDistricts) {
+        if (text.contains(d.toLowerCase())) {
+          _selectedDistrict = d;
+          break;
+        }
+      }
+      if (text.contains('bentota') || text.contains('beruwala') || text.contains('panadura') || text.contains('wadduwa')) {
+        _selectedDistrict = 'Kalutara';
+      } else if (text.contains('negombo') || text.contains('kiribathgoda') || text.contains('kelaniya')) {
+        _selectedDistrict = 'Gampaha';
+      }
+
+      // 6. Detect Target Date (e.g. "20th october 2026", "20 october", "october 20")
+      try {
+        final dateReg = RegExp(r'(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{4})?');
+        final match = dateReg.firstMatch(text);
+        if (match != null) {
+          final day = int.parse(match.group(1)!);
+          final monthStr = match.group(2)!;
+          final year = match.group(3) != null ? int.parse(match.group(3)!) : DateTime.now().year;
+
+          final monthsMap = {
+            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10,
+            'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+          };
+          final month = monthsMap[monthStr] ?? 10;
+          _selectedDate = DateTime(year, month, day);
+        }
+      } catch (_) {}
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✨ AI extracted details & auto-filled form! (Guests: ${_guestController.text}, Session: ${_selectedSession == "NightDinner" ? "Night Dinner" : "Day Lunch"}, Date: ${DateFormat("MMM dd, yyyy").format(_selectedDate)})'),
+        backgroundColor: const Color(0xFF059669),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   List<String> get _hotelNames {
     return _filteredHalls.map((h) => h.venueName).toSet().toList();
   }
@@ -1036,6 +1137,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 decoration: _inputDecoration(
                   'Describe Event Vision in Your Words (Optional)',
                   hint: 'e.g., I want a romantic sunset beach wedding in Bentota for 200 guests with acoustic live music under 1.8M budget.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _autoFillFormFromPrompt,
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.white),
+                  label: const Text(
+                    '✨ Auto-Fill Form with AI',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
@@ -2473,14 +2594,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, Color? color, Color? borderColor}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color ?? Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: borderColor ?? const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x060F172A),
