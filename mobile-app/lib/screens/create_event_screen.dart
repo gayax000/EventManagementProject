@@ -374,7 +374,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   void _autoFillFormFromPrompt() {
-    final text = _customPromptController.text.trim().toLowerCase();
+    final text = _customPromptController.text.trim();
+    final lowerText = text.toLowerCase();
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -387,25 +388,55 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     setState(() {
       // 1. Detect Event Category / Occasion
-      if (text.contains('wedding') || text.contains('nuptial') || text.contains('marriage')) {
+      if (lowerText.contains('wedding') || lowerText.contains('nuptial') || lowerText.contains('marriage')) {
         _selectedEventType = 'Wedding';
-      } else if (text.contains('birthday') || text.contains('bday')) {
+      } else if (lowerText.contains('birthday') || lowerText.contains('bday')) {
         _selectedEventType = 'Birthday Party';
-      } else if (text.contains('gala') || text.contains('dinner')) {
+      } else if (lowerText.contains('gala') || lowerText.contains('dinner')) {
         _selectedEventType = 'Dinner/Gala';
-      } else if (text.contains('anniversary')) {
+      } else if (lowerText.contains('anniversary')) {
         _selectedEventType = 'Anniversary';
-      } else if (text.contains('engagement')) {
+      } else if (lowerText.contains('engagement')) {
         _selectedEventType = 'Engagement Party';
-      } else if (text.contains('launch') || text.contains('product')) {
+      } else if (lowerText.contains('launch') || lowerText.contains('product')) {
         _selectedEventType = 'Product Launch';
       }
       _applyOccasionAutoPreset(_selectedEventType);
 
-      // 2. Detect Guest Count (e.g. "150 guests", "with 150", "150 people")
+      // 2. Deep Budget Extractor (e.g., 2Million, 2M, 1.5M, 8Lakhs, 800k, 2000000)
+      double? extractedBudget;
+      final millionReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:m|million)\b', caseSensitive: false);
+      final lakhReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?)\b', caseSensitive: false);
+      final kReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:k|thousand)\b', caseSensitive: false);
+      final rawNumReg = RegExp(r'(?:budget|rs\.?|lkr|\b)\s*(\d{5,8})\b', caseSensitive: false);
+
+      final millionMatch = millionReg.firstMatch(lowerText);
+      final lakhMatch = lakhReg.firstMatch(lowerText);
+      final kMatch = kReg.firstMatch(lowerText);
+      final rawMatch = rawNumReg.firstMatch(lowerText);
+
+      if (millionMatch != null) {
+        final val = double.tryParse(millionMatch.group(1)!);
+        if (val != null) extractedBudget = val * 1000000.0;
+      } else if (lakhMatch != null) {
+        final val = double.tryParse(lakhMatch.group(1)!);
+        if (val != null) extractedBudget = val * 100000.0;
+      } else if (kMatch != null) {
+        final val = double.tryParse(kMatch.group(1)!);
+        if (val != null) extractedBudget = val * 1000.0;
+      } else if (rawMatch != null) {
+        final val = double.tryParse(rawMatch.group(1)!);
+        if (val != null) extractedBudget = val;
+      }
+
+      if (extractedBudget != null && extractedBudget > 10000) {
+        _budgetController.text = extractedBudget.round().toString();
+      }
+
+      // 3. Guest Count Extractor (e.g. "150 guests", "with 150", "150 pax")
       final guestReg = RegExp(r'(?:with|for|\b)\s*(\d{2,4})\s*(?:guests?|people|pax|persons|\b)');
-      final matches = guestReg.allMatches(text);
-      for (final m in matches) {
+      final guestMatches = guestReg.allMatches(lowerText);
+      for (final m in guestMatches) {
         final val = int.tryParse(m.group(1) ?? '');
         if (val != null && val >= 10 && val <= 5000) {
           if (val != 2024 && val != 2025 && val != 2026 && val != 2027) {
@@ -415,39 +446,52 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         }
       }
 
-      // 3. Detect Event Session (Day Lunch, Night Dinner, Evening High Tea)
-      if (text.contains('night') || text.contains('dinner') || text.contains('evening')) {
+      // 4. Detect Event Session (Night Dinner, Day Lunch, Evening High Tea)
+      if (lowerText.contains('night') || lowerText.contains('dinner') || lowerText.contains('evening')) {
         _selectedSession = 'NightDinner';
-      } else if (text.contains('high tea') || text.contains('tea time')) {
+      } else if (lowerText.contains('high tea') || lowerText.contains('tea time')) {
         _selectedSession = 'EveningHighTea';
-      } else if (text.contains('lunch') || text.contains('day')) {
+      } else if (lowerText.contains('lunch') || lowerText.contains('day')) {
         _selectedSession = 'DayLunch';
       }
 
-      // 4. Detect Indoor / Outdoor
-      if (text.contains('outdoor') || text.contains('beach') || text.contains('garden') || text.contains('lawn')) {
+      // 5. Detect Indoor / Outdoor Setting
+      if (lowerText.contains('outdoor') || lowerText.contains('beach') || lowerText.contains('garden') || lowerText.contains('lawn')) {
         _isOutdoor = true;
-      } else if (text.contains('indoor') || text.contains('hall') || text.contains('ballroom')) {
+      } else if (lowerText.contains('indoor') || lowerText.contains('hall') || lowerText.contains('ballroom')) {
         _isOutdoor = false;
       }
 
-      // 5. Detect District/Location (e.g. "kandy", "colombo", "galle", "bentota", "nuwara eliya")
+      // 6. Deep District & Location Auto-Selector
+      String? matchedDistrict;
       for (final d in _sriLankaDistricts) {
-        if (text.contains(d.toLowerCase())) {
-          _selectedDistrict = d;
+        if (lowerText.contains(d.toLowerCase())) {
+          matchedDistrict = d;
           break;
         }
       }
-      if (text.contains('bentota') || text.contains('beruwala') || text.contains('panadura') || text.contains('wadduwa')) {
-        _selectedDistrict = 'Kalutara';
-      } else if (text.contains('negombo') || text.contains('kiribathgoda') || text.contains('kelaniya')) {
-        _selectedDistrict = 'Gampaha';
+      if (matchedDistrict == null) {
+        if (lowerText.contains('bentota') || lowerText.contains('beruwala') || lowerText.contains('panadura')) {
+          matchedDistrict = 'Kalutara';
+        } else if (lowerText.contains('negombo') || lowerText.contains('kiribathgoda') || lowerText.contains('kelaniya')) {
+          matchedDistrict = 'Gampaha';
+        } else if (lowerText.contains('ella') || lowerText.contains('bandarawela')) {
+          matchedDistrict = 'Badulla';
+        } else if (lowerText.contains('hikkaduwa') || lowerText.contains('unawatuna')) {
+          matchedDistrict = 'Galle';
+        }
       }
 
-      // 6. Detect Target Date (e.g. "20th october 2026", "20 october", "october 20")
+      if (matchedDistrict != null) {
+        _selectedDistrict = matchedDistrict;
+        _locationMode = 'district';
+        _districtVenueNameController.text = '$matchedDistrict Event Grounds & Hotel';
+      }
+
+      // 7. Target Date Extractor (e.g., "20th october 2026", "20 october 2026", "2026-10-20")
       try {
         final dateReg = RegExp(r'(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{4})?');
-        final match = dateReg.firstMatch(text);
+        final match = dateReg.firstMatch(lowerText);
         if (match != null) {
           final day = int.parse(match.group(1)!);
           final monthStr = match.group(2)!;
@@ -463,11 +507,47 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           _selectedDate = DateTime(year, month, day);
         }
       } catch (_) {}
+
+      // 8. Extract Special Client Requests & Bullet-Point List for Manager Pricing
+      final List<String> extractedRequests = [];
+      if (lowerText.contains('night') || lowerText.contains('dinner')) {
+        extractedRequests.add('Night Dinner Session requested');
+      }
+      if (lowerText.contains('music') || lowerText.contains('band') || lowerText.contains('acoustic') || lowerText.contains('sound') || lowerText.contains('dj')) {
+        extractedRequests.add('Live music / acoustic band sound setup requested');
+      }
+      if (lowerText.contains('deco') || lowerText.contains('floral') || lowerText.contains('flower') || lowerText.contains('theme')) {
+        extractedRequests.add('Thematic floral decoration & stage styling requested');
+      }
+      if (lowerText.contains('photo') || lowerText.contains('video') || lowerText.contains('cinema')) {
+        extractedRequests.add('4K Event photography & coverage requested');
+      }
+      if (lowerText.contains('cake') || lowerText.contains('dessert')) {
+        extractedRequests.add('Celebration cake & dessert counter requested');
+      }
+      if (lowerText.contains('car') || lowerText.contains('transport') || lowerText.contains('bridal')) {
+        extractedRequests.add('VIP Bridal / Chauffeur transport requested');
+      }
+
+      final StringBuffer detailsBuffer = StringBuffer();
+      detailsBuffer.writeln('• Extracted Client Vision: "$text"');
+      if (matchedDistrict != null) {
+        detailsBuffer.writeln('• Target Preferred Location: $matchedDistrict District');
+      }
+      if (extractedRequests.isNotEmpty) {
+        detailsBuffer.writeln('• Special Requests & Add-ons for Manager Review:');
+        for (final req in extractedRequests) {
+          detailsBuffer.writeln('  - $req');
+        }
+      }
+
+      _additionalDetailsController.text = detailsBuffer.toString().trim();
     });
 
+    final formattedBudgetStr = NumberFormat("#,##0").format(double.tryParse(_budgetController.text) ?? 0);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('✨ AI extracted details & auto-filled form! (Guests: ${_guestController.text}, Session: ${_selectedSession == "NightDinner" ? "Night Dinner" : "Day Lunch"}, Date: ${DateFormat("MMM dd, yyyy").format(_selectedDate)})'),
+        content: Text('✨ AI extracted 100% details! (Guests: ${_guestController.text}, Budget: Rs. $formattedBudgetStr, Location: ${_selectedDistrict}, Session: ${_selectedSession == "NightDinner" ? "Night" : "Day"}, Date: ${DateFormat("MMM dd, yyyy").format(_selectedDate)})'),
         backgroundColor: const Color(0xFF059669),
         duration: const Duration(seconds: 4),
       ),
