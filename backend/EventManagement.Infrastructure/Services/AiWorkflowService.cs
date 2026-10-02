@@ -416,51 +416,52 @@ public class AiWorkflowService : IAiWorkflowService
         decimal refreshmentsTotal = 0m;
         var refreshmentsPlanEntries = new List<string>();
 
-        foreach (var item in selectedRefreshments)
+        bool isHotel = ev.HasBanquetHall || !string.IsNullOrEmpty(ev.BanquetHallName);
+
+        if (isHotel)
         {
-            decimal itemPerHead = 0m;
-            string itemLabel = item;
-
-            if (item.Contains("Mocktail") || item.Contains("Drink"))
+            if (budget >= 2000000m)
             {
-                if (budget >= 2000000m) { itemPerHead = 800m; itemLabel = "Welcome Mocktails & Fresh Fruit Fusion Bar"; }
-                else if (budget >= 1000000m) { itemPerHead = 500m; itemLabel = "Tropical Fresh Fruit Juice & Chilled Mocktail Station"; }
-                else { itemPerHead = 350m; itemLabel = "Welcome Mint Lime Chilled Refreshments"; }
+                refreshmentsTotal = 95000m;
+                refreshmentsPlanEntries.Add("Grand Luxury Hotel Refreshment & Dessert Arcade (Flat Package) = Rs. 95,000");
             }
-            else if (item.Contains("Snack") || item.Contains("Savory") || item.Contains("Table Refreshment"))
+            else if (budget >= 1200000m)
             {
-                if (budget >= 2000000m) { itemPerHead = 950m; itemLabel = "Gourmet Savory Snack Platter & Artisanal Canapés"; }
-                else if (budget >= 1000000m) { itemPerHead = 650m; itemLabel = "Assorted Mini Pastry & Savory Snack Platter"; }
-                else { itemPerHead = 450m; itemLabel = "Classic Tea Time Savory Snack Selection"; }
+                refreshmentsTotal = 55000m;
+                refreshmentsPlanEntries.Add("Premium Hotel Mocktail & Assorted Canapé Lounge (Flat Package) = Rs. 55,000");
             }
-            else if (item.Contains("Dessert") || item.Contains("Sweet"))
+            else if (budget >= 700000m)
             {
-                if (budget >= 2000000m) { itemPerHead = 1200m; itemLabel = "Luxury Dessert Counter (Chocolate Fountain, French Pastries, Ice Cream & Watalappan Bar)"; }
-                else if (budget >= 1000000m) { itemPerHead = 800m; itemLabel = "Deluxe Dessert Corner (Watalappan, Caramel Pudding & Ice Cream Bar)"; }
-                else { itemPerHead = 500m; itemLabel = "Classic Dessert Selection (Caramel Pudding & Ice Cream Bar)"; }
-            }
-            else if (item.Contains("Tea") || item.Contains("Coffee"))
-            {
-                if (budget >= 2000000m) { itemPerHead = 450m; itemLabel = "Artisanal Ceylon Tea & Espresso Coffee Lounge"; }
-                else if (budget >= 1000000m) { itemPerHead = 300m; itemLabel = "Premium Ceylon Milk Tea & Brewed Coffee Counter"; }
-                else { itemPerHead = 200m; itemLabel = "Traditional Ceylon Tea & Coffee Station"; }
-            }
-            else if (item.Contains("Midnight") || item.Contains("Action"))
-            {
-                if (budget >= 2000000m) { itemPerHead = 1100m; itemLabel = "Live Action Midnight Street Food Station (Kottu, Hopper & Satay Bar)"; }
-                else if (budget >= 1000000m) { itemPerHead = 750m; itemLabel = "Live Kottu & Mini Burger Midnight Station"; }
-                else { itemPerHead = 500m; itemLabel = "Midnight Hot Savory Snack Station"; }
-            }
-
-            decimal itemCost = ev.GuestCount * itemPerHead;
-            refreshmentsTotal += itemCost;
-            if (itemCost > 0m)
-            {
-                refreshmentsPlanEntries.Add($"{itemLabel} ({ev.GuestCount} guests @ Rs. {itemPerHead:N0}) = Rs. {itemCost:N0}");
+                refreshmentsTotal = 35000m;
+                refreshmentsPlanEntries.Add("Classic Hotel Welcome Juice & Savory Snack Station (Flat Package) = Rs. 35,000");
             }
             else
             {
-                refreshmentsPlanEntries.Add($"{item} = Included");
+                refreshmentsTotal = 20000m;
+                refreshmentsPlanEntries.Add("Standard Hotel Welcome Drink & Ceylon Tea Station (Flat Package) = Rs. 20,000");
+            }
+        }
+        else
+        {
+            if (budget >= 2000000m)
+            {
+                refreshmentsTotal = 85000m;
+                refreshmentsPlanEntries.Add("Royal Ceylon Mixology & Live Action Bar (Vendor Flat Package) = Rs. 85,000");
+            }
+            else if (budget >= 1200000m)
+            {
+                refreshmentsTotal = 45000m;
+                refreshmentsPlanEntries.Add("Tropical Juice & Classic Afternoon Reception Spread (Vendor Flat Package) = Rs. 45,000");
+            }
+            else if (budget >= 700000m)
+            {
+                refreshmentsTotal = 28000m;
+                refreshmentsPlanEntries.Add("Heritage Ceylon Refreshment Counter (Vendor Flat Package) = Rs. 28,000");
+            }
+            else
+            {
+                refreshmentsTotal = 18000m;
+                refreshmentsPlanEntries.Add("Budget Refreshment Express (Vendor Flat Package) = Rs. 18,000");
             }
         }
 

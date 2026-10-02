@@ -835,44 +835,93 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     let refreshmentsCost = 0;
     const refreshmentsItems: { name: string; itemPerHead: number; cost: number }[] = [];
-    const tableRefreshments = ev.tableRefreshments || [];
+    const isHotelVenue = Boolean(ev.banquetHallId && ev.hallRentalPrice && ev.hallRentalPrice > 0);
 
-    if (selectedVendorAssignments['Refreshments']?.isCustomPackage && selectedVendorAssignments['Refreshments']?.agreedPayout) {
+    if (selectedVendorAssignments['Refreshments']?.agreedPayout) {
+      // Custom or Vendor Assigned Flat Refreshment Package
       refreshmentsCost = selectedVendorAssignments['Refreshments'].agreedPayout;
       const guestCnt = ev.guestCount || 100;
       refreshmentsItems.push({
-        name: selectedVendorAssignments['Refreshments'].packageName || 'Curated Beverage & Refreshment Station',
+        name: selectedVendorAssignments['Refreshments'].packageName || (isHotelVenue ? 'Hotel In-House Refreshment Package' : 'Vendor Beverage & Refreshment Package'),
         itemPerHead: Math.round(refreshmentsCost / guestCnt),
         cost: refreshmentsCost
       });
     } else {
-      tableRefreshments.forEach(item => {
-        let itemPerHead = 0;
-        let itemLabel = item;
-        if (item.includes('Mocktail') || item.includes('Drink')) {
-          itemPerHead = budget >= 2000000 ? 800 : (budget >= 1000000 ? 500 : 350);
-          itemLabel = budget >= 2000000 ? "Welcome Mocktails & Fresh Fruit Fusion Bar" : (budget >= 1000000 ? "Tropical Fresh Fruit Juice & Chilled Mocktail Station" : "Welcome Mint Lime Chilled Refreshments");
-        } else if (item.includes('Snack') || item.includes('Savory') || item.includes('Table Refreshment')) {
-          itemPerHead = budget >= 2000000 ? 950 : (budget >= 1000000 ? 650 : 450);
-          itemLabel = budget >= 2000000 ? "Gourmet Savory Snack Platter & Artisanal Canapés" : (budget >= 1000000 ? "Assorted Mini Pastry & Savory Snack Platter" : "Classic Tea Time Savory Snack Selection");
-        } else if (item.includes('Dessert') || item.includes('Sweet')) {
-          itemPerHead = budget >= 2000000 ? 1200 : (budget >= 1000000 ? 800 : 500);
-          itemLabel = budget >= 2000000 ? "Luxury Dessert Counter (Chocolate Fountain & Pastries)" : (budget >= 1000000 ? "Deluxe Dessert Corner (Watalappan & Ice Cream Bar)" : "Classic Dessert Selection");
-        } else if (item.includes('Tea') || item.includes('Coffee')) {
-          itemPerHead = budget >= 2000000 ? 450 : (budget >= 1000000 ? 300 : 200);
-          itemLabel = budget >= 2000000 ? "Artisanal Ceylon Tea & Espresso Coffee Lounge" : (budget >= 1000000 ? "Premium Ceylon Milk Tea & Brewed Coffee Counter" : "Traditional Ceylon Tea & Coffee Station");
-        } else if (item.includes('Midnight') || item.includes('Action')) {
-          itemPerHead = budget >= 2000000 ? 1100 : (budget >= 1000000 ? 750 : 500);
-          itemLabel = budget >= 2000000 ? "Live Action Midnight Street Food Station" : (budget >= 1000000 ? "Live Kottu & Mini Burger Midnight Station" : "Midnight Hot Savory Snack Station");
+      // Flat Tier Refreshment Package based on Venue Type & Client Budget
+      if (isHotelVenue) {
+        // Hotel In-House Refreshment Packages
+        if (budget >= 2000000) {
+          refreshmentsCost = 95000;
+          refreshmentsItems.push({
+            name: "Grand Luxury Hotel Refreshment & Dessert Arcade (Flat Package)",
+            itemPerHead: Math.round(95000 / (ev.guestCount || 100)),
+            cost: 95000
+          });
+        } else if (budget >= 1200000) {
+          refreshmentsCost = 55000;
+          refreshmentsItems.push({
+            name: "Premium Hotel Mocktail & Assorted Canapé Lounge (Flat Package)",
+            itemPerHead: Math.round(55000 / (ev.guestCount || 100)),
+            cost: 55000
+          });
+        } else if (budget >= 700000) {
+          refreshmentsCost = 35000;
+          refreshmentsItems.push({
+            name: "Classic Hotel Welcome Juice & Savory Snack Station (Flat Package)",
+            itemPerHead: Math.round(35000 / (ev.guestCount || 100)),
+            cost: 35000
+          });
+        } else {
+          refreshmentsCost = 20000;
+          refreshmentsItems.push({
+            name: "Standard Hotel Welcome Drink & Ceylon Tea Station (Flat Package)",
+            itemPerHead: Math.round(20000 / (ev.guestCount || 100)),
+            cost: 20000
+          });
         }
-        const itemCost = (ev.guestCount || 100) * itemPerHead;
-        refreshmentsCost += itemCost;
-        refreshmentsItems.push({
-          name: itemLabel,
-          itemPerHead,
-          cost: itemCost
-        });
-      });
+      } else {
+        // Private / Outdoor Location Refreshment Vendors
+        const vendorAssignment = selectedVendorAssignments['Refreshments'];
+        if (vendorAssignment) {
+          refreshmentsCost = vendorAssignment.agreedPayout;
+          refreshmentsItems.push({
+            name: vendorAssignment.packageName || `${vendorAssignment.vendorName} Refreshment Package`,
+            itemPerHead: Math.round(refreshmentsCost / (ev.guestCount || 100)),
+            cost: refreshmentsCost
+          });
+        } else {
+          // Default Verified Vendor Flat Tier
+          if (budget >= 2000000) {
+            refreshmentsCost = 85000;
+            refreshmentsItems.push({
+              name: "Royal Ceylon Mixology & Live Action Bar (Vendor Flat Package)",
+              itemPerHead: Math.round(85000 / (ev.guestCount || 100)),
+              cost: 85000
+            });
+          } else if (budget >= 1200000) {
+            refreshmentsCost = 45000;
+            refreshmentsItems.push({
+              name: "Tropical Juice & Classic Afternoon Reception Spread (Vendor Flat Package)",
+              itemPerHead: Math.round(45000 / (ev.guestCount || 100)),
+              cost: 45000
+            });
+          } else if (budget >= 700000) {
+            refreshmentsCost = 28000;
+            refreshmentsItems.push({
+              name: "Heritage Ceylon Refreshment Counter (Vendor Flat Package)",
+              itemPerHead: Math.round(28000 / (ev.guestCount || 100)),
+              cost: 28000
+            });
+          } else {
+            refreshmentsCost = 18000;
+            refreshmentsItems.push({
+              name: "Budget Refreshment Express (Vendor Flat Package)",
+              itemPerHead: Math.round(18000 / (ev.guestCount || 100)),
+              cost: 18000
+            });
+          }
+        }
+      }
     }
 
     return {
@@ -1266,9 +1315,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
 
     const cateringCostVal = guestCnt * autoCateringRate;
-    const fixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost;
 
-    // 4. Calculate available vendor budget pool
+    // 4. Determine flat refreshment cost based on venue type
+    let autoRefreshmentsCost = 0;
+    if (!isPrivateVenue) {
+      autoRefreshmentsCost = budget >= 2000000 ? 95000 : (budget >= 1200000 ? 55000 : (budget >= 700000 ? 35000 : 20000));
+    } else {
+      autoRefreshmentsCost = budget >= 2000000 ? 85000 : (budget >= 1200000 ? 45000 : (budget >= 700000 ? 28000 : 18000));
+    }
+
+    const specialReqCost = (selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0) ? specialAllocation : 0;
+    const fixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost + autoRefreshmentsCost + specialReqCost;
+
+    // 5. Calculate available vendor budget pool
     const vendorBudgetPool = Math.max(100000, budget - fixedCostsTotal);
 
     // Dynamic category weights for proportioned vendor selection
