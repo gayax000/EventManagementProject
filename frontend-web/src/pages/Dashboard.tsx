@@ -415,18 +415,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
       }
 
-      // Refreshments
-      if (selectedEvent.tableRefreshments && selectedEvent.tableRefreshments.length > 0 && !currentMap['Refreshments']) {
-        const ref = autoAllocateVendorForCategory('Refreshments', budget);
-        if (ref) {
-          currentMap['Refreshments'] = {
-            vendorId: ref.vendorId || (ref as any).id,
-            vendorName: ref.businessName || ref.name,
-            packageName: ref.packageName,
-            agreedPayout: ref.packagePrice
-          };
-        }
-      }
+      // Refreshments (Preserves client-selected refreshment items)
 
       // Sound & Lighting
       const needsSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio'));
@@ -853,7 +842,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     }
 
-    if (selectedVendorAssignments['Refreshments']?.agreedPayout) {
+    if (selectedVendorAssignments['Refreshments']?.isCustomPackage && selectedVendorAssignments['Refreshments']?.agreedPayout) {
       // Custom or Vendor Assigned Flat Refreshment Package
       refreshmentsCost = selectedVendorAssignments['Refreshments'].agreedPayout;
       refreshmentsItems.push({
