@@ -416,53 +416,50 @@ public class AiWorkflowService : IAiWorkflowService
         decimal refreshmentsTotal = 0m;
         var refreshmentsPlanEntries = new List<string>();
 
-        bool isHotel = ev.HasBanquetHall || !string.IsNullOrEmpty(ev.BanquetHallName);
+        int gc = ev.GuestCount > 0 ? ev.GuestCount : 100;
+        int rangeIdx = gc <= 150 ? 0 : (gc <= 250 ? 1 : 2);
+        bool isLuxury = budget >= 2000000m;
+        bool isPremium = budget >= 1000000m;
 
-        if (isHotel)
+        foreach (var rawItem in selectedRefreshments)
         {
-            if (budget >= 2000000m)
+            var item = rawItem.ToLower();
+            string itemLabel = rawItem;
+            decimal itemPrice = 15000m;
+
+            if (item.Contains("mocktail") || item.Contains("drink"))
             {
-                refreshmentsTotal = 95000m;
-                refreshmentsPlanEntries.Add("Grand Luxury Hotel Refreshment & Dessert Arcade (Flat Package) = Rs. 95,000");
+                if (isLuxury) { itemLabel = "Artisanal Exotic Fruit Fusion Bar & Signature Mocktails"; itemPrice = new[] { 38000m, 58000m, 85000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Tropical Fresh Fruit Juices & Chilled Mocktails"; itemPrice = new[] { 22000m, 35000m, 52000m }[rangeIdx]; }
+                else { itemLabel = "Chilled Mint Lime & Fruit Cordial Punch"; itemPrice = new[] { 12000m, 20000m, 32000m }[rangeIdx]; }
             }
-            else if (budget >= 1200000m)
+            else if (item.Contains("snack") || item.Contains("savory") || item.Contains("table refreshment"))
             {
-                refreshmentsTotal = 55000m;
-                refreshmentsPlanEntries.Add("Premium Hotel Mocktail & Assorted Canapé Lounge (Flat Package) = Rs. 55,000");
+                if (isLuxury) { itemLabel = "Gourmet Savory Canapés, Cheese Platters & Vol-au-Vents"; itemPrice = new[] { 42000m, 65000m, 95000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Assorted Mini Pastries, Rolls & Samosa Platter"; itemPrice = new[] { 25000m, 40000m, 60000m }[rangeIdx]; }
+                else { itemLabel = "Classic Tea-Time Biscuit & Mini Savory Selection"; itemPrice = new[] { 15000m, 25000m, 38000m }[rangeIdx]; }
             }
-            else if (budget >= 700000m)
+            else if (item.Contains("dessert") || item.Contains("sweet"))
             {
-                refreshmentsTotal = 35000m;
-                refreshmentsPlanEntries.Add("Classic Hotel Welcome Juice & Savory Snack Station (Flat Package) = Rs. 35,000");
+                if (isLuxury) { itemLabel = "Luxury Chocolate Fountain, French Pastries & Fruit Carving"; itemPrice = new[] { 48000m, 75000m, 110000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Watalappan, Caramel Pudding & Deluxe Ice Cream Bar"; itemPrice = new[] { 28000m, 45000m, 68000m }[rangeIdx]; }
+                else { itemLabel = "Caramel Pudding & Vanilla Ice Cream Station"; itemPrice = new[] { 15000m, 25000m, 40000m }[rangeIdx]; }
             }
-            else
+            else if (item.Contains("tea") || item.Contains("coffee"))
             {
-                refreshmentsTotal = 20000m;
-                refreshmentsPlanEntries.Add("Standard Hotel Welcome Drink & Ceylon Tea Station (Flat Package) = Rs. 20,000");
+                if (isLuxury) { itemLabel = "Artisanal Ceylon Tea & Brewed Espresso Coffee Lounge"; itemPrice = new[] { 25000m, 38000m, 55000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Premium Ceylon Milk Tea & Brewed Coffee Counter"; itemPrice = new[] { 15000m, 22000m, 32000m }[rangeIdx]; }
+                else { itemLabel = "Traditional Ceylon Plain & Milk Tea Station"; itemPrice = new[] { 8000m, 12000m, 18000m }[rangeIdx]; }
             }
-        }
-        else
-        {
-            if (budget >= 2000000m)
+            else if (item.Contains("midnight") || item.Contains("action"))
             {
-                refreshmentsTotal = 85000m;
-                refreshmentsPlanEntries.Add("Royal Ceylon Mixology & Live Action Bar (Vendor Flat Package) = Rs. 85,000");
+                if (isLuxury) { itemLabel = "Live Action Midnight Street Food, Hopper & Satay Bar"; itemPrice = new[] { 55000m, 85000m, 125000m }[rangeIdx]; }
+                else if (isPremium) { itemLabel = "Live Kottu & Mini Burger Midnight Station"; itemPrice = new[] { 32000m, 50000m, 75000m }[rangeIdx]; }
+                else { itemLabel = "Midnight Hot Savory Snack Station"; itemPrice = new[] { 20000m, 30000m, 45000m }[rangeIdx]; }
             }
-            else if (budget >= 1200000m)
-            {
-                refreshmentsTotal = 45000m;
-                refreshmentsPlanEntries.Add("Tropical Juice & Classic Afternoon Reception Spread (Vendor Flat Package) = Rs. 45,000");
-            }
-            else if (budget >= 700000m)
-            {
-                refreshmentsTotal = 28000m;
-                refreshmentsPlanEntries.Add("Heritage Ceylon Refreshment Counter (Vendor Flat Package) = Rs. 28,000");
-            }
-            else
-            {
-                refreshmentsTotal = 18000m;
-                refreshmentsPlanEntries.Add("Budget Refreshment Express (Vendor Flat Package) = Rs. 18,000");
-            }
+
+            refreshmentsTotal += itemPrice;
+            refreshmentsPlanEntries.Add($"{itemLabel} = Rs. {itemPrice:N0}");
         }
 
         // 7. Weather Marquee Tent Safeguard (Tier-matched with Verified MarqueeTent Vendors)
