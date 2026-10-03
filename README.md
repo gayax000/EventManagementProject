@@ -177,8 +177,8 @@ python -m http.server 3000 --directory mobile-web
 ## 🌐 7. Live Deployment URLs & Test Credentials
 
 ### Live Cloud Deployments
-* **Backend REST API (Railway):** [`https://eventmanagementproject-production-5eee.up.railway.app`](https://eventmanagementproject-production-5eee.up.railway.app)
-* **Swagger API Documentation:** [`https://eventmanagementproject-production-5eee.up.railway.app/swagger`](https://eventmanagementproject-production-5eee.up.railway.app/swagger)
+* **Backend REST API (Railway):** [`https://eventmanagementproject-production-94fe.up.railway.app`](https://eventmanagementproject-production-94fe.up.railway.app)
+* **Swagger API Documentation:** [`https://eventmanagementproject-production-94fe.up.railway.app/swagger`](https://eventmanagementproject-production-94fe.up.railway.app/swagger)
 * **React Manager Web Portal (Vercel):** `https://eventcraft-admin.vercel.app`
 * **Flutter Client Web Portal (Vercel):** `https://eventcraft-client.vercel.app`
 * **Cloud Database:** Neon Tech PostgreSQL (AWS `ap-southeast-1`)
