@@ -433,17 +433,30 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         _budgetController.text = extractedBudget.round().toString();
       }
 
-      // 3. Guest Count Extractor (e.g. "150 guests", "with 150", "150 pax")
-      final guestReg = RegExp(r'(?:with|for|\b)\s*(\d{2,4})\s*(?:guests?|people|pax|persons|\b)');
-      final guestMatches = guestReg.allMatches(lowerText);
-      for (final m in guestMatches) {
-        final val = int.tryParse(m.group(1) ?? '');
+      // 3. Guest Count Extractor (e.g. "100 guests", "with 100 guests", "100 pax")
+      int? extractedGuests;
+      final explicitGuestReg = RegExp(r'(\d{1,4})\s*(?:guests?|people|pax|persons|invites?)\b', caseSensitive: false);
+      final explicitMatch = explicitGuestReg.firstMatch(lowerText);
+      if (explicitMatch != null) {
+        final val = int.tryParse(explicitMatch.group(1)!);
         if (val != null && val >= 10 && val <= 5000) {
-          if (val != 2024 && val != 2025 && val != 2026 && val != 2027) {
-            _guestController.text = val.toString();
-            break;
+          extractedGuests = val;
+        }
+      }
+
+      if (extractedGuests == null) {
+        final contextualGuestReg = RegExp(r'(?:with|for)\s+(\d{2,4})\b', caseSensitive: false);
+        final contextualMatch = contextualGuestReg.firstMatch(lowerText);
+        if (contextualMatch != null) {
+          final val = int.tryParse(contextualMatch.group(1)!);
+          if (val != null && val >= 10 && val <= 5000 && val != 2024 && val != 2025 && val != 2026 && val != 2027) {
+            extractedGuests = val;
           }
         }
+      }
+
+      if (extractedGuests != null) {
+        _guestController.text = extractedGuests.toString();
       }
 
       // 4. Detect Event Session (Night Dinner, Day Lunch, Evening High Tea)
@@ -488,23 +501,54 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         _districtVenueNameController.text = '$matchedDistrict Event Grounds & Hotel';
       }
 
-      // 7. Target Date Extractor (e.g., "20th october 2026", "20 october 2026", "2026-10-20")
+      // 7. Target Date Extractor (Supports "21 st of february", "21st feb 2027", "february 21", "2026-10-20")
       try {
-        final dateReg = RegExp(r'(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{4})?');
-        final match = dateReg.firstMatch(lowerText);
-        if (match != null) {
-          final day = int.parse(match.group(1)!);
-          final monthStr = match.group(2)!;
-          final year = match.group(3) != null ? int.parse(match.group(3)!) : DateTime.now().year;
+        final monthsMap = {
+          'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+          'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+          'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10,
+          'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+        };
 
-          final monthsMap = {
-            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
-            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
-            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10,
-            'november': 11, 'nov': 11, 'december': 12, 'dec': 12
-          };
-          final month = monthsMap[monthStr] ?? 10;
-          _selectedDate = DateTime(year, month, day);
+        final dateReg = RegExp(
+          r'(\d{1,2})\s*(?:st|nd|rd|th)?\s*(?:of)?\s*(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{4})?',
+          caseSensitive: false,
+        );
+        final reverseDateReg = RegExp(
+          r'(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{1,2})\s*(?:st|nd|rd|th)?\s*(\d{4})?',
+          caseSensitive: false,
+        );
+
+        final match = dateReg.firstMatch(lowerText);
+        final revMatch = reverseDateReg.firstMatch(lowerText);
+
+        int? day;
+        int? month;
+        int? year;
+
+        if (match != null) {
+          day = int.tryParse(match.group(1)!);
+          month = monthsMap[match.group(2)!.toLowerCase()];
+          if (match.group(3) != null) {
+            year = int.tryParse(match.group(3)!);
+          }
+        } else if (revMatch != null) {
+          month = monthsMap[revMatch.group(1)!.toLowerCase()];
+          day = int.tryParse(revMatch.group(2)!);
+          if (revMatch.group(3) != null) {
+            year = int.tryParse(revMatch.group(3)!);
+          }
+        }
+
+        if (day != null && month != null && day >= 1 && day <= 31) {
+          final now = DateTime.now();
+          year ??= now.year;
+          var parsedDate = DateTime(year, month, day);
+          // If the target date in current year is in the past, roll over to next year
+          if (parsedDate.isBefore(DateTime(now.year, now.month, now.day))) {
+            parsedDate = DateTime(year + 1, month, day);
+          }
+          _selectedDate = parsedDate;
         }
       } catch (_) {}
 
