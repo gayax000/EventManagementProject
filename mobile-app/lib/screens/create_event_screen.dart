@@ -1187,7 +1187,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         ),
         const SizedBox(height: 16),
 
-        // AI Natural Language Prompt Card (Member 2 PlanningAgent Input)
+        // AI Natural Language Prompt Card (Real-World AI Concierge)
         _buildCard(
           color: const Color(0xFFF0F9FF),
           borderColor: const Color(0xFFBAE6FD),
@@ -1196,27 +1196,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.auto_awesome, color: Color(0xFF0284C7), size: 20),
+                  Icon(Icons.auto_awesome_rounded, color: Color(0xFF0284C7), size: 20),
                   SizedBox(width: 8),
                   Text(
-                    'AI Prompt Assistant (Natural Language)',
-                    style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold, fontSize: 13),
+                    'AI Event Concierge',
+                    style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               const Text(
-                'Describe your dream event vision in free text. PlanningAgent parses your intent, extracts theme & services.',
-                style: TextStyle(color: Color(0xFF0369A1), fontSize: 11.5),
+                'Describe your vision in your own words and our AI will automatically configure your event details, location & budget.',
+                style: TextStyle(color: Color(0xFF0369A1), fontSize: 11.5, height: 1.3),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _customPromptController,
                 maxLines: 2,
                 style: const TextStyle(fontSize: 12.5, color: Color(0xFF0F172A)),
                 decoration: _inputDecoration(
-                  'Describe Event Vision in Your Words (Optional)',
-                  hint: 'e.g., I want a romantic sunset beach wedding in Bentota for 200 guests with acoustic live music under 1.8M budget.',
+                  'Your Event Vision',
+                  hint: 'e.g., I want a romantic sunset beach wedding in Bentota for 200 guests with acoustic live music under 2 Million budget.',
                 ),
               ),
               const SizedBox(height: 12),
@@ -1226,12 +1226,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   onPressed: _autoFillFormFromPrompt,
                   icon: const Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.white),
                   label: const Text(
-                    '✨ Auto-Fill Form with AI',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Colors.white),
+                    'Auto-Fill Event Details with AI',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0284C7),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1453,7 +1453,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('☀️', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.wb_sunny_outlined, size: 20, color: _selectedSession == 'DayLunch' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'Day Lunch',
@@ -1497,7 +1497,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('🌙', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.nightlight_round_outlined, size: 20, color: _selectedSession == 'NightDinner' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'Night Dinner',
@@ -1541,7 +1541,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('☕', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.local_cafe_outlined, size: 20, color: _selectedSession == 'EveningHighTea' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'High Tea',
@@ -1581,7 +1581,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               const Text('Target Date, Guests & Budget', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 12),
 
-              // Date Picker Card
+              // Date Picker Card (Interactive Calendar Dialog)
               InkWell(
                 onTap: _selectDate,
                 borderRadius: BorderRadius.circular(12),
@@ -1590,7 +1590,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
                   ),
                   child: Row(
                     children: [
@@ -1607,7 +1607,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8)),
+                            const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 2),
                             Text(
                               DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
@@ -1620,12 +1620,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(6),
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('Change', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text('Calendar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
