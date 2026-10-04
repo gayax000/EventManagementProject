@@ -2462,23 +2462,77 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           final bool isDiscount = item['isDiscount'] == true || cost < 0;
           final costStr = cost.abs().toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
           final isPendingSpecial = item['isSpecial'] == true && cost <= 0;
+
+          final String rawLabel = item['label'].toString().trim();
+          String mainLabel = rawLabel;
+          String? partnerName;
+
+          // Extract partner tag e.g. [Partner: Royal Blooms Floral & Botanical Artistry] or (Partner: ...)
+          final partnerMatch = RegExp(r'\[Partner:\s*([^\]]+)\]|\(Partner:\s*([^)]+)\)', caseSensitive: false).firstMatch(rawLabel);
+          if (partnerMatch != null) {
+            partnerName = (partnerMatch.group(1) ?? partnerMatch.group(2))?.trim();
+            mainLabel = rawLabel
+                .replaceAll(RegExp(r'\[Partner:\s*[^\]]+\]|\(Partner:\s*[^)]+\)', caseSensitive: false), '')
+                .replaceAll(RegExp(r'\s+'), ' ')
+                .trim();
+          }
+
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.symmetric(vertical: 3.5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    item['label'].toString().trim(),
-                    softWrap: true,
-                    style: TextStyle(
-                      color: isDiscount 
-                          ? const Color(0xFF16A34A) 
-                          : (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF475569)), 
-                      fontSize: 11.5,
-                      fontWeight: (item['isSpecial'] == true || isDiscount) ? FontWeight.w600 : FontWeight.normal,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mainLabel,
+                        softWrap: true,
+                        style: TextStyle(
+                          color: isDiscount 
+                              ? const Color(0xFF16A34A) 
+                              : (item['isSpecial'] == true ? const Color(0xFF2563EB) : const Color(0xFF334155)), 
+                          fontSize: 11.5,
+                          fontWeight: (item['isSpecial'] == true || isDiscount) ? FontWeight.w600 : FontWeight.normal,
+                          height: 1.25,
+                        ),
+                      ),
+                      if (partnerName != null && partnerName.isNotEmpty) ...[
+                        const SizedBox(height: 3.5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(color: const Color(0xFFBFDBFE), width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.verified_rounded,
+                                size: 11,
+                                color: Color(0xFF2563EB),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  "Partner: $partnerName",
+                                  style: const TextStyle(
+                                    color: Color(0xFF1D4ED8),
+                                    fontSize: 10.0,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
