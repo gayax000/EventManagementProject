@@ -5,6 +5,9 @@ import { LoadingSpinner, EmptyState, ErrorAlert } from '../components/UIStateCom
 import allCitiesImg from '../assets/cities/all.png';
 import nuwaraEliyaImg from '../assets/cities/nuwara-eliya.png';
 import colomboImg from '../assets/cities/colombo.png';
+import bentotaImg from '../assets/cities/bentota.png';
+import galleImg from '../assets/cities/galle.png';
+import negomboImg from '../assets/cities/negombo.png';
 
 const QUICK_CITY_FILTERS = [
   'All',
@@ -24,10 +27,10 @@ const CITY_IMAGES: Record<string, string> = {
   'Colombo': colomboImg,
   'Kandy': '',
   'Nuwara Eliya': nuwaraEliyaImg,
-  'Bentota': '',
-  'Galle': '',
+  'Bentota': bentotaImg,
+  'Galle': galleImg,
   'Dambulla': '',
-  'Negombo': '',
+  'Negombo': negomboImg,
   'Weligama': '',
   'Tangalle': '',
 };
