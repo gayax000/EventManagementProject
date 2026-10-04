@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - dev_tharindu
+      - 'feature/**'
     paths:
       - 'mobile-app/**'
 

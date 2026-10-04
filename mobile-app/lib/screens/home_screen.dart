@@ -7,6 +7,8 @@ import 'proposal_details_screen.dart';
 import 'login_screen.dart';
 import 'packages_screen.dart';
 import 'payments_screen.dart';
+import 'policies_screen.dart';
+import 'onboarding_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -106,6 +108,58 @@ class _HomeScreenState extends State<HomeScreen> {
     if (created == true) {
       _loadUserAndEvents();
     }
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF1E293B)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.event_seat_rounded, color: Color(0xFF38BDF8), size: 24),
+            SizedBox(width: 10),
+            Text(
+              'EventCraft AI Platform',
+              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Version 1.0.0 (Production Build)\nModule: SE3090 - Software Engineering Frameworks',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5),
+            ),
+            SizedBox(height: 14),
+            Text(
+              'Autonomous Agentic AI event planning platform engineered with ASP.NET Core, Flutter, and LangGraph multi-agent orchestration.',
+              style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.45),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              PoliciesScreen.show(context);
+            },
+            child: const Text('View Policies', style: TextStyle(color: Color(0xFF38BDF8))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -316,6 +370,68 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.refresh_rounded, color: Color(0xFF94A3B8), size: 20),
               tooltip: 'Refresh Events',
               onPressed: _loadUserAndEvents,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 20),
+              tooltip: 'Legal, Policies & App Tour',
+              color: const Color(0xFF0F172A),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFF1E293B)),
+              ),
+              onSelected: (val) {
+                if (val == 'policies') {
+                  PoliciesScreen.show(context);
+                } else if (val == 'tour') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
+                  );
+                } else if (val == 'about') {
+                  _showAboutDialog();
+                }
+              },
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'tour',
+                  child: Row(
+                    children: [
+                      Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 18),
+                      SizedBox(width: 10),
+                      Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'policies',
+                  child: Row(
+                    children: [
+                      Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
+                      SizedBox(width: 10),
+                      Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                const PopupMenuItem(
+                  value: 'about',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
+                      SizedBox(width: 10),
+                      Text('About EventCraft AI', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
