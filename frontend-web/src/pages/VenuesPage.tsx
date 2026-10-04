@@ -140,12 +140,25 @@ export const VenuesPage: React.FC = () => {
 
   const selectedVenue = venues.find(v => v.venueId === selectedVenueId);
 
-  // Filter venues by selected city
+  // Filter venues by selected city with accurate city/district disambiguation
   const filteredVenues = venues.filter((venue) => {
     if (selectedCity === 'All') return true;
     const addr = (venue.locationAddress || '').toLowerCase();
     const name = (venue.name || '').toLowerCase();
     const city = selectedCity.toLowerCase();
+
+    // Disambiguate Galle District vs Colombo addresses containing "Galle Road" or "Galle Face"
+    if (city === 'galle') {
+      if (addr.includes('colombo') || name.includes('galle face hotel') || name.includes('colombo')) {
+        return false;
+      }
+      return addr.includes('galle') || name.includes('galle') || addr.includes('koggala') || addr.includes('ahungalla') || addr.includes('dadella');
+    }
+
+    if (city === 'colombo') {
+      return addr.includes('colombo') || name.includes('colombo') || name.includes('galle face') || addr.includes('galle face') || addr.includes('mount lavinia');
+    }
+
     return addr.includes(city) || name.includes(city);
   });
 
