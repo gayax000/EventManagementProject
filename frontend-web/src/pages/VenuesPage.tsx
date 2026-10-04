@@ -4,6 +4,7 @@ import { venueService, banquetHallService, type BanquetHallItem } from '../servi
 import { LoadingSpinner, EmptyState, ErrorAlert } from '../components/UIStateComponents';
 import allCitiesImg from '../assets/cities/all.png';
 import nuwaraEliyaImg from '../assets/cities/nuwara-eliya.png';
+import colomboImg from '../assets/cities/colombo.png';
 
 const QUICK_CITY_FILTERS = [
   'All',
@@ -20,7 +21,7 @@ const QUICK_CITY_FILTERS = [
 
 const CITY_IMAGES: Record<string, string> = {
   'All': allCitiesImg,
-  'Colombo': '',
+  'Colombo': colomboImg,
   'Kandy': '',
   'Nuwara Eliya': nuwaraEliyaImg,
   'Bentota': '',
