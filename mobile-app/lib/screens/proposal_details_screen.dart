@@ -349,7 +349,8 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     final m = proposal.targetDate.month >= 1 && proposal.targetDate.month <= 12 ? months[proposal.targetDate.month - 1] : '';
     final formattedDate = '$m ${proposal.targetDate.day.toString().padLeft(2, '0')}, ${proposal.targetDate.year}';
-    final formattedCost = proposal.estimatedTotalCost.toStringAsFixed(0).replaceAllMapped(
+    final double effectiveTotalCost = _getEffectiveProposalTotal(proposal);
+    final formattedCost = effectiveTotalCost.toStringAsFixed(0).replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
     );
@@ -503,12 +504,18 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     Text("Guests: ${proposal.guestCount}  |  Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
                   ],
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 6),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Color(0xFF64748B)),
-                    const SizedBox(width: 6),
-                    Text("Customer Budget: LKR $formattedBudget", style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Row(
+                      children: [
+                        Icon(Icons.payments_outlined, size: 14, color: Color(0xFF059669)),
+                        SizedBox(width: 6),
+                        Text("Proposal Total:", style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 13.5, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ],
@@ -561,11 +568,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "We compiled your ${proposal.title} with premium 4K Video Coverage & Fresh Floral Tunnel Arch to match your venue luxury.",
-                    style: const TextStyle(color: Colors.white70, fontSize: 12.5, height: 1.4),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -726,22 +728,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-
-                    // Option C: Request Custom Revision
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _showRevisionDialog(proposal),
-                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFFF43F5E)),
-                        label: const Text("⚠️ Request Custom Revision Notes", style: TextStyle(fontSize: 11.5, color: Color(0xFFF43F5E), fontWeight: FontWeight.bold)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFF43F5E)),
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ),
                   ],
                 ],
               ),
@@ -784,22 +770,30 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         decoration: BoxDecoration(
                           color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                               ? const Color(0xFFDBEAFE)
-                              : const Color(0xFFFEF3C7),
+                              : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEF3C7)),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                                 ? const Color(0xFF93C5FD)
-                                : const Color(0xFFFCD34D),
+                                : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                    ? const Color(0xFF86EFAC)
+                                    : const Color(0xFFFCD34D)),
                           ),
                         ),
                         child: Text(
                           proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0
                             ? 'Allocated: LKR ${proposal.specialRequestAllocation!.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}'
-                            : '⏳ Pending Manager Costing',
+                            : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                ? '✓ Complimentary (Included)'
+                                : '⏳ Pending Manager Costing'),
                           style: TextStyle(
                             color: (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
                                 ? const Color(0xFF1E40AF)
-                                : const Color(0xFFB45309),
+                                : (isApproved || isConfirmed || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                    ? const Color(0xFF065F46)
+                                    : const Color(0xFFB45309)),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
@@ -923,8 +917,79 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     final bool isOut = proposal.isOutdoor;
                     final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : (isOut ? 65 : 0);
                     final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Monsoon Showers' : 'Climate Controlled');
-                    final num safeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
-                    final bool hasTent = isOut && (safeguardCost > 0 || rainPct >= 60);
+                    final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
+                    final String rawSafeguardName = wMap != null ? (wMap['Safeguard'] ?? wMap['safeguard'] ?? 'Waterproof Marquee Tent') : 'Waterproof Marquee Tent';
+
+                    double resolvedTentCost = rawSafeguardCost.toDouble();
+                    String resolvedTentLabel = rawSafeguardName.toString();
+                    bool planExplicitlyChecked = false;
+                    bool foundTentInPlan = false;
+
+                    if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
+                      try {
+                        final dynamic decodedPlan = jsonDecode(proposal.generatedPlan!);
+                        if (decodedPlan is List && decodedPlan.isNotEmpty) {
+                          planExplicitlyChecked = true;
+                          for (var rawLine in decodedPlan) {
+                            final String s = rawLine.toString();
+                            final String lower = s.toLowerCase();
+                            if (lower.startsWith('no marquee tent') || lower.contains('safeguard waived')) {
+                              foundTentInPlan = false;
+                              resolvedTentCost = 0;
+                              break;
+                            }
+                            if (!lower.startsWith('weather') &&
+                                (lower.contains('marquee') || lower.contains('canopy') || lower.contains('hangar') || lower.contains('tent safeguard'))) {
+                              final m = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)').firstMatch(s);
+                              if (m != null) {
+                                final vStr = m.group(1) ?? m.group(2);
+                                final parsed = double.tryParse(vStr?.replaceAll(',', '') ?? '');
+                                if (parsed != null && parsed > 0) {
+                                  resolvedTentCost = parsed;
+                                  foundTentInPlan = true;
+                                  resolvedTentLabel = s
+                                      .replaceAll(RegExp(r'\((?:Rs\.|LKR)\s*[\d,]+\)'), '')
+                                      .replaceAll(RegExp(r'\[Partner:.*?\]'), '')
+                                      .trim();
+                                  if (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000 &&
+                                      (lower.contains('auto-injected') || lower.contains('aluminium'))) {
+                                    resolvedTentCost = 350000;
+                                    resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                                  }
+                                  break;
+                                }
+                              }
+                            }
+                          }
+                          if (planExplicitlyChecked && !foundTentInPlan) {
+                            resolvedTentCost = 0;
+                          }
+                        }
+                      } catch (_) {}
+                    }
+
+                    if (isOut && (!planExplicitlyChecked || (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000)) && (resolvedTentCost > 0 || rainPct >= 60)) {
+                      if (resolvedTentCost <= 0 || resolvedTentCost == 150000) {
+                        if (proposal.budgetLimit >= 2000000) {
+                          resolvedTentCost = 350000;
+                          resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                        } else if (proposal.budgetLimit >= 1200000) {
+                          resolvedTentCost = 150000;
+                          resolvedTentLabel = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)';
+                        } else if (proposal.budgetLimit >= 700000) {
+                          resolvedTentCost = 80000;
+                          resolvedTentLabel = 'High-Peak Waterproof Stretch Canopy (20x30 ft)';
+                        } else {
+                          resolvedTentCost = 45000;
+                          resolvedTentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
+                        }
+                      }
+                    }
+
+                    final bool hasTent = isOut && resolvedTentCost > 0;
+                    final String formattedTentCost = resolvedTentCost
+                        .toStringAsFixed(0)
+                        .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
 
                     // Shorten verbose weather conditions for clean mobile responsiveness
                     final String cleanCond = cond
@@ -963,7 +1028,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF15803D), fontSize: 11)),
                             SizedBox(height: 2),
-                            Text("• Safeguard: None needed (Saved Rs. 150,000 tent cost).", 
+                            Text("• Safeguard: None needed (Indoor weather-sheltered venue).", 
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF16A34A), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
@@ -1001,9 +1066,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF92400E), fontSize: 11)),
                             const SizedBox(height: 2),
-                            const Text("• Safeguard: Waterproof Marquee Tent (Rs. 150,000).", 
+                            Text("• Safeguard: $resolvedTentLabel (Rs. $formattedTentCost).", 
                               softWrap: true,
-                              style: TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: const TextStyle(color: Color(0xFFB45309), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       );
@@ -1170,7 +1235,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 border: Border.all(
                   color: proposal.status == 'RevisionRequested' 
                       ? const Color(0xFFFDA4AF) 
-                      : const Color(0xFFCBD5E1),
+                      : isChoiceSubmitted
+                          ? const Color(0xFF6EE7B7)
+                          : const Color(0xFFCBD5E1),
                 ),
                 boxShadow: const [
                   BoxShadow(color: Color(0x06000000), blurRadius: 8, offset: Offset(0, 2)),
@@ -1227,6 +1294,68 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ),
                     ),
+                  ] else if (isChoiceSubmitted) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.verified_rounded, color: Color(0xFF059669), size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Proposal Agreement Submitted",
+                            style: TextStyle(color: Color(0xFF065F46), fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF6EE7B7)),
+                          ),
+                          child: const Text(
+                            "✓ Agreed",
+                            style: TextStyle(color: Color(0xFF047857), fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              "You have officially agreed to this proposal (LKR $formattedCost). The Hotel Operations Manager has been notified to give final confirmation and unlock your bank deposit slip.",
+                              style: const TextStyle(color: Color(0xFF065F46), fontSize: 12, height: 1.4, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showRevisionDialog(proposal),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16, color: Color(0xFF64748B)),
+                        label: const Text("Need Modifications Instead? Request Changes", style: TextStyle(fontSize: 11.5, color: Color(0xFF475569), fontWeight: FontWeight.w600)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
                   ] else ...[
                     const Row(
                       children: [
@@ -1250,7 +1379,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               setState(() => _isLoading = true);
-                              final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', proposal.estimatedTotalCost);
+                              final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', effectiveTotalCost);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -2012,8 +2141,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     );
   }
 
-  Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
+  double _getEffectiveProposalTotal(EventProposalDetail proposal) {
+    final res = _resolveBreakdownItems(proposal);
+    final bool wasLegacyUpgraded = res['wasLegacyUpgraded'] == true;
+    final List<Map<String, dynamic>> items = res['items'] as List<Map<String, dynamic>>;
+    if (wasLegacyUpgraded) {
+      return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+    }
+    if (proposal.estimatedTotalCost > 0) {
+      return proposal.estimatedTotalCost;
+    }
+    return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+  }
+
+  Map<String, dynamic> _resolveBreakdownItems(EventProposalDetail proposal) {
     final List<Map<String, dynamic>> items = [];
+    bool wasLegacyUpgraded = false;
 
     if (proposal.generatedPlan != null && proposal.generatedPlan!.isNotEmpty) {
       try {
@@ -2027,22 +2170,43 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
             final bool isDiscount = str.toLowerCase().contains('discount') || str.contains('-Rs.') || str.contains('- LKR') || str.contains('(-Rs.');
 
-            final match = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)|\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+            // Prioritize '=' match first (which represents the item total e.g. '= Rs. 1,300,000')
+            final eqMatch = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)').firstMatch(str);
+            final match = eqMatch ?? RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+
             if (match != null) {
-              final valStr = match.group(1) ?? match.group(2) ?? match.group(4);
+              final valStr = eqMatch != null 
+                  ? eqMatch.group(1) 
+                  : (match.group(1) ?? match.group(2) ?? match.group(3));
               double cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
               if (isDiscount && cost > 0) {
                 cost = -cost;
               }
 
-              String label = str
-                  .replaceAll(RegExp(r'=\s*(?:Rs\.|LKR)\s*-?[\d,]+'), '')
-                  .replaceAll(RegExp(r'\((?:Rs\.|LKR|-Rs\.|-LKR)\s*-?[\d,]+\)'), '')
-                  .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
-                  .trim();
+              String label;
+              if (eqMatch != null) {
+                // If matched by '=', label is everything before '='
+                label = str.split('=').first.trim();
+              } else {
+                label = str
+                    .replaceAll(RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*-?[\d,]+\)'), '')
+                    .replaceAll(RegExp(r'(-Rs\.|-LKR)\s*[\d,]+'), '')
+                    .trim();
+              }
 
               if (label.startsWith('Catering Style:')) {
                 label = label.replaceFirst('Catering Style:', '').trim();
+              }
+
+              final bool isUnfinalized = proposal.status != 'ApprovedByManager' && proposal.status != 'Confirmed';
+              if (isUnfinalized && proposal.budgetLimit >= 2000000) {
+                final String lowerLabel = label.toLowerCase();
+                if (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee')) {
+                  label = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
+                  cost = 350000.0;
+                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower')) {
+                  cost = 220000.0;
+                }
               }
 
               items.add({
@@ -2057,13 +2221,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // Prepend Venue Rental if not already in items
           final hasVenue = items.any((it) => it['label'].toString().toLowerCase().contains('rental') || it['label'].toString().toLowerCase().contains('venue'));
           if (!hasVenue) {
-            final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
-            items.insert(0, {
-              'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
-              'cost': hallPrice,
-              'isDiscount': false,
-              'isSpecial': false,
-            });
+            final bool isPrivateOrCustomVenue = (proposal.banquetHallName == null || proposal.banquetHallName!.isEmpty) && (proposal.hallRentalPrice == null || proposal.hallRentalPrice == 0);
+            String venueTitle = proposal.venueName.isNotEmpty ? proposal.venueName : "Selected Venue";
+            if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
+              venueTitle = proposal.banquetHallName!;
+            }
+            final double hallPrice = isPrivateOrCustomVenue ? 0.0 : (proposal.hallRentalPrice ?? 350000.0);
+            if (hallPrice > 0 || !isPrivateOrCustomVenue) {
+              items.insert(0, {
+                'label': '$venueTitle Rental',
+                'cost': hallPrice,
+                'isDiscount': false,
+                'isSpecial': false,
+              });
+            }
           }
 
           // Append Special Client Request if missing
@@ -2086,18 +2257,46 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     if (items.isEmpty) {
-      final double hallPrice = proposal.hallRentalPrice ?? 350000.0;
+      if (proposal.isOutdoor) {
+        double tentCost = 45000.0;
+        String tentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
+        if (proposal.budgetLimit >= 2000000) {
+          tentCost = 350000.0;
+          tentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
+        } else if (proposal.budgetLimit >= 1200000) {
+          tentCost = 150000.0;
+          tentLabel = 'Heavy-Duty Waterproof Marquee Tent (20x40 ft) [Partner: Ceylon WeatherShield Marquee Tents]';
+        } else if (proposal.budgetLimit >= 700000) {
+          tentCost = 80000.0;
+          tentLabel = 'High-Peak Waterproof Stretch Canopy (20x30 ft) [Partner: SunShade Canopies & Pergolas Colombo]';
+        }
+        items.add({
+          'label': tentLabel,
+          'cost': tentCost,
+          'isDiscount': false,
+          'isSpecial': false,
+        });
+      }
+
+      final bool isPrivateOrCustomVenue = (proposal.banquetHallName == null || proposal.banquetHallName!.isEmpty) && (proposal.hallRentalPrice == null || proposal.hallRentalPrice == 0);
+      final double hallPrice = isPrivateOrCustomVenue ? 0.0 : (proposal.hallRentalPrice ?? 350000.0);
+      String venueTitle = proposal.venueName.isNotEmpty ? proposal.venueName : "Selected Venue";
+      if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
+        venueTitle = proposal.banquetHallName!;
+      }
       double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
 
-      items.add({
-        'label': '${proposal.banquetHallName ?? proposal.venueName ?? "Selected Venue"} Rental',
-        'cost': hallPrice,
-        'isDiscount': false,
-        'isSpecial': false,
-      });
+      if (hallPrice > 0 || !isPrivateOrCustomVenue) {
+        items.add({
+          'label': '$venueTitle Rental',
+          'cost': hallPrice,
+          'isDiscount': false,
+          'isSpecial': false,
+        });
+      }
 
       items.add({
-        'label': 'Hotel Dinner Buffet (${proposal.guestCount} Guests)',
+        'label': 'Banquet Catering Buffet (${proposal.guestCount} Guests)',
         'cost': cateringPrice,
         'isDiscount': false,
         'isSpecial': false,
@@ -2107,20 +2306,72 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         String desc = s;
         double cost = 100000;
         if (s.toLowerCase().contains('photo')) {
-          desc = 'Master Photography & 4K Highlights Video';
-          cost = proposal.budgetLimit >= 1200000 ? 160000.0 : 100000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Royal Cinematic Rig + Drone + 3 Senior Photographers';
+            cost = 180000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Cinematic 4K Rig + Drone Coverage + 2 Photographers';
+            cost = 120000.0;
+          } else {
+            desc = 'Professional Event Photography & Coverage';
+            cost = 100000.0;
+          }
         } else if (s.toLowerCase().contains('sound') || s.toLowerCase().contains('light')) {
-          desc = 'Concert Line-Array Sound & Digital Mixer';
-          cost = proposal.budgetLimit >= 1200000 ? 180000.0 : 120000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';
+            cost = 250000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Concert Line-Array Sound & Digital Mixer Package';
+            cost = 180000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'Standard Stage Audio + Warm Ambient LED PAR Cans';
+            cost = 85000.0;
+          } else {
+            desc = 'Compact Speech PA Kit + 2 Wireless Mics';
+            cost = 40000.0;
+          }
         } else if (s.toLowerCase().contains('deco')) {
-          desc = 'Stage Styling & Theme Decor';
-          cost = proposal.budgetLimit >= 1200000 ? 130000.0 : 80000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor';
+            cost = 220000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Thematic Floral Stage + Entrance Tunnel Arch';
+            cost = 140000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'Thematic Floral Stage + Table Centerpieces';
+            cost = 85000.0;
+          } else {
+            desc = 'Minimalist Floral Arch + Cake Table Styling';
+            cost = 45000.0;
+          }
         } else if (s.toLowerCase().contains('cake')) {
-          desc = 'Luxury Celebration Cake';
-          cost = proposal.budgetLimit >= 1200000 ? 45000.0 : 25000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = '5-Tier Royal Handcrafted Fondant Wedding Cake';
+            cost = 65000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = '3-Tier Luxury Floral Wedding Cake';
+            cost = 45000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = '2-Tier Custom Handcrafted Fondant Cake';
+            cost = 30000.0;
+          } else {
+            desc = '2-Tier Classic Buttercream Celebration Cake';
+            cost = 15000.0;
+          }
         } else if (s.toLowerCase().contains('transport') || s.toLowerCase().contains('car') || s.toLowerCase().contains('bridal')) {
-          desc = 'Chauffeur VIP Transport';
-          cost = proposal.budgetLimit >= 1200000 ? 65000.0 : 50000.0;
+          if (proposal.budgetLimit >= 2000000) {
+            desc = 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII';
+            cost = 95000.0;
+          } else if (proposal.budgetLimit >= 1200000) {
+            desc = 'Mercedes-Benz S-Class Luxury Chauffeur Sedan';
+            cost = 65000.0;
+          } else if (proposal.budgetLimit >= 700000) {
+            desc = 'BMW 5-Series Executive Bridal Sedan';
+            cost = 50000.0;
+          } else {
+            desc = 'Toyota Premio / Allion Executive Chauffeur Sedan';
+            cost = 35000.0;
+          }
         }
         items.add({
           'label': desc,
@@ -2170,7 +2421,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     // Exact Synchronized Balance Guardrail between breakdown items and proposal.estimatedTotalCost
-    if (proposal.estimatedTotalCost > 0) {
+    if (!wasLegacyUpgraded && proposal.estimatedTotalCost > 0) {
       double currentSum = items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
       final double diff = currentSum - proposal.estimatedTotalCost;
       if (diff > 100 && !items.any((it) => it['isDiscount'] == true)) {
@@ -2189,6 +2440,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         });
       }
     }
+
+    return {
+      'items': items,
+      'wasLegacyUpgraded': wasLegacyUpgraded,
+    };
+  }
+
+  Widget _buildItemizedBreakdown(EventProposalDetail proposal) {
+    final res = _resolveBreakdownItems(proposal);
+    final List<Map<String, dynamic>> items = res['items'] as List<Map<String, dynamic>>;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2224,11 +2485,21 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 Text(
                   isDiscount 
                       ? "- LKR $costStr" 
-                      : (cost > 0 ? "LKR $costStr" : (item['isSpecial'] == true ? "⏳ Pending Manager Costing" : "Priced by Manager")), 
+                      : (cost > 0 
+                          ? "LKR $costStr" 
+                          : (item['isSpecial'] == true 
+                              ? (proposal.isConfirmed || proposal.status == 'Confirmed' || proposal.status == 'ApprovedByManager' || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                  ? "✓ Complimentary (LKR 0)" 
+                                  : "⏳ Pending Manager Costing") 
+                              : "Priced by Manager")), 
                   style: TextStyle(
                     color: isDiscount 
                         ? const Color(0xFF16A34A) 
-                        : (item['isSpecial'] == true ? const Color(0xFFB45309) : const Color(0xFF0F172A)), 
+                        : (item['isSpecial'] == true 
+                            ? (proposal.isConfirmed || proposal.status == 'Confirmed' || proposal.status == 'ApprovedByManager' || proposal.status == 'PendingClientBudgetApproval' || proposal.status == 'ClientChoiceSubmitted'
+                                ? const Color(0xFF16A34A) 
+                                : const Color(0xFFB45309))
+                            : const Color(0xFF0F172A)), 
                     fontWeight: FontWeight.bold, 
                     fontSize: isPendingSpecial ? 11.0 : 11.5,
                     fontStyle: isPendingSpecial ? FontStyle.italic : FontStyle.normal,

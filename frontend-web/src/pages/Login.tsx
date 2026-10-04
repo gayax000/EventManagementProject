@@ -206,7 +206,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-900 bg-slate-950">
-        SE3090 Software Engineering Frameworks • EventCraft AI Management Platform
+        EventCraft AI Management Platform
       </footer>
 
       {/* ========================================================================= */}

@@ -12,7 +12,7 @@ class ApiService {
         return 'http://localhost:8080/api';
       }
     }
-    return 'https://eventmanagementproject-production-19c1.up.railway.app/api';
+    return 'https://eventmanagementproject-production-94fe.up.railway.app/api';
   }
 
   // Helper method to build headers with Bearer Token and Customer Id
@@ -160,6 +160,7 @@ class ApiService {
     String? eventSession,
     String? cateringStyle,
     List<String>? tableRefreshments,
+    String? customPrompt,
   }) async {
     try {
       final userId = await AuthService.getUserId();
@@ -173,6 +174,7 @@ class ApiService {
         'budgetLimit': budgetLimit,
         'isOutdoor': isOutdoor,
         'additionalDetails': additionalDetails,
+        'customPrompt': customPrompt,
         'venueId': venueId,
         'banquetHallId': banquetHallId,
         'customerId': userId,

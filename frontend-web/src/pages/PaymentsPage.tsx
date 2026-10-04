@@ -89,7 +89,7 @@ export const PaymentsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Payment Verification & Financial Intelligence</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Audit customer bank transfer slips, issue automated invoices, and inspect AI revenue forecasts (Member 4 Component).
+            Audit customer bank transfer slips, issue automated invoices, and inspect live revenue forecasts.
           </p>
         </div>
         <button
@@ -102,23 +102,12 @@ export const PaymentsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* AI Revenue Forecast Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+      {/* Confirmed Revenue & Invoices Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         <div className="bg-gradient-to-tr from-emerald-600 to-teal-700 text-white p-6 rounded-xl shadow-sm">
           <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Total Confirmed Revenue</p>
           <p className="text-3xl font-black mt-2">Rs. {stats.totalRevenue.toLocaleString()}</p>
           <p className="text-xs text-emerald-100 mt-2">Verified across {stats.confirmedCount} paid bookings</p>
-        </div>
-
-        <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-slate-400 uppercase">AI Projected Q4 Revenue</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">Rs. {stats.projectedRevenue.toLocaleString()}</p>
-            </div>
-            <div className="p-2.5 bg-emerald-50 rounded-lg"><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
-          </div>
-          <p className="text-xs text-slate-500 mt-3">Peak booking months: <strong className="text-slate-700">October, November, December</strong></p>
         </div>
 
         <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm flex flex-col justify-between">

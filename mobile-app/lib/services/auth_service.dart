@@ -19,7 +19,7 @@ class AuthService {
         return 'http://localhost:8080/api';
       }
     }
-    return 'https://eventmanagementproject-production-19c1.up.railway.app/api';
+    return 'https://eventmanagementproject-production-94fe.up.railway.app/api';
   }
 
   static const String _tokenKey = 'jwt_token';

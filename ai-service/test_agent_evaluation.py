@@ -98,5 +98,26 @@ class TestAgenticAIEvaluation(unittest.TestCase):
         self.assertIn("resource_optimizer_agent", nodes)  # Member 1
         self.assertIn("validation_safety_agent", nodes)   # Member 4
 
+    def test_planning_agent_nlp_entity_extractor(self):
+        from agent_planner import PlanningAgent
+        agent = PlanningAgent()
+        req = EventObjectiveInput(
+            title="Luxury Wedding Banquet",
+            guestCount=200,
+            budgetLimit=1800000.0,
+            location="Bentota",
+            isOutdoor=True,
+            targetDate="2026-11-20",
+            customPrompt="I want a sunset beach wedding in Bentota with acoustic live music and fresh floral deco"
+        )
+        res = agent.execute(req)
+        
+        # Verify Member 2 PlanningAgent NLP extraction
+        self.assertIsNotNone(res["extractedEntities"])
+        self.assertEqual(res["extractedEntities"]["eventCategory"], "Wedding")
+        self.assertEqual(res["extractedEntities"]["theme"], "Coastal Sunset / Beachside")
+        self.assertIn("Concert Audio & Stage Lighting", res["extractedEntities"]["extractedServices"])
+        self.assertTrue(len(res["multiStepPlan"]) >= 4)
+
 if __name__ == '__main__':
     unittest.main()

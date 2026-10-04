@@ -28,6 +28,7 @@ public class Event : BaseEntity
     public bool IsOutdoor { get; set; } = false;
     public string? AdditionalDetails { get; set; }
     public string? InspirationImageUrl { get; set; }
+    public string? CustomPrompt { get; set; }
 
     public string? SelectedServicesJson { get; set; }
 
@@ -36,6 +37,7 @@ public class Event : BaseEntity
     public string? TableRefreshmentsJson { get; set; }
     public string? PreferredLocation { get; set; }
     public string? RevisionNotes { get; set; }
+    public string? AssignedVendorsJson { get; set; }
 
     // Draft, UnderReview, ApprovedByManager, RevisionRequested, Confirmed, Rejected, Cancelled
     public string Status { get; set; } = "UnderReview";

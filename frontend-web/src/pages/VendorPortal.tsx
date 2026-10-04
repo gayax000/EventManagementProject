@@ -18,6 +18,95 @@ import {
 import { vendorService, type VendorItem } from '../services/api';
 import { authService } from '../services/authService';
 
+export interface ServiceTierOption {
+  tier: string;
+  name: string;
+  label: string;
+  price: number;
+  description: string;
+}
+
+export const CATEGORY_TIERS_MAP: Record<string, ServiceTierOption[]> = {
+  Photography: [
+    { tier: 'Tier 1 (Budget)', name: 'Single Photographer, Soft Copies & Color Graded', label: 'Tier 1: Solo Photographer & Soft Copies', price: 45000, description: 'Solo professional photographer covering the ceremony. Unlimited high-res color-graded digital soft copies delivered within 7 days.' },
+    { tier: 'Tier 2 (Mid-Range)', name: '2 Photographers, Full Day Coverage & Storybook Highlights', label: 'Tier 2: 2 Photographers & Storybook Album', price: 95000, description: '2 Senior Photographers with full-day coverage. Includes 30-page magazine storybook album, thank you cards, and edited digital copies.' },
+    { tier: 'Tier 3 (Premium)', name: 'Master 4K Video, 2 Photographers & Storybook Wedding Album', label: 'Tier 3: Master 4K Video + 2 Photographers & Album', price: 160000, description: 'Master wedding coverage with 2 Senior Photographers and 4K Cinematographer. Includes 40-page luxury acrylic crystal album & 4K teaser.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Royal Cinematic Rig, 4K Drone & 3 Senior Photographers', label: 'Tier 4: Royal Cinema Rig, Drone & 3 Photographers', price: 250000, description: 'Elite wedding coverage with cinema-grade Sony FX rigs, licensed drone pilot, 3 Senior Photographers, 2 Cinematographers & two 50-page albums.' }
+  ],
+  SoundLighting: [
+    { tier: 'Tier 1 (Budget)', name: 'Compact Speech PA Kit + 2 Wireless Mics', label: 'Tier 1: Compact Speech PA Kit + 2 Mics', price: 40000, description: 'Compact Speech PA Kit with 2 wireless mics and Bluetooth hub for intimate gatherings.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Standard Stage Audio + Warm Ambient LED PAR Cans', label: 'Tier 2: Standard Stage Audio + Ambient LED', price: 85000, description: 'Standard stage sound, 8 warm LED ambient uplights, dual wireless mics and digital mixer.' },
+    { tier: 'Tier 3 (Premium)', name: 'Concert Line-Array Sound & Digital Mixer Package', label: 'Tier 3: Line-Array Sound & Digital Mixer', price: 180000, description: 'High-power concert line-array sound rig with digital audio console and live mixing.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses', label: 'Tier 4: Concert Line-Array + 16 Moving Heads', price: 250000, description: 'Concert line-array rig with 16 intelligent moving heads, beam trusses, atmospheric hazers.' }
+  ],
+  AudioVisual: [
+    { tier: 'Tier 1 (Budget)', name: 'Compact Speech PA Kit + 2 Wireless Mics', label: 'Tier 1: Compact Speech PA Kit + 2 Mics', price: 40000, description: 'Compact Speech PA Kit with 2 wireless mics and Bluetooth hub.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Standard Stage Audio + Warm Ambient LED PAR Cans', label: 'Tier 2: Standard Stage Audio + Ambient LED', price: 85000, description: 'Standard stage audio and warm mood uplights.' },
+    { tier: 'Tier 3 (Premium)', name: 'Concert Line-Array Sound & Digital Mixer Package', label: 'Tier 3: Line-Array Sound & Digital Mixer', price: 180000, description: 'Concert line-array sound & digital audio console.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses', label: 'Tier 4: Concert Line-Array + 16 Moving Heads', price: 250000, description: 'Concert line-array rig + 16 moving heads & trusses.' }
+  ],
+  Decor: [
+    { tier: 'Tier 1 (Budget)', name: 'Minimalist Floral Arch + Cake Table Styling', label: 'Tier 1: Minimalist Floral Arch & Cake Table', price: 45000, description: 'Minimalist floral arch, Poruwa styling and cake table decor.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Thematic Floral Stage + Table Centerpieces', label: 'Tier 2: Thematic Floral Stage & Centerpieces', price: 85000, description: 'Thematic floral stage backdrop, entrance arch, and fresh floral guest table centerpieces.' },
+    { tier: 'Tier 3 (Premium)', name: 'Thematic Floral Stage + Entrance Tunnel Arch', label: 'Tier 3: Floral Stage + Entrance Tunnel Arch', price: 140000, description: 'Thematic floral stage, entrance tunnel arch, settee backdrop, and table centerpieces.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor', label: 'Tier 4: Royal Fresh Flower Drapes & Grand Stage', price: 220000, description: 'Grand stage decor with imported fresh flowers, draped floral ceiling, and starry light wall.' }
+  ],
+  Transport: [
+    { tier: 'Tier 1 (Budget)', name: 'Toyota Premio / Allion Executive Chauffeur Sedan', label: 'Tier 1: Executive Chauffeur Sedan', price: 35000, description: 'Comfortable air-conditioned executive chauffeur sedan for couple and VIP transfers.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'BMW 5-Series Executive Bridal Sedan', label: 'Tier 2: BMW 5-Series Executive Sedan', price: 50000, description: 'Luxury BMW 5-Series executive bridal sedan with professional suited chauffeur.' },
+    { tier: 'Tier 3 (Premium)', name: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan', label: 'Tier 3: Mercedes-Benz S-Class Luxury Sedan', price: 65000, description: 'Flagship Mercedes-Benz S-Class luxury sedan with dedicated chauffeur and bridal escort.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII', label: 'Tier 4: Classic Vintage Rolls Royce / Jaguar', price: 95000, description: 'Chauffeured classic vintage 1954 Rolls Royce or Jaguar Mark VII with red carpet arrival.' }
+  ],
+  VIPTransport: [
+    { tier: 'Tier 1 (Budget)', name: 'Toyota Premio / Allion Executive Chauffeur Sedan', label: 'Tier 1: Executive Chauffeur Sedan', price: 35000, description: 'Comfortable executive sedan.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'BMW 5-Series Executive Bridal Sedan', label: 'Tier 2: BMW 5-Series Executive Sedan', price: 50000, description: 'BMW 5-Series executive bridal sedan.' },
+    { tier: 'Tier 3 (Premium)', name: 'Mercedes-Benz S-Class Luxury Chauffeur Sedan', label: 'Tier 3: Mercedes-Benz S-Class Luxury Sedan', price: 65000, description: 'Mercedes-Benz S-Class luxury sedan.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII', label: 'Tier 4: Classic Vintage Rolls Royce / Jaguar', price: 95000, description: 'Vintage Rolls Royce / Jaguar Mark VII bridal car.' }
+  ],
+  Cake: [
+    { tier: 'Tier 1 (Budget)', name: '2-Tier Classic Buttercream Celebration Cake', label: 'Tier 1: 2-Tier Classic Celebration Cake', price: 15000, description: '2-Tier handcrafted celebration cake in vanilla, chocolate, or ribbon cake.' },
+    { tier: 'Tier 2 (Mid-Range)', name: '2-Tier Custom Handcrafted Fondant Cake', label: 'Tier 2: 2-Tier Custom Fondant Cake', price: 30000, description: '2-Tier custom themed handcrafted fondant cake with delicate sugar craft.' },
+    { tier: 'Tier 3 (Premium)', name: '3-Tier Luxury Floral Wedding Cake', label: 'Tier 3: 3-Tier Luxury Floral Wedding Cake', price: 45000, description: '3-Tier luxury floral handcrafted wedding cake with handcrafted edible sugar roses.' },
+    { tier: 'Tier 4 (Luxury)', name: '5-Tier Royal Handcrafted Fondant Wedding Cake', label: 'Tier 4: 5-Tier Royal Handcrafted Fondant Cake', price: 65000, description: '5-Tier royal centerpiece wedding cake with 24k edible gold leaf and sugar floral cascade.' }
+  ],
+  Cakes: [
+    { tier: 'Tier 1 (Budget)', name: '2-Tier Classic Buttercream Celebration Cake', label: 'Tier 1: 2-Tier Classic Celebration Cake', price: 15000, description: '2-Tier handcrafted celebration cake.' },
+    { tier: 'Tier 2 (Mid-Range)', name: '2-Tier Custom Handcrafted Fondant Cake', label: 'Tier 2: 2-Tier Custom Fondant Cake', price: 30000, description: '2-Tier custom themed fondant cake.' },
+    { tier: 'Tier 3 (Premium)', name: '3-Tier Luxury Floral Wedding Cake', label: 'Tier 3: 3-Tier Luxury Floral Wedding Cake', price: 45000, description: '3-Tier luxury floral wedding cake.' },
+    { tier: 'Tier 4 (Luxury)', name: '5-Tier Royal Handcrafted Fondant Wedding Cake', label: 'Tier 4: 5-Tier Royal Handcrafted Fondant Cake', price: 65000, description: '5-Tier royal handcrafted fondant cake.' }
+  ],
+  Catering: [
+    { tier: 'Tier 1 (Budget)', name: 'Authentic Sri Lankan Traditional Feast', label: 'Tier 1: Sri Lankan Traditional Feast (Rs. 3.8k/plate)', price: 3800, description: 'Claypot traditional buffet: 2 meats (Chicken/Fish), dhal, tempered potatoes, 4 salads, 4 desserts.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Classic Asian & Sri Lankan Fusion Buffet', label: 'Tier 2: Asian & Sri Lankan Fusion (Rs. 5k/plate)', price: 5000, description: 'International fusion buffet: 2 meats, pasta live station, seafood fried rice, 6 desserts.' },
+    { tier: 'Tier 3 (Premium)', name: 'Executive 5-Course Carvery & Seafood Buffet', label: 'Tier 3: Executive Carvery & Seafood (Rs. 6.8k/plate)', price: 6800, description: 'Executive buffet: roast carvery, seafood platter, 3 meats, live action station, 8 desserts.' },
+    { tier: 'Tier 4 (Luxury)', name: 'Royal 7-Course International Gala Buffet', label: 'Tier 4: Royal 7-Course Gala Buffet (Rs. 8.5k/plate)', price: 8500, description: '7-Course luxury gala: jumbo prawns, lamb carvery, gourmet cheese counter, French pastries.' }
+  ],
+  CateringPackage: [
+    { tier: 'Tier 1 (Budget)', name: 'Authentic Sri Lankan Traditional Feast', label: 'Tier 1: Sri Lankan Traditional Feast (Rs. 3.8k/plate)', price: 3800, description: 'Claypot traditional buffet (Rs. 3,800 per plate).' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Classic Asian & Sri Lankan Fusion Buffet', label: 'Tier 2: Asian & Sri Lankan Fusion (Rs. 5k/plate)', price: 5000, description: 'Fusion buffet with live station (Rs. 5,000 per plate).' },
+    { tier: 'Tier 3 (Premium)', name: 'Executive 5-Course Carvery & Seafood Buffet', label: 'Tier 3: Executive Carvery & Seafood (Rs. 6.8k/plate)', price: 6800, description: 'Executive carvery & seafood buffet (Rs. 6,800 per plate).' },
+    { tier: 'Tier 4 (Luxury)', name: 'Royal 7-Course International Gala Buffet', label: 'Tier 4: Royal 7-Course Gala Buffet (Rs. 8.5k/plate)', price: 8500, description: 'Royal 7-course international gala buffet (Rs. 8,500 per plate).' }
+  ],
+  Refreshments: [
+    { tier: 'Tier 1 (Budget)', name: 'Traditional Ceylon Ginger Tea, Coffee & Short Eats', label: 'Tier 1: Ceylon Tea & Short Eats (Rs. 250/head)', price: 250, description: 'Traditional Ceylon milk tea, ginger tea, fresh brewed coffee and vegetable/fish rolls.' },
+    { tier: 'Tier 2 (Mid-Range)', name: 'Tropical Fresh Fruit Juices & Chilled Mocktail Bar', label: 'Tier 2: Fresh Juice & Mocktail Bar (Rs. 500/head)', price: 500, description: 'Fresh tropical fruit juice station, mint lime coolers, and non-alcoholic mojito bar.' },
+    { tier: 'Tier 3 (Premium)', name: 'Artisanal Ceylon Tea & Italian Espresso Barista Lounge', label: 'Tier 3: Espresso Barista Lounge (Rs. 800/head)', price: 800, description: 'Mobile espresso barista lounge, single-origin Ceylon teas, and French canapé platters.' },
+    { tier: 'Tier 4 (Action Station)', name: 'Live Midnight Street Food Station (Kottu & Rotti)', label: 'Tier 4: Live Midnight Kottu & Food Bar (Rs. 950/head)', price: 950, description: 'Midnight live action station: chicken cheese kottu, egg hoppers, and mini gourmet sliders.' }
+  ],
+  MarqueeTent: [
+    { tier: 'Tier 1 (Budget)', name: 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)', label: 'Tier 1: Pagoda Rain Canopy (15x15 ft)', price: 45000, description: 'Waterproof white pagoda / canopy tent for food stations, bars, or weather shelter.' },
+    { tier: 'Tier 2 (Standard)', name: 'Black Weatherproof Heavy-Duty Canopy Tent (20x20 ft)', label: 'Tier 2: Heavy-Duty Canopy (20x20 ft)', price: 80000, description: 'Heavy-duty weatherproof canopy tent with side curtains and ground anchoring.' },
+    { tier: 'Tier 3 (Heavy Duty)', name: 'Heavy-Duty Waterproof Marquee Tent (20x40 ft)', label: 'Tier 3: Waterproof Marquee Tent (20x40 ft)', price: 150000, description: 'Engineered waterproof marquee tent for large outdoor lawns with complete rain shielding.' },
+    { tier: 'Tier 4 (Royal)', name: 'Royal Clear-Roof Transparent Luxury Marquee Tent (40x60 ft)', label: 'Tier 4: Clear-Roof Luxury Marquee Tent', price: 220000, description: 'Clear-roof transparent marquee with fairy lights, chandelier mounts, and AC compatibility.' }
+  ],
+  PowerBackup: [
+    { tier: 'Tier 1 (Budget)', name: 'Portable 15 kVA Diesel Generator Kit', label: 'Tier 1: Portable 15 kVA Generator', price: 35000, description: 'Portable diesel generator suitable for essential lighting and small audio setups.' },
+    { tier: 'Tier 2 (Standard)', name: 'Mid-Range 35 kVA Soundproof Outdoor Generator', label: 'Tier 2: 35 kVA Soundproof Generator', price: 60000, description: 'Soundproof outdoor generator with distribution box and on-site technician.' },
+    { tier: 'Tier 3 (Heavy Duty)', name: 'Backup Diesel Silent Generator (60 kVA Heavy Duty)', label: 'Tier 3: 60 kVA Silent Heavy Generator', price: 90000, description: '60 kVA silent diesel generator for uninterrupted event power, lighting rigs and kitchens.' },
+    { tier: 'Tier 4 (Industrial)', name: 'Industrial 100 kVA Synchronized Silent Dual Generator', label: 'Tier 4: 100 kVA Dual Synchronized Generator', price: 160000, description: '100 kVA synchronized dual generator with automatic changeover switch (ATS).' }
+  ]
+};
+
 export const VENDOR_SERVICE_CONFIG: Record<string, {
   label: string;
   shortLabel: string;
@@ -59,7 +148,7 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     tierSample: 'Floral Drapes, Thematic Stage & Archway Design'
   },
   Photography: {
-    label: 'In-House Photography & Cinematography',
+    label: 'Verified Photography & Cinematography',
     shortLabel: 'Photography',
     icon: '📸',
     defaultPackage: 'Master Wedding Photography + 4K Highlights Video + Storybook Album',
@@ -147,6 +236,16 @@ export const VENDOR_SERVICE_CONFIG: Record<string, {
     placeholderName: 'e.g. VoltMax Heavy Power & Generator Hire',
     placeholderDescription: 'Describe your soundproof diesel generators (15-100 kVA), automatic transfer switches (ATS), power distribution boards, and on-site technician...',
     tierSample: 'Silent Soundproof Diesel Dual 35-100 kVA Units'
+  },
+  Refreshments: {
+    label: 'Welcome Drinks & Refreshments',
+    shortLabel: 'Refreshments',
+    icon: '☕',
+    defaultPackage: 'Tropical Fresh Fruit Juices & Chilled Mocktail Bar',
+    defaultPrice: 500,
+    placeholderName: 'e.g. Ceylon Brews & Artisan Mocktails',
+    placeholderDescription: 'Describe your Ceylon tea/coffee stations, fresh juice bars, mocktails, and live street food refreshment services...',
+    tierSample: 'Espresso Bar, Tropical Mocktails & Ceylon Teas'
   }
 };
 
@@ -173,6 +272,7 @@ export const getCategoryInfo = (catKey?: string) => {
   if (normalized.includes('decor') || normalized.includes('flower') || normalized.includes('floral')) return VENDOR_SERVICE_CONFIG.Decor;
   if (normalized.includes('tent') || normalized.includes('marquee') || normalized.includes('weather')) return VENDOR_SERVICE_CONFIG.MarqueeTent;
   if (normalized.includes('power') || normalized.includes('gen') || normalized.includes('generator')) return VENDOR_SERVICE_CONFIG.PowerBackup;
+  if (normalized.includes('refresh') || normalized.includes('tea') || normalized.includes('coffee') || normalized.includes('drink')) return VENDOR_SERVICE_CONFIG.Refreshments;
 
   return VENDOR_SERVICE_CONFIG[catKey] || {
     label: catKey,
@@ -193,6 +293,7 @@ const ALL_8_CAT_CARDS = [
   { key: 'Cake', title: 'Cakes & Desserts', icon: '🎂', price: 'From Rs. 12,000 - 65,000', desc: 'Artisan tiered wedding cakes, birthday gateaus & dessert table styling.' },
   { key: 'Transport', title: 'VIP & Bridal Transport', icon: '🚗', price: 'From Rs. 20,000 - 95,000', desc: 'Vintage Rolls Royce, Mercedes S-Class, BMW sedans & VIP 14-seater vans.' },
   { key: 'Catering', title: 'Catering Buffets', icon: '🍽️', price: 'From Rs. 2,500 - 8,500/plate', desc: '5-7 course international banquets, live cooking & action food stations.' },
+  { key: 'Refreshments', title: 'Drinks & Refreshments', icon: '☕', price: 'From Rs. 250 - 950/head', desc: 'Ceylon artisanal teas, fresh tropical juices, mocktail bars & live food stations.' },
   { key: 'MarqueeTent', title: 'Tents & Safeguards', icon: '🎪', price: 'From Rs. 45,000 - 220,000', desc: 'Clear-roof transparent marquee tents, rain shelters & pagoda setups.' },
   { key: 'PowerBackup', title: 'Power Backup & Gens', icon: '⚡', price: 'From Rs. 20,000 - 160,000', desc: 'Soundproof diesel generators (15-100 kVA) with ATS & on-site technicians.' },
 ];
@@ -207,6 +308,9 @@ export const VendorPortal: React.FC = () => {
   const [description, setDescription] = useState('');
   const [packageName, setPackageName] = useState('');
   const [packagePrice, setPackagePrice] = useState(180000);
+  const [selectedTierName, setSelectedTierName] = useState('');
+  const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
 
@@ -231,10 +335,20 @@ export const VendorPortal: React.FC = () => {
     try {
       if (userKey) {
         const saved = localStorage.getItem(`eventcraft_vendor_list_${userKey}`);
-        if (saved) return JSON.parse(saved);
-        const singleSavedId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-        if (singleSavedId) {
-          return [{ id: singleSavedId, vendorId: singleSavedId, businessName: 'Loading...', category: '', contactNumber: '', verificationStatus: 'Pending' }] as any;
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const currentUserId = authService.getUserId();
+            const currentUserRole = authService.getUserRole();
+            if (currentUserRole === 'Vendor') {
+              return parsed.filter((v: any) => {
+                const vUserId = (v.userId || '').toString().toLowerCase();
+                if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+                return !!(currentUserId && vUserId === currentUserId.toLowerCase());
+              });
+            }
+            return parsed;
+          }
         }
       }
     } catch {}
@@ -256,31 +370,32 @@ export const VendorPortal: React.FC = () => {
   const syncMyVendors = async () => {
     try {
       const currentUserId = authService.getUserId();
+      const currentUserRole = authService.getUserRole();
       // Fetch all vendors from API
       const allVendors = await vendorService.getVendors();
       if (Array.isArray(allVendors)) {
-        const savedIds: string[] = [];
-        try {
-          const rawIds = localStorage.getItem(`eventcraft_vendor_ids_${userKey}`);
-          if (rawIds) savedIds.push(...JSON.parse(rawIds));
-          const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-          if (singleId && !savedIds.includes(singleId)) savedIds.push(singleId);
-        } catch {}
+        let userBusinesses: VendorItem[] = [];
 
-        const userPhone = (authService.getUserPhone() || '').replace(/\D/g, '');
-        const normUserName = (userName || '').toLowerCase().trim();
+        if (currentUserRole === 'Vendor') {
+          // Strictly match vendors owned by this specific logged-in user
+          userBusinesses = allVendors.filter(v => {
+            const vUserId = (v.userId || '').toString().toLowerCase();
+            // Never include system catalog seeded vendors
+            if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+            // Must have currentUserId matching vUserId
+            if (currentUserId && vUserId === currentUserId.toLowerCase()) return true;
 
-        const userBusinesses = allVendors.filter(v => {
-          const vId = (v.vendorId || v.id || '').toString();
-          const matchesUserId = !!(currentUserId && v.userId && v.userId.toLowerCase() === currentUserId.toLowerCase());
-          const matchesSavedId = savedIds.includes(vId);
-          const vPhone = (v.contactNumber || v.contact || '').replace(/\D/g, '');
-          const matchesPhone = !!(userPhone && vPhone && (vPhone.includes(userPhone) || userPhone.includes(vPhone)));
-          const vName = (v.businessName || v.name || '').toLowerCase();
-          const matchesName = !!(normUserName && (vName.includes(normUserName) || (normUserName.includes('sumane') && vName.includes('sumane'))));
+            // Also check saved single ID if registered in this browser session
+            const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
+            const vId = (v.vendorId || v.id || '').toString();
+            if (singleId && vId === singleId) return true;
 
-          return matchesUserId || matchesSavedId || matchesPhone || matchesName;
-        });
+            return false;
+          });
+        } else {
+          // For Manager or Admin inspecting the vendor portal
+          userBusinesses = allVendors;
+        }
 
         if (userBusinesses.length > 0) {
           const mapped = userBusinesses.map(v => ({
@@ -297,15 +412,42 @@ export const VendorPortal: React.FC = () => {
             localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
           } catch {}
 
-          if (!selectedVendorId && mapped.length > 0) {
+          if (!selectedVendorId || !mapped.some(v => (v.vendorId || v.id) === selectedVendorId)) {
             const firstId = mapped[0].id || mapped[0].vendorId || null;
             setSelectedVendorId(firstId);
             if (firstId) localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, firstId);
           }
+        } else {
+          // If logged-in vendor has no registered businesses, clear myVendors and stale cache
+          setMyVendors([]);
+          setSelectedVendorId(null);
+          try {
+            localStorage.removeItem(`eventcraft_vendor_list_${userKey}`);
+            localStorage.removeItem(`eventcraft_vendor_ids_${userKey}`);
+            localStorage.removeItem(`eventcraft_active_vendor_id_${userKey}`);
+          } catch {}
         }
       }
     } catch (e) {
       console.error('Sync error', e);
+    }
+  };
+
+  // Fetch Assigned Bookings / Work Orders
+  const fetchAssignedEvents = async (silent: boolean = false) => {
+    try {
+      const vId = currentVendor?.vendorId || currentVendor?.id;
+      const uId = authService.getUserId();
+      if (!vId && !uId) return;
+      if (!silent) setLoadingBookings(true);
+      const data = await vendorService.getAssignedEvents(vId, uId);
+      if (Array.isArray(data)) {
+        setAssignedBookings(data);
+      }
+    } catch (err) {
+      console.error('Error fetching assigned bookings', err);
+    } finally {
+      if (!silent) setLoadingBookings(false);
     }
   };
 
@@ -315,19 +457,57 @@ export const VendorPortal: React.FC = () => {
     return () => clearInterval(interval);
   }, [userKey, selectedVendorId]);
 
+  useEffect(() => {
+    fetchAssignedEvents(false);
+    const interval = setInterval(() => fetchAssignedEvents(true), 5000);
+    return () => clearInterval(interval);
+  }, [currentVendor?.vendorId, currentVendor?.id]);
+
   const handleCategoryChange = (newCat: string) => {
     setCategory(newCat);
-    const config = VENDOR_SERVICE_CONFIG[newCat] || getCategoryInfo(newCat);
-    if (config) {
-      setPackagePrice(config.defaultPrice);
+    setSelectedTierName('');
+    const tiers = CATEGORY_TIERS_MAP[newCat] || [];
+    if (tiers.length > 0) {
+      const defaultTier = tiers[0];
+      setPackageName(defaultTier.name);
+      setPackagePrice(defaultTier.price);
+      setDescription(defaultTier.description);
+      setSelectedTierName(defaultTier.name);
+    } else {
+      const config = VENDOR_SERVICE_CONFIG[newCat] || getCategoryInfo(newCat);
+      if (config) {
+        setPackagePrice(config.defaultPrice);
+      }
+    }
+  };
+
+  const handleTierSelect = (tierName: string) => {
+    setSelectedTierName(tierName);
+    if (!tierName || tierName === 'custom') return;
+    const tiers = CATEGORY_TIERS_MAP[category] || [];
+    const found = tiers.find(t => t.name === tierName);
+    if (found) {
+      setPackageName(found.name);
+      setPackagePrice(found.price);
+      setDescription(found.description);
     }
   };
 
   const handleSelectCategoryToRegister = (catKey: string) => {
     setCategory(catKey);
-    const config = VENDOR_SERVICE_CONFIG[catKey] || getCategoryInfo(catKey);
-    if (config) {
-      setPackagePrice(config.defaultPrice);
+    setSelectedTierName('');
+    const tiers = CATEGORY_TIERS_MAP[catKey] || [];
+    if (tiers.length > 0) {
+      const defaultTier = tiers[0];
+      setPackageName(defaultTier.name);
+      setPackagePrice(defaultTier.price);
+      setDescription(defaultTier.description);
+      setSelectedTierName(defaultTier.name);
+    } else {
+      const config = VENDOR_SERVICE_CONFIG[catKey] || getCategoryInfo(catKey);
+      if (config) {
+        setPackagePrice(config.defaultPrice);
+      }
     }
     setActiveTab('register');
   };
@@ -408,7 +588,6 @@ export const VendorPortal: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
               Supplier & Partner Portal
             </span>
-            <span className="text-xs text-slate-400">• Member 1 Component</span>
           </div>
           <h1 className="text-2xl font-black mt-2">Vendor Business Management & Onboarding</h1>
           <p className="text-slate-400 text-sm mt-1">Onboard your business across all 8 certified event services for autonomous AI-assisted event proposal allocation.</p>
@@ -569,6 +748,158 @@ export const VendorPortal: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Assigned Event Bookings & Live Work Orders */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
+                    <span className="text-xl">🔔</span>
+                    <span>My Assigned Event Bookings & Live Work Orders ({assignedBookings.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live client event orders assigned to your verified business by EventCraft Operations Managers.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fetchAssignedEvents(false)}
+                  disabled={loadingBookings}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 transition disabled:opacity-50"
+                >
+                  <span>🔄 {loadingBookings ? 'Refreshing...' : 'Refresh Orders'}</span>
+                </button>
+              </div>
+
+              {assignedBookings.length > 0 && (
+                <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 flex items-start space-x-3 shadow-xs">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-base shadow-xs">
+                    🎉
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-extrabold text-emerald-950 uppercase tracking-wide">
+                        Official Event Booking Notification ({assignedBookings.length} Active {assignedBookings.length === 1 ? 'Order' : 'Orders'})
+                      </h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
+                        Live Schedule Synced
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-900 mt-1 leading-relaxed font-medium">
+                      {assignedBookings[0].notificationMessage || `Your business "${currentVendor?.businessName || 'Verified Partner'}" has been booked for "${assignedBookings[0].eventTitle}" on ${assignedBookings[0].targetDate ? new Date(assignedBookings[0].targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date'}. Please review your event date, session, and package requirements below.`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {loadingBookings && assignedBookings.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400">Loading assigned bookings...</div>
+              ) : assignedBookings.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {assignedBookings.map((b: any, idx: number) => {
+                    const statusStr = String(b.bookingStatus || b.eventStatus || 'Assigned');
+                    const isConfirmedOrAgreed =
+                      statusStr.includes('Confirmed') ||
+                      statusStr.includes('Agreed') ||
+                      statusStr.includes('Approved') ||
+                      b.eventStatus === 'ClientChoiceSubmitted' ||
+                      b.eventStatus === 'ApprovedByManager' ||
+                      b.eventStatus === 'Confirmed';
+
+                    const formattedDate = b.targetDate
+                      ? new Date(b.targetDate).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })
+                      : 'Date TBD';
+
+                    return (
+                      <div 
+                        key={b.eventId ? `${b.eventId}-${idx}` : idx} 
+                        className={`p-4 rounded-xl border transition shadow-xs ${
+                          isConfirmedOrAgreed
+                            ? 'border-emerald-300 bg-emerald-50/30 hover:border-emerald-400'
+                            : 'border-indigo-200 bg-indigo-50/30 hover:border-indigo-400'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                                {b.category || 'Service'} Assignment
+                              </span>
+                              {b.eventType && (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                  {b.eventType}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-black text-slate-900 text-base mt-1.5">{b.eventTitle}</h4>
+                            <div className="text-xs text-slate-700 mt-1.5 space-y-1">
+                              <p className="flex items-center gap-1.5 font-semibold text-indigo-950">
+                                <span>📅 Booked Date:</span>
+                                <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{formattedDate}</span>
+                                <span className="text-indigo-700">• {b.sessionLabel || b.eventSession || 'Day Lunch'}</span>
+                              </p>
+                              <p className="flex flex-wrap items-center gap-1.5 text-slate-600">
+                                <span>📍 Venue: <strong className="text-slate-800">{b.venueName || 'Venue TBD'}</strong></span>
+                                {b.guestCount > 0 && (
+                                  <>
+                                    <span className="text-slate-300">•</span>
+                                    <span>👥 <strong className="text-slate-800">{b.guestCount} Guests</strong></span>
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs ${
+                            isConfirmedOrAgreed
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-amber-100 text-amber-900 border border-amber-300'
+                          }`}>
+                            {isConfirmedOrAgreed ? `✓ ${b.bookingStatus || 'Booked'}` : (b.bookingStatus || 'Assigned')}
+                          </span>
+                        </div>
+
+                        {b.notificationMessage && (
+                          <div className="mt-3 p-2.5 rounded-lg bg-white/90 border border-slate-200/80 text-[11px] text-slate-700 leading-relaxed">
+                            <span className="font-bold text-indigo-900">📩 Booking Notice: </span>
+                            {b.notificationMessage}
+                          </div>
+                        )}
+
+                        <div className="mt-3 pt-3 border-t border-slate-200/80 text-xs space-y-1.5">
+                          <div className="flex justify-between text-slate-700">
+                            <span className="text-slate-500">Booked Package:</span>
+                            <span className="font-bold text-slate-900 text-right">{b.packageName || 'Standard Service'}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-700">
+                            <span className="text-slate-500">Agreed Vendor Payout:</span>
+                            <span className="font-extrabold text-emerald-700 text-sm">Rs. {Number(b.agreedPayout || 0).toLocaleString()}</span>
+                          </div>
+                          {b.advancePaid && (
+                            <div className="flex justify-between text-slate-700">
+                              <span className="text-slate-500">Client Advance Status:</span>
+                              <span className="font-bold text-emerald-700">✓ Advance Payment Verified</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                  <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-semibold text-slate-600">No active event work orders assigned yet.</p>
+                  <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
+                    When Operations Managers approve event proposals matching your category, your confirmed assignments and agreed payouts will appear here in real-time.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Catalog & Equipment Breakdown - All Registered Businesses */}
@@ -760,7 +1091,7 @@ export const VendorPortal: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Service Category (8 Categories) *</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Service Category (9 Categories) *</label>
                 <select
                   value={category}
                   onChange={e => handleCategoryChange(e.target.value)}
@@ -772,6 +1103,7 @@ export const VendorPortal: React.FC = () => {
                   <option value="Cake">🎂 Cakes & Celebration Desserts</option>
                   <option value="Transport">🚗 VIP & Luxury Transport</option>
                   <option value="Catering">🍽️ Catering Buffets</option>
+                  <option value="Refreshments">☕ Welcome Drinks & Refreshments</option>
                   <option value="MarqueeTent">🎪 Tents & Safeguards</option>
                   <option value="PowerBackup">⚡ Power Backup & Generators</option>
                 </select>
@@ -788,6 +1120,30 @@ export const VendorPortal: React.FC = () => {
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+            </div>
+
+            {/* Standard Service Tier Selector */}
+            <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100">
+              <label className="block text-xs font-bold text-indigo-950 uppercase mb-1 flex items-center justify-between">
+                <span>Select Standard Service Tier (Optional Auto-Fill)</span>
+                <span className="text-[10px] text-indigo-600 lowercase font-normal">Choose tier to populate benchmark specs</span>
+              </label>
+              <select
+                value={selectedTierName}
+                onChange={e => handleTierSelect(e.target.value)}
+                className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-xs bg-white text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">-- Choose a standard service tier (Tier 1 - 4) --</option>
+                {(CATEGORY_TIERS_MAP[category] || []).map(t => (
+                  <option key={t.name} value={t.name}>
+                    {t.tier}: {t.name} — (Benchmark: Rs. {t.price.toLocaleString()})
+                  </option>
+                ))}
+                <option value="custom">✏️ Custom Package Name & Rate</option>
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Selecting a tier auto-fills package title, starting unit price, and business specs. You can customize any field below.
+              </p>
             </div>
 
             <div>

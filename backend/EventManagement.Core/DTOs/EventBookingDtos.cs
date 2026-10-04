@@ -34,6 +34,7 @@ public class CreateEventRequestDto
     public string? EventSession { get; set; } = "DayLunch";
     public string? CateringStyle { get; set; } = "InternationalBuffet";
     public List<string>? TableRefreshments { get; set; }
+    public string? CustomPrompt { get; set; }
 }
 
 // 2. Event Response DTO
@@ -47,6 +48,7 @@ public class EventResponseDto
     public decimal BudgetLimit { get; set; }
     public bool IsOutdoor { get; set; } = false;
     public string? AdditionalDetails { get; set; }
+    public string? CustomPrompt { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? VenueId { get; set; }
     public string? VenueName { get; set; }
@@ -62,9 +64,30 @@ public class EventResponseDto
     public List<string>? TableRefreshments { get; set; }
     public string? PreferredLocation { get; set; }
     public string? RevisionNotes { get; set; }
+    public string? AssignedVendorsJson { get; set; }
+    public List<AssignedVendorDto>? AssignedVendors { get; set; }
     public decimal? EstimatedTotalCost { get; set; }
     public string? WeatherAssessment { get; set; }
+    public Guid? CustomerId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerEmail { get; set; }
+    public string? CustomerPhone { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+// 2.0A Assigned Vendor DTO
+public class AssignedVendorDto
+{
+    public string Category { get; set; } = string.Empty;
+    public Guid? VendorId { get; set; }
+    public string VendorName { get; set; } = string.Empty;
+    public string? PackageName { get; set; }
+    public decimal? PackagePrice { get; set; }
+}
+
+public class UpdateAssignedVendorsDto
+{
+    public List<AssignedVendorDto> AssignedVendors { get; set; } = new();
 }
 
 // 2.0 Client Choice / Revision Request DTO

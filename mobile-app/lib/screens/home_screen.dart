@@ -895,13 +895,23 @@ class _HomeScreenState extends State<HomeScreen> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final m = event.targetDate.month >= 1 && event.targetDate.month <= 12 ? months[event.targetDate.month - 1] : '';
     final formattedDate = '$m ${event.targetDate.day.toString().padLeft(2, '0')}, ${event.targetDate.year}';
-    final formattedBudget = event.budgetLimit.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
 
     final isConfirmed = event.status == 'Confirmed';
     final isApproved = event.status == 'ApprovedByManager';
+    final double displayCost = (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0)
+        ? event.estimatedTotalCost!
+        : event.budgetLimit;
+    final formattedCost = displayCost.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    final String costLabel = isConfirmed
+        ? "Agreed"
+        : (isApproved
+            ? "Approved"
+            : (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0
+                ? "Total"
+                : "Budget"));
     final daysUntil = event.targetDate.difference(DateTime.now()).inDays;
 
     return Container(
@@ -1033,7 +1043,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(child: _buildMetaPill(Icons.people_alt_rounded, "Guests", "${event.guestCount}")),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildMetaPill(Icons.payments_outlined, "Budget", "LKR $formattedBudget")),
+                      Expanded(child: _buildMetaPill(Icons.payments_outlined, costLabel, "LKR $formattedCost")),
                     ],
                   ),
                   const SizedBox(height: 14),

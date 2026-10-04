@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import 'proposal_details_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final String? initialEventType;
@@ -102,6 +102,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // Special Client Requests & Additional Details
   final _additionalDetailsController = TextEditingController();
+  final _customPromptController = TextEditingController();
 
   // Location / Venue Selection
   String _locationMode = 'hotel';
@@ -117,10 +118,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   final _districtVenueNameController = TextEditingController();
 
   // Mode 3: Custom / Private Venue
+  String _selectedPrivateDistrict = 'Colombo';
+  String _selectedPrivateTown = 'Colombo 07';
   final _customAddressController = TextEditingController();
 
-  // Photo / Moodboard upload (up to 5 images)
-  final List<XFile> _selectedImages = [];
+  // Photo / Moodboard upload (up to 5 images stored directly in memory to prevent Web Blob URL revocation on mobile browsers)
+  final List<Uint8List> _selectedImageBytes = [];
   final ImagePicker _picker = ImagePicker();
 
   bool _isSubmitting = false;
@@ -132,6 +135,90 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     'Kurunegala', 'Puttalam', 'Anuradhapura', 'Polonnaruwa', 'Badulla',
     'Monaragala', 'Ratnapura', 'Kegalle'
   ];
+
+  final Map<String, List<String>> _districtTownsMap = {
+    'Colombo': [
+      'Colombo 07', 'Colombo 03', 'Colombo 04', 'Colombo 01', 'Nugegoda',
+      'Maharagama', 'Dehiwala', 'Mount Lavinia', 'Moratuwa', 'Kottawa',
+      'Malabe', 'Battaramulla', 'Rajagiriya', 'Homagama', 'Piliyandala'
+    ],
+    'Gampaha': [
+      'Kiribathgoda', 'Gampaha City', 'Negombo', 'Kelaniya', 'Wattala',
+      'Ja-Ela', 'Kadawatha', 'Minuwangoda', 'Nittambuwa', 'Mirigama', 'Ragama'
+    ],
+    'Kandy': [
+      'Kandy City', 'Peradeniya', 'Katugastota', 'Kundasale', 'Gampola',
+      'Digana', 'Akurana', 'Teldeniya'
+    ],
+    'Kalutara': [
+      'Kalutara City', 'Panadura', 'Wadduwa', 'Beruwala', 'Aluthgama',
+      'Horana', 'Matugama', 'Bandaragama'
+    ],
+    'Galle': [
+      'Galle Fort', 'Hikkaduwa', 'Unawatuna', 'Ambalangoda', 'Karapitiya',
+      'Bentota', 'Baddegama'
+    ],
+    'Matara': [
+      'Matara City', 'Mirissa', 'Weligama', 'Dikwella', 'Akuressa', 'Kamburupitiya'
+    ],
+    'Kurunegala': [
+      'Kurunegala City', 'Kuliyapitiya', 'Narammala', 'Wariyapola', 'Pannala', 'Polgahawela'
+    ],
+    'Nuwara Eliya': [
+      'Nuwara Eliya Town', 'Hatton', 'Nanu Oya', 'Talawakele', 'Maskeliya'
+    ],
+    'Ratnapura': [
+      'Ratnapura City', 'Balangoda', 'Pelmadulla', 'Embilipitiya', 'Kuruwita'
+    ],
+    'Anuradhapura': [
+      'Anuradhapura Town', 'Kekirawa', 'Medawachchiya', 'Tambuttegama'
+    ],
+    'Badulla': [
+      'Badulla City', 'Bandarawela', 'Ella', 'Haputale', 'Diyatalawa', 'Mahiyanganaya'
+    ],
+    'Matale': [
+      'Matale Town', 'Dambulla', 'Sigiriya', 'Ukuwela', 'Rattota'
+    ],
+    'Hambantota': [
+      'Hambantota City', 'Tangalle', 'Tissamaharama', 'Ambalantota', 'Beliatta'
+    ],
+    'Jaffna': [
+      'Jaffna Town', 'Chavakachcheri', 'Point Pedro', 'Nallur'
+    ],
+    'Trincomalee': [
+      'Trincomalee Town', 'Kinniya', 'Nilaveli', 'Kantale'
+    ],
+    'Batticaloa': [
+      'Batticaloa Town', 'Kattankudy', 'Eravur', 'Valaichchenai'
+    ],
+    'Puttalam': [
+      'Puttalam Town', 'Chilaw', 'Marawila', 'Wennappuwa'
+    ],
+    'Polonnaruwa': [
+      'Polonnaruwa Town', 'Kaduruwela', 'Hingurakgoda'
+    ],
+    'Kegalle': [
+      'Kegalle Town', 'Mawanella', 'Warakapola', 'Rambukkana'
+    ],
+    'Monaragala': [
+      'Monaragala Town', 'Wellawaya', 'Buttala', 'Kataragama'
+    ],
+    'Ampara': [
+      'Ampara Town', 'Kalmunai', 'Sammanthurai', 'Akkaraipattu'
+    ],
+    'Vavuniya': [
+      'Vavuniya Town', 'Nedurkeni'
+    ],
+    'Kilinochchi': [
+      'Kilinochchi Town', 'Pallai'
+    ],
+    'Mannar': [
+      'Mannar Town', 'Murunkan'
+    ],
+    'Mullaitivu': [
+      'Mullaitivu Town', 'Mankulam'
+    ]
+  };
 
   @override
   void initState() {
@@ -286,6 +373,231 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  void _autoFillFormFromPrompt() {
+    final text = _customPromptController.text.trim();
+    final lowerText = text.toLowerCase();
+    if (text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an event vision prompt first to auto-fill details.'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      // 1. Detect Event Category / Occasion
+      if (lowerText.contains('wedding') || lowerText.contains('nuptial') || lowerText.contains('marriage')) {
+        _selectedEventType = 'Wedding';
+      } else if (lowerText.contains('birthday') || lowerText.contains('bday')) {
+        _selectedEventType = 'Birthday Party';
+      } else if (lowerText.contains('gala') || lowerText.contains('dinner')) {
+        _selectedEventType = 'Dinner/Gala';
+      } else if (lowerText.contains('anniversary')) {
+        _selectedEventType = 'Anniversary';
+      } else if (lowerText.contains('engagement')) {
+        _selectedEventType = 'Engagement Party';
+      } else if (lowerText.contains('launch') || lowerText.contains('product')) {
+        _selectedEventType = 'Product Launch';
+      }
+      _applyOccasionAutoPreset(_selectedEventType);
+
+      // 2. Deep Budget Extractor (e.g., 2Million, 2M, 1.5M, 8Lakhs, 800k, 2000000)
+      double? extractedBudget;
+      final millionReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:m|million)\b', caseSensitive: false);
+      final lakhReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?)\b', caseSensitive: false);
+      final kReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:k|thousand)\b', caseSensitive: false);
+      final rawNumReg = RegExp(r'(?:budget|rs\.?|lkr|\b)\s*(\d{5,8})\b', caseSensitive: false);
+
+      final millionMatch = millionReg.firstMatch(lowerText);
+      final lakhMatch = lakhReg.firstMatch(lowerText);
+      final kMatch = kReg.firstMatch(lowerText);
+      final rawMatch = rawNumReg.firstMatch(lowerText);
+
+      if (millionMatch != null) {
+        final val = double.tryParse(millionMatch.group(1)!);
+        if (val != null) extractedBudget = val * 1000000.0;
+      } else if (lakhMatch != null) {
+        final val = double.tryParse(lakhMatch.group(1)!);
+        if (val != null) extractedBudget = val * 100000.0;
+      } else if (kMatch != null) {
+        final val = double.tryParse(kMatch.group(1)!);
+        if (val != null) extractedBudget = val * 1000.0;
+      } else if (rawMatch != null) {
+        final val = double.tryParse(rawMatch.group(1)!);
+        if (val != null) extractedBudget = val;
+      }
+
+      if (extractedBudget != null && extractedBudget > 10000) {
+        _budgetController.text = extractedBudget.round().toString();
+      }
+
+      // 3. Guest Count Extractor (e.g. "100 guests", "with 100 guests", "100 pax")
+      int? extractedGuests;
+      final explicitGuestReg = RegExp(r'(\d{1,4})\s*(?:guests?|people|pax|persons|invites?)\b', caseSensitive: false);
+      final explicitMatch = explicitGuestReg.firstMatch(lowerText);
+      if (explicitMatch != null) {
+        final val = int.tryParse(explicitMatch.group(1)!);
+        if (val != null && val >= 10 && val <= 5000) {
+          extractedGuests = val;
+        }
+      }
+
+      if (extractedGuests == null) {
+        final contextualGuestReg = RegExp(r'(?:with|for)\s+(\d{2,4})\b', caseSensitive: false);
+        final contextualMatch = contextualGuestReg.firstMatch(lowerText);
+        if (contextualMatch != null) {
+          final val = int.tryParse(contextualMatch.group(1)!);
+          if (val != null && val >= 10 && val <= 5000 && val != 2024 && val != 2025 && val != 2026 && val != 2027) {
+            extractedGuests = val;
+          }
+        }
+      }
+
+      if (extractedGuests != null) {
+        _guestController.text = extractedGuests.toString();
+      }
+
+      // 4. Detect Event Session (Night Dinner, Day Lunch, Evening High Tea)
+      if (lowerText.contains('night') || lowerText.contains('dinner') || lowerText.contains('evening')) {
+        _selectedSession = 'NightDinner';
+      } else if (lowerText.contains('high tea') || lowerText.contains('tea time')) {
+        _selectedSession = 'EveningHighTea';
+      } else if (lowerText.contains('lunch') || lowerText.contains('day')) {
+        _selectedSession = 'DayLunch';
+      }
+
+      // 5. Detect Indoor / Outdoor Setting
+      if (lowerText.contains('outdoor') || lowerText.contains('beach') || lowerText.contains('garden') || lowerText.contains('lawn')) {
+        _isOutdoor = true;
+      } else if (lowerText.contains('indoor') || lowerText.contains('hall') || lowerText.contains('ballroom')) {
+        _isOutdoor = false;
+      }
+
+      // 6. Deep District & Location Auto-Selector
+      String? matchedDistrict;
+      for (final d in _sriLankaDistricts) {
+        if (lowerText.contains(d.toLowerCase())) {
+          matchedDistrict = d;
+          break;
+        }
+      }
+      if (matchedDistrict == null) {
+        if (lowerText.contains('bentota') || lowerText.contains('beruwala') || lowerText.contains('panadura')) {
+          matchedDistrict = 'Kalutara';
+        } else if (lowerText.contains('negombo') || lowerText.contains('kiribathgoda') || lowerText.contains('kelaniya')) {
+          matchedDistrict = 'Gampaha';
+        } else if (lowerText.contains('ella') || lowerText.contains('bandarawela')) {
+          matchedDistrict = 'Badulla';
+        } else if (lowerText.contains('hikkaduwa') || lowerText.contains('unawatuna')) {
+          matchedDistrict = 'Galle';
+        }
+      }
+
+      if (matchedDistrict != null) {
+        _selectedDistrict = matchedDistrict;
+        _locationMode = 'district';
+        _districtVenueNameController.text = '$matchedDistrict Event Grounds & Hotel';
+      }
+
+      // 7. Target Date Extractor (Supports "21 st of february", "21st feb 2027", "february 21", "2026-10-20")
+      try {
+        final monthsMap = {
+          'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+          'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+          'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'october': 10, 'oct': 10,
+          'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+        };
+
+        final dateReg = RegExp(
+          r'(\d{1,2})\s*(?:st|nd|rd|th)?\s*(?:of)?\s*(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{4})?',
+          caseSensitive: false,
+        );
+        final reverseDateReg = RegExp(
+          r'(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)\s*(\d{1,2})\s*(?:st|nd|rd|th)?\s*(\d{4})?',
+          caseSensitive: false,
+        );
+
+        final match = dateReg.firstMatch(lowerText);
+        final revMatch = reverseDateReg.firstMatch(lowerText);
+
+        int? day;
+        int? month;
+        int? year;
+
+        if (match != null) {
+          day = int.tryParse(match.group(1)!);
+          month = monthsMap[match.group(2)!.toLowerCase()];
+          if (match.group(3) != null) {
+            year = int.tryParse(match.group(3)!);
+          }
+        } else if (revMatch != null) {
+          month = monthsMap[revMatch.group(1)!.toLowerCase()];
+          day = int.tryParse(revMatch.group(2)!);
+          if (revMatch.group(3) != null) {
+            year = int.tryParse(revMatch.group(3)!);
+          }
+        }
+
+        if (day != null && month != null && day >= 1 && day <= 31) {
+          final now = DateTime.now();
+          year ??= now.year;
+          var parsedDate = DateTime(year, month, day);
+          // If the target date in current year is in the past, roll over to next year
+          if (parsedDate.isBefore(DateTime(now.year, now.month, now.day))) {
+            parsedDate = DateTime(year + 1, month, day);
+          }
+          _selectedDate = parsedDate;
+        }
+      } catch (_) {}
+
+      // 8. Extract Special Client Requests & Bullet-Point List for Manager Pricing
+      final List<String> extractedRequests = [];
+      if (lowerText.contains('night') || lowerText.contains('dinner')) {
+        extractedRequests.add('Night Dinner Session requested');
+      }
+      if (lowerText.contains('music') || lowerText.contains('band') || lowerText.contains('acoustic') || lowerText.contains('sound') || lowerText.contains('dj')) {
+        extractedRequests.add('Live music / acoustic band sound setup requested');
+      }
+      if (lowerText.contains('deco') || lowerText.contains('floral') || lowerText.contains('flower') || lowerText.contains('theme')) {
+        extractedRequests.add('Thematic floral decoration & stage styling requested');
+      }
+      if (lowerText.contains('photo') || lowerText.contains('video') || lowerText.contains('cinema')) {
+        extractedRequests.add('4K Event photography & coverage requested');
+      }
+      if (lowerText.contains('cake') || lowerText.contains('dessert')) {
+        extractedRequests.add('Celebration cake & dessert counter requested');
+      }
+      if (lowerText.contains('car') || lowerText.contains('transport') || lowerText.contains('bridal')) {
+        extractedRequests.add('VIP Bridal / Chauffeur transport requested');
+      }
+
+      final StringBuffer detailsBuffer = StringBuffer();
+      detailsBuffer.writeln('• Extracted Client Vision: "$text"');
+      if (matchedDistrict != null) {
+        detailsBuffer.writeln('• Target Preferred Location: $matchedDistrict District');
+      }
+      if (extractedRequests.isNotEmpty) {
+        detailsBuffer.writeln('• Special Requests & Add-ons for Manager Review:');
+        for (final req in extractedRequests) {
+          detailsBuffer.writeln('  - $req');
+        }
+      }
+
+      _additionalDetailsController.text = detailsBuffer.toString().trim();
+    });
+
+    final formattedBudgetStr = NumberFormat("#,##0").format(double.tryParse(_budgetController.text) ?? 0);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✨ AI extracted 100% details! (Guests: ${_guestController.text}, Budget: Rs. $formattedBudgetStr, Location: ${_selectedDistrict}, Session: ${_selectedSession == "NightDinner" ? "Night" : "Day"}, Date: ${DateFormat("MMM dd, yyyy").format(_selectedDate)})'),
+        backgroundColor: const Color(0xFF059669),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   List<String> get _hotelNames {
     return _filteredHalls.map((h) => h.venueName).toSet().toList();
   }
@@ -337,7 +649,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickImages() async {
-    if (_selectedImages.length >= 5) {
+    if (_selectedImageBytes.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Maximum 5 inspiration moodboard photos allowed.'),
@@ -346,21 +658,53 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       return;
     }
-    final picked = await _picker.pickMultiImage();
-    if (picked.isNotEmpty) {
-      setState(() {
+    try {
+      final picked = await _picker.pickMultiImage(
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 75,
+      );
+      if (picked.isNotEmpty) {
+        final List<Uint8List> loadedBytes = [];
         for (var img in picked) {
-          if (_selectedImages.length < 5) {
-            _selectedImages.add(img);
+          if (_selectedImageBytes.length + loadedBytes.length < 5) {
+            try {
+              final bytes = await img.readAsBytes();
+              if (bytes.isNotEmpty) {
+                loadedBytes.add(bytes);
+              }
+            } catch (_) {}
           }
         }
-      });
+        if (mounted && loadedBytes.isNotEmpty) {
+          setState(() {
+            _selectedImageBytes.addAll(loadedBytes);
+          });
+        }
+      }
+    } catch (_) {
+      try {
+        final single = await _picker.pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 1024,
+          maxHeight: 1024,
+          imageQuality: 75,
+        );
+        if (single != null) {
+          final bytes = await single.readAsBytes();
+          if (mounted && bytes.isNotEmpty && _selectedImageBytes.length < 5) {
+            setState(() {
+              _selectedImageBytes.add(bytes);
+            });
+          }
+        }
+      } catch (_) {}
     }
   }
 
   void _removeImage(int index) {
     setState(() {
-      _selectedImages.removeAt(index);
+      _selectedImageBytes.removeAt(index);
     });
   }
 
@@ -410,10 +754,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
     try {
       final List<String> base64Images = [];
-      for (var img in _selectedImages) {
-        final bytes = await img.readAsBytes();
-        final b64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-        base64Images.add(b64);
+      for (final bytes in _selectedImageBytes) {
+        if (bytes.isNotEmpty) {
+          final b64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+          base64Images.add(b64);
+        }
       }
 
       String? venueId;
@@ -427,9 +772,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         final detail = _districtVenueNameController.text.trim();
         venueLocationStr = detail.isNotEmpty ? '$_selectedDistrict District ($detail)' : '$_selectedDistrict District';
       } else {
-        venueLocationStr = _customAddressController.text.trim().isNotEmpty
-            ? _customAddressController.text.trim()
-            : 'Private Venue / Home';
+        final street = _customAddressController.text.trim();
+        venueLocationStr = street.isNotEmpty
+            ? 'Private Residence - $street | Town: $_selectedPrivateTown | District: $_selectedPrivateDistrict'
+            : 'Private Residence | Town: $_selectedPrivateTown | District: $_selectedPrivateDistrict';
       }
 
       final customNotes = _customServiceNotesController.text.trim();
@@ -453,18 +799,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         eventSession: _selectedSession,
         cateringStyle: _selectedCateringStyle,
         tableRefreshments: _selectedTableRefreshments,
+        customPrompt: _customPromptController.text.trim().isNotEmpty ? _customPromptController.text.trim() : null,
       );
 
       if (mounted) {
         setState(() => _isSubmitting = false);
         if (createdEvent != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Celebration Inquiry Created! AI agents are generating your proposal.'),
-              backgroundColor: Color(0xFF059669),
-            ),
-          );
-          Navigator.pop(context, true);
+          _showEventCreatedSuccessDialog(context, createdEvent);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -490,6 +831,210 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         );
       }
     }
+  }
+
+  Future<void> _showEventCreatedSuccessDialog(BuildContext context, EventSummary createdEvent) async {
+    final currencyFmt = NumberFormat("#,##0", "en_US");
+    final formattedBudget = currencyFmt.format(createdEvent.budgetLimit);
+    final dateStr = DateFormat("MMM dd, yyyy").format(createdEvent.targetDate);
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 12,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Celebration Icon Hero Badge
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF10B981).withOpacity(0.35),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.celebration_rounded,
+                    color: Colors.white,
+                    size: 38,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Title
+                const Text(
+                  "Event Inquiry Created! 🎉",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "Your celebration inquiry is registered in the cloud.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // Event Details Card
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.event_seat_rounded, size: 18, color: Color(0xFF0284C7)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              createdEvent.title,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 18, color: Color(0xFFE2E8F0)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(dateStr, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              const Icon(Icons.people_alt_rounded, size: 14, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text("${createdEvent.guestCount} Guests", style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Budget Target:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text(
+                            "LKR $formattedBudget",
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // AI Workflow Active Indicator Box
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Color(0xFF16A34A), size: 20),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Agentic AI is calculating hotel catering, venue rentals & weather forecasts for your proposal.",
+                          style: TextStyle(fontSize: 11.5, color: Color(0xFF15803D), height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+
+                // Action Buttons
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context, true);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProposalDetailsScreen(eventId: createdEvent.eventId),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.description_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text("View AI Proposal Draft", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text(
+                      "Back to My Events",
+                      style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -683,6 +1228,63 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         const Text(
           'Select your celebration occasion and scale for AI multi-agent orchestration.',
           style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+        ),
+        const SizedBox(height: 16),
+
+        // AI Natural Language Prompt Card (Real-World AI Concierge)
+        _buildCard(
+          color: const Color(0xFFF0F9FF),
+          borderColor: const Color(0xFFBAE6FD),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.auto_awesome_rounded, color: Color(0xFF0284C7), size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'AI Event Concierge',
+                    style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.bold, fontSize: 13.5),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Describe your vision in your own words and our AI will automatically configure your event details, location & budget.',
+                style: TextStyle(color: Color(0xFF0369A1), fontSize: 11.5, height: 1.3),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _customPromptController,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 12.5, color: Color(0xFF0F172A)),
+                decoration: _inputDecoration(
+                  'Your Event Vision',
+                  hint: 'e.g., I want a romantic sunset beach wedding in Bentota for 200 guests with acoustic live music under 2 Million budget.',
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _autoFillFormFromPrompt,
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 16, color: Colors.white),
+                  label: const Text(
+                    'Auto-Fill Event Details with AI',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0284C7),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -895,7 +1497,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('☀️', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.wb_sunny_outlined, size: 20, color: _selectedSession == 'DayLunch' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'Day Lunch',
@@ -939,7 +1541,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('🌙', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.nightlight_round_outlined, size: 20, color: _selectedSession == 'NightDinner' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'Night Dinner',
@@ -983,7 +1585,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Text('☕', style: TextStyle(fontSize: 18)),
+                            Icon(Icons.local_cafe_outlined, size: 20, color: _selectedSession == 'EveningHighTea' ? const Color(0xFF2563EB) : const Color(0xFF64748B)),
                             const SizedBox(height: 4),
                             Text(
                               'High Tea',
@@ -1023,7 +1625,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               const Text('Target Date, Guests & Budget', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
               const SizedBox(height: 12),
 
-              // Date Picker Card
+              // Date Picker Card (Interactive Calendar Dialog)
               InkWell(
                 onTap: _selectDate,
                 borderRadius: BorderRadius.circular(12),
@@ -1032,7 +1634,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    border: Border.all(color: const Color(0xFFCBD5E1)),
                   ),
                   child: Row(
                     children: [
@@ -1049,7 +1651,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8)),
+                            const Text('TARGET EVENT DATE', style: TextStyle(color: Color(0xFF64748B), fontSize: 10, letterSpacing: 0.8, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 2),
                             Text(
                               DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
@@ -1062,12 +1664,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          borderRadius: BorderRadius.circular(6),
+                          color: const Color(0xFF2563EB),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('Change', style: TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white),
+                            SizedBox(width: 4),
+                            Text('Calendar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1508,19 +2116,111 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
               // MODE 3: CUSTOM / PRIVATE VENUE
               if (_locationMode == 'custom') ...[
-                const Text('Private Venue / Residence Address', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                const Text('Private Venue / Residence Street Address', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _customAddressController,
                   maxLines: 2,
                   style: const TextStyle(color: Color(0xFF0F172A)),
                   decoration: _inputDecoration(
-                    'Enter Address / Location Details',
-                    hint: 'e.g. No. 45, Flower Road, Colombo 07 (Private Residence Lawn)',
+                    'Enter Street Address / House No.',
+                    hint: 'e.g. No. 45/2, Temple Road (Private Residence Lawn)',
                   ),
                   validator: (v) => _locationMode == 'custom' && (v == null || v.trim().isEmpty)
-                      ? 'Please enter venue location'
+                      ? 'Please enter residence street address'
                       : null,
+                ),
+                const SizedBox(height: 14),
+
+                // District Dropdown
+                const Text('District / Region', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedPrivateDistrict,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                      items: _sriLankaDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      onChanged: (d) {
+                        if (d != null && d != _selectedPrivateDistrict) {
+                          setState(() {
+                            _selectedPrivateDistrict = d;
+                            final towns = _districtTownsMap[d] ?? [];
+                            _selectedPrivateTown = towns.isNotEmpty ? towns.first : d;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Cascading Town Dropdown
+                Builder(
+                  builder: (context) {
+                    final towns = _districtTownsMap[_selectedPrivateDistrict] ?? [_selectedPrivateDistrict];
+                    final currentTown = towns.contains(_selectedPrivateTown) ? _selectedPrivateTown : towns.first;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Nearest Town / City (For Hyper-Local Weather)', style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 13)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: currentTown,
+                              isExpanded: true,
+                              dropdownColor: Colors.white,
+                              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                              items: towns.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                              onChanged: (t) {
+                                if (t != null) {
+                                  setState(() => _selectedPrivateTown = t);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // AI Weather Info Badge
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🌤️', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Weather Forecast Target: $_selectedPrivateTown ($_selectedPrivateDistrict)\nLive OpenWeather API will predict rain risk and safeguard outdoor setups.',
+                          style: const TextStyle(color: Color(0xFF166534), fontSize: 11, fontWeight: FontWeight.w500, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -1706,10 +2406,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
                 label: const Text('Pick Photos from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               ),
-              if (_selectedImages.isNotEmpty) ...[
+              if (_selectedImageBytes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  '${_selectedImages.length} photo(s) attached:',
+                  '${_selectedImageBytes.length} photo(s) attached:',
                   style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
                 ),
                 const SizedBox(height: 8),
@@ -1717,9 +2417,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   height: 90,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
-                    itemCount: _selectedImages.length,
+                    itemCount: _selectedImageBytes.length,
                     itemBuilder: (context, index) {
-                      final xfile = _selectedImages[index];
+                      final imgBytes = _selectedImageBytes[index];
                       return Container(
                         width: 90,
                         margin: const EdgeInsets.only(right: 8),
@@ -1732,9 +2432,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: kIsWeb
-                                  ? Image.network(xfile.path, fit: BoxFit.cover)
-                                  : Image.file(File(xfile.path), fit: BoxFit.cover),
+                              child: Image.memory(imgBytes, fit: BoxFit.cover),
                             ),
                             Positioned(
                               top: 3,
@@ -1851,7 +2549,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               else if (_locationMode == 'district')
                 _buildSummaryRow('District:', '$_selectedDistrict District ${_districtVenueNameController.text.isNotEmpty ? "(${_districtVenueNameController.text})" : ""}')
               else
-                _buildSummaryRow('Private Venue:', _customAddressController.text.trim()),
+                _buildSummaryRow('Private Venue:', '${_customAddressController.text.trim().isNotEmpty ? _customAddressController.text.trim() : "Residence"}, $_selectedPrivateTown ($_selectedPrivateDistrict District)'),
 
               if (_selectedServices.isNotEmpty)
                 _buildSummaryRow('Services (${_selectedServices.length}):', _selectedServices.join(' • ')),
@@ -1859,8 +2557,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               if (_selectedTableRefreshments.isNotEmpty)
                 _buildSummaryRow('Food Refreshments (${_selectedTableRefreshments.length}):', _selectedTableRefreshments.join(' • ')),
 
-              if (_selectedImages.isNotEmpty)
-                _buildSummaryRow('Inspiration Photos:', '${_selectedImages.length} photo(s) attached'),
+              if (_selectedImageBytes.isNotEmpty)
+                _buildSummaryRow('Inspiration Photos:', '${_selectedImageBytes.length} photo(s) attached'),
 
               if (_additionalDetailsController.text.trim().isNotEmpty)
                 _buildSummaryRow('Client Vision Notes:', '${_additionalDetailsController.text.trim()} (Priced by Manager upon Review)'),
@@ -2026,14 +2724,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     );
   }
 
-  Widget _buildCard({required Widget child}) {
+  Widget _buildCard({required Widget child, Color? color, Color? borderColor}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color ?? Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        border: Border.all(color: borderColor ?? const Color(0xFFE2E8F0)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x060F172A),

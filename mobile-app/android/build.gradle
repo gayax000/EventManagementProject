@@ -5,6 +5,16 @@ allprojects {
     }
 }
 
+subprojects {
+    if (project.name != "app") {
+        ext.flutter = [
+            compileSdkVersion: 34,
+            minSdkVersion: 21,
+            targetSdkVersion: 34
+        ]
+    }
+}
+
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
@@ -13,6 +23,27 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+subprojects {
+    def configureCompileSdk = { proj ->
+        if (proj.hasProperty('android')) {
+            try {
+                proj.android {
+                    compileSdkVersion 34
+                }
+            } catch (Exception e) {}
+        }
+    }
+    if (project.state.executed) {
+        configureCompileSdk(project)
+    } else {
+        project.afterEvaluate {
+            configureCompileSdk(project)
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+

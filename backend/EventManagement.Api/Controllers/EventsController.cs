@@ -36,6 +36,8 @@ public class EventsController : ControllerBase
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""PreferredLocation"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
                 ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
+                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""CustomPrompt"" text;
             ");
             _schemaEnsured = true;
         }
@@ -189,6 +191,7 @@ public class EventsController : ControllerBase
                 BudgetLimit = dto.BudgetLimit,
                 IsOutdoor = isOutdoor,
                 AdditionalDetails = additionalDetails,
+                CustomPrompt = dto.CustomPrompt,
                 InspirationImageUrl = inspirationJson,
                 SelectedServicesJson = servicesJson,
                 EventSession = eventSession,
@@ -210,6 +213,25 @@ public class EventsController : ControllerBase
             {
                 _logger.LogWarning(aiEx, "AI Plan generation experienced non-fatal warning for Event {EventId}", newEvent.EventId);
             }
+
+            // Create Manager Notification for New Event
+            try
+            {
+                var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
+                var managerId = manager?.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = managerId,
+                    EventId = newEvent.EventId,
+                    Title = "🆕 New Event Created",
+                    Message = $"New {newEvent.EventType} event \"{newEvent.Title}\" created by client. Budget: LKR {newEvent.BudgetLimit:N0}",
+                    Type = "NewEvent",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+            catch { }
 
             var response = new EventResponseDto
             {
@@ -259,6 +281,7 @@ public class EventsController : ControllerBase
             .Include(e => e.Venue)
             .Include(e => e.BanquetHall)
             .Include(e => e.AIWorkflowState)
+            .Include(e => e.Customer)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
@@ -279,10 +302,15 @@ public class EventsController : ControllerBase
             VenueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation,
             BanquetHallId = ev.BanquetHallId,
             BanquetHallName = ev.BanquetHall?.HallName,
-            HallRentalPrice = ev.BanquetHall?.HallRentalPrice,
+            HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
             PerPlatePrice = ev.BanquetHall?.PerPlatePrice,
+            PreferredLocation = ev.PreferredLocation,
             InspirationImageUrl = ev.InspirationImageUrl,
             InspirationImages = ParseInspirationImages(ev.InspirationImageUrl),
+            CustomerId = ev.CustomerId,
+            CustomerName = ev.Customer?.FullName ?? "Kasun Customer",
+            CustomerEmail = ev.Customer?.Email ?? "customer@eventcraft.lk",
+            CustomerPhone = ev.Customer?.PhoneNumber ?? "+94 77 123 4567",
             SelectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
                 ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
                 : new List<string>(),
@@ -292,25 +320,74 @@ public class EventsController : ControllerBase
                 ? JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson)
                 : new List<string>(),
             RevisionNotes = ev.RevisionNotes,
+            AssignedVendorsJson = ev.AssignedVendorsJson,
+            AssignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
+                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                : new List<AssignedVendorDto>(),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
             CreatedAt = ev.CreatedAt
         });
     }
 
+    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson)
+    {
+        if (status == "ApprovedByManager" || status == "Confirmed" || status == "Completed")
+            return false;
+
+        if (string.IsNullOrEmpty(planJson))
+            return true;
+
+        if (planJson.Contains("1. Weather & Environmental Assessment") ||
+            planJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
+            planJson.Contains("Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls (Rs. 150,000)") ||
+            planJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
+            planJson.Contains("Thematic Floral Stage + Entrance Tunnel Arch Decor (Rs. 130,000)") ||
+            planJson.Contains("Floral Stage & Tablescape Theme Decoration (Rs. 80,000)"))
+        {
+            return true;
+        }
+
+        if (isOutdoor && budgetLimit >= 2000000m)
+        {
+            if (!string.IsNullOrEmpty(weatherJson) &&
+                (weatherJson.Contains("\"SafeguardCost\":150000") || weatherJson.Contains("\"SafeguardCost\": 150000")))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // 2.1 GET: api/events/{id}/proposal (Detailed Proposal & Booking Pass for Mobile)
+    [AllowAnonymous]
     [HttpGet("{id}/proposal")]
     public async Task<ActionResult> GetEventProposal(Guid id)
     {
         var ev = await _context.Events
+            .AsNoTracking()
             .Include(e => e.Venue)
             .Include(e => e.BanquetHall)
+            .ThenInclude(h => h!.Venue)
             .FirstOrDefaultAsync(e => e.EventId == id);
 
         if (ev == null)
             return NotFound(new { message = "Event not found." });
 
-        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
+        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
+        {
+            try
+            {
+                await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
+            }
+        }
         var booking = await _context.Bookings
             .Include(b => b.EntryPass)
             .FirstOrDefaultAsync(b => b.EventId == id);
@@ -365,8 +442,9 @@ public class EventsController : ControllerBase
             status = ev.Status,
             venueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation ?? "Selected Luxury Resort",
             banquetHallName = ev.BanquetHall?.HallName,
-            hallRentalPrice = ev.BanquetHall?.HallRentalPrice,
+            hallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
             perPlatePrice = ev.BanquetHall?.PerPlatePrice,
+            preferredLocation = ev.PreferredLocation,
             selectedServices = selectedServices,
             inspirationImages = inspirationImages,
             inspirationImageUrl = (string?)null,
@@ -407,6 +485,22 @@ public class EventsController : ControllerBase
         else
         {
             ev.Status = "ClientChoiceSubmitted";
+            if (clientAction.Contains("AcceptedPremium", StringComparison.OrdinalIgnoreCase) || clientAction.Contains("Premium", StringComparison.OrdinalIgnoreCase))
+            {
+                ev.RevisionNotes = "ClientChoice:AcceptedPremium";
+                if (chosenTotal.HasValue && chosenTotal.Value > 0)
+                {
+                    ev.BudgetLimit = chosenTotal.Value;
+                }
+            }
+            else if (clientAction.Contains("RequestedBudgetFit", StringComparison.OrdinalIgnoreCase) || clientAction.Contains("BudgetFit", StringComparison.OrdinalIgnoreCase))
+            {
+                ev.RevisionNotes = "ClientChoice:RequestedBudgetFit";
+            }
+            else
+            {
+                ev.RevisionNotes = $"ClientChoice:{clientAction}";
+            }
         }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
@@ -420,6 +514,40 @@ public class EventsController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+        // Create Manager Notification for Revision or Choice Acceptance
+        try
+        {
+            var manager = await _context.Users.FirstOrDefaultAsync(u => u.Email == "manager@eventcraft.lk" || u.RoleId == 2);
+            var managerId = manager?.UserId ?? Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+            if (isRevision)
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = managerId,
+                    EventId = ev.EventId,
+                    Title = "📝 Revision Requested",
+                    Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
+                    Type = "RevisionRequest",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            else
+            {
+                _context.Notifications.Add(new Notification
+                {
+                    UserId = managerId,
+                    EventId = ev.EventId,
+                    Title = "✅ Proposal Option Accepted",
+                    Message = $"Client submitted proposal choice \"{clientAction}\" for \"{ev.Title}\".",
+                    Type = "ProposalAccepted",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+        }
+        catch { }
 
         return Ok(new
         {
@@ -469,65 +597,96 @@ public class EventsController : ControllerBase
                 }
             }
 
-            var query = _context.Events.AsQueryable();
+            var query = _context.Events.AsNoTracking().AsQueryable();
             if (targetCustomerId != Guid.Empty)
             {
-                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
+                var sampleCustomer = await _context.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
                 Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
 
                 query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
             }
 
-            var events = await query
-                .Include(e => e.Venue)
-                .Include(e => e.BanquetHall)
-                .Include(e => e.AIWorkflowState)
+            var rawRows = await query
                 .OrderByDescending(e => e.CreatedAt)
-                .Select(ev => new EventResponseDto
+                .Select(ev => new
                 {
-                    EventId = ev.EventId,
-                    Title = ev.Title,
-                    EventType = ev.EventType,
-                    TargetDate = ev.TargetDate,
-                    GuestCount = ev.GuestCount,
-                    BudgetLimit = ev.BudgetLimit,
-                    IsOutdoor = ev.IsOutdoor,
-                    AdditionalDetails = ev.AdditionalDetails,
-                    EventSession = ev.EventSession,
-                    CateringStyle = ev.CateringStyle,
-                    TableRefreshments = null,
-                    RevisionNotes = ev.RevisionNotes,
-                    Status = ev.Status,
-                    VenueId = ev.VenueId,
-                    VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
-                    BanquetHallId = ev.BanquetHallId,
-                    BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
-                    HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : null,
-                    PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
-                    InspirationImageUrl = null,
-                    EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
-                    WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
-                    CreatedAt = ev.CreatedAt
+                    Dto = new EventResponseDto
+                    {
+                        EventId = ev.EventId,
+                        Title = ev.Title,
+                        EventType = ev.EventType,
+                        TargetDate = ev.TargetDate,
+                        GuestCount = ev.GuestCount,
+                        BudgetLimit = ev.BudgetLimit,
+                        IsOutdoor = ev.IsOutdoor,
+                        AdditionalDetails = ev.AdditionalDetails,
+                        EventSession = ev.EventSession,
+                        CateringStyle = ev.CateringStyle,
+                        TableRefreshments = null,
+                        RevisionNotes = ev.RevisionNotes,
+                        AssignedVendorsJson = ev.AssignedVendorsJson,
+                        Status = ev.Status,
+                        VenueId = ev.VenueId,
+                        VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
+                        BanquetHallId = ev.BanquetHallId,
+                        BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
+                        HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
+                        PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
+                        PreferredLocation = ev.PreferredLocation,
+                        InspirationImageUrl = null,
+                        EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                        WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        CustomerId = ev.CustomerId,
+                        CustomerName = ev.Customer != null ? ev.Customer.FullName : "Kasun Customer",
+                        CustomerEmail = ev.Customer != null ? ev.Customer.Email : "customer@eventcraft.lk",
+                        CustomerPhone = ev.Customer != null ? ev.Customer.PhoneNumber : "+94 77 123 4567",
+                        CreatedAt = ev.CreatedAt
+                    },
+                    TableRefreshmentsJson = ev.TableRefreshmentsJson,
+                    SelectedServicesJson = ev.SelectedServicesJson,
+                    GeneratedPlanJson = ev.AIWorkflowState != null ? ev.AIWorkflowState.GeneratedPlanJson : null
                 })
                 .ToListAsync();
 
-            foreach (var item in events)
+            var events = new List<EventResponseDto>(rawRows.Count);
+            foreach (var row in rawRows)
             {
+                var item = row.Dto;
                 item.InspirationImages = new List<string>();
-                var evEntity = await _context.Events.FindAsync(item.EventId);
-                if (evEntity != null)
+
+                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment))
                 {
-                    if (!string.IsNullOrEmpty(evEntity.TableRefreshmentsJson))
+                    try
                     {
-                        try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(evEntity.TableRefreshmentsJson); }
-                        catch { }
+                        await _context.Events.Where(e => e.EventId == item.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                        item.AssignedVendorsJson = null;
+                        var refreshed = await _aiWorkflowService.TriggerAgenticPlanAsync(item.EventId);
+                        if (refreshed != null)
+                        {
+                            item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
+                            item.WeatherAssessment = refreshed.WeatherAssessmentJson;
+                        }
                     }
-                    if (!string.IsNullOrEmpty(evEntity.SelectedServicesJson))
-                    {
-                        try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(evEntity.SelectedServicesJson); }
-                        catch { }
-                    }
+                    catch { }
                 }
+
+                if (!string.IsNullOrEmpty(row.TableRefreshmentsJson))
+                {
+                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(row.TableRefreshmentsJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(row.SelectedServicesJson))
+                {
+                    try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(row.SelectedServicesJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
+                {
+                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+                    catch { }
+                }
+
+                events.Add(item);
             }
 
             return Ok(events);
@@ -542,13 +701,18 @@ public class EventsController : ControllerBase
     // 4. POST: api/events/{id}/approve-proposal (Manager Human-in-the-Loop Approval - Spec Section 9.1)
     [Authorize(Roles = "Manager")]
     [HttpPost("{id}/approve-proposal")]
-    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null, [FromBody] List<string>? planItems = null)
+    public async Task<ActionResult> ApproveProposal(Guid id, [FromQuery] decimal discount = 0, [FromQuery] decimal? finalTotal = null, [FromQuery] string? status = null, [FromQuery] decimal? customAddonCost = null, [FromQuery] string? assignedVendorsJson = null, [FromBody] List<string>? planItems = null)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = "Event not found in database." });
 
         ev.Status = !string.IsNullOrWhiteSpace(status) ? status : "ApprovedByManager";
+
+        if (!string.IsNullOrWhiteSpace(assignedVendorsJson))
+        {
+            ev.AssignedVendorsJson = assignedVendorsJson;
+        }
 
         var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
         if (aiState != null)
@@ -609,6 +773,84 @@ public class EventsController : ControllerBase
             message = "Proposal decision processed successfully.", 
             status = ev.Status, 
             finalTotal = aiState?.EstimatedTotalCost 
+        });
+    }
+
+    // 4.05 PUT: api/events/{id}/sync-draft (Live Synchronize Working Proposal Draft Between Manager Dashboard & Mobile App)
+    [AllowAnonymous]
+    [HttpPut("{id}/sync-draft")]
+    public async Task<ActionResult> SyncProposalDraft(Guid id, [FromBody] SyncProposalDraftDto dto)
+    {
+        bool exists = await _context.Events.AsNoTracking().AnyAsync(e => e.EventId == id);
+        if (!exists)
+            return NotFound(new { message = "Event not found in database." });
+
+        if (!string.IsNullOrWhiteSpace(dto.AssignedVendorsJson))
+        {
+            await _context.Events.Where(e => e.EventId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, dto.AssignedVendorsJson));
+        }
+
+        var aiState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == id);
+        if (aiState != null)
+        {
+            if (dto.FinalTotal > 0)
+            {
+                aiState.EstimatedTotalCost = dto.FinalTotal;
+            }
+            if (dto.PlanItems != null && dto.PlanItems.Count > 0)
+            {
+                aiState.GeneratedPlanJson = JsonSerializer.Serialize(dto.PlanItems);
+            }
+            if (dto.WeatherTentCost.HasValue && !string.IsNullOrWhiteSpace(aiState.WeatherAssessmentJson))
+            {
+                try
+                {
+                    var wEval = JsonSerializer.Deserialize<EventManagement.Infrastructure.Services.WeatherEvaluation>(aiState.WeatherAssessmentJson);
+                    if (wEval != null)
+                    {
+                        wEval.SafeguardCost = dto.WeatherTentCost.Value;
+                        if (!string.IsNullOrWhiteSpace(dto.WeatherTentName))
+                        {
+                            wEval.Safeguard = dto.WeatherTentName;
+                            wEval.Description = dto.WeatherTentCost.Value > 0
+                                ? $"High precipitation risk detected ({wEval.Condition}). Auto-injecting {dto.WeatherTentName} (+Rs. {dto.WeatherTentCost.Value:N0})."
+                                : "Outdoor grounds weather risk waived or clear skies forecast; no marquee tent required.";
+                        }
+                        aiState.WeatherAssessmentJson = JsonSerializer.Serialize(wEval);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Proposal draft synchronized.",
+            eventId = id,
+            estimatedTotalCost = aiState?.EstimatedTotalCost
+        });
+    }
+
+    // 4.1 PUT: api/events/{id}/assigned-vendors (Manager Assign Vendors to Event)
+    [Authorize(Roles = "Manager")]
+    [HttpPut("{id}/assigned-vendors")]
+    public async Task<ActionResult> UpdateAssignedVendors(Guid id, [FromBody] List<AssignedVendorDto> vendors)
+    {
+        var ev = await _context.Events.FindAsync(id);
+        if (ev == null)
+            return NotFound(new { message = "Event not found in database." });
+
+        ev.AssignedVendorsJson = JsonSerializer.Serialize(vendors);
+        await _context.SaveChangesAsync();
+
+        return Ok(new 
+        { 
+            message = "Assigned vendors updated successfully.", 
+            eventId = ev.EventId,
+            assignedVendors = vendors 
         });
     }
 
@@ -918,4 +1160,13 @@ public class EventsController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+}
+
+public class SyncProposalDraftDto
+{
+    public decimal FinalTotal { get; set; }
+    public decimal? WeatherTentCost { get; set; }
+    public string? WeatherTentName { get; set; }
+    public string? AssignedVendorsJson { get; set; }
+    public List<string>? PlanItems { get; set; }
 }

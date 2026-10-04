@@ -108,9 +108,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-lg tracking-tight text-white whitespace-nowrap">EventCraft<span className="text-sky-400">.AI</span></span>
-                <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border whitespace-nowrap shadow-sm ${badge.bg}`}>
-                  {badge.label}
-                </span>
               </div>
             </div>
 

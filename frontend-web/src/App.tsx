@@ -105,7 +105,7 @@ function App() {
       </main>
 
       <footer className="py-4 text-center text-xs text-slate-500 border-t border-slate-200 bg-white">
-        SE3090 Software Engineering Frameworks • EventCraft AI Management Platform
+        EventCraft AI Management Platform
       </footer>
     </div>
   );

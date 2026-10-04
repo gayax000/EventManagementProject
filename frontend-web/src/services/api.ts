@@ -4,11 +4,14 @@ const isLocalhost = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
 let rawUrl = import.meta.env.VITE_API_URL || 
-  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-19c1.up.railway.app/api');
+  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-94fe.up.railway.app/api');
 
-rawUrl = rawUrl.trim();
+rawUrl = rawUrl.trim().replace(/\/+$/, '');
 if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
   rawUrl = `https://${rawUrl}`;
+}
+if (!rawUrl.endsWith('/api')) {
+  rawUrl = `${rawUrl}/api`;
 }
 const API_BASE_URL = rawUrl;
 
@@ -53,11 +56,18 @@ export interface EventItem {
   eventSession?: string;
   cateringStyle?: string;
   tableRefreshments?: string[];
+  preferredLocation?: string;
   revisionNotes?: string;
   inspirationImages?: string[];
   inspirationImageUrl?: string;
   weatherAssessment?: any;
   estimatedTotalCost?: number;
+  assignedVendors?: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>;
+  assignedVendorsJson?: string;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
   createdAt: string;
 }
 
@@ -93,7 +103,7 @@ export const eventService = {
   },
 
   // Manager Approve Proposal with exact finalTotal and optional status & customAddonCost
-  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number, planItems?: string[]) => {
+  approveProposal: async (eventId: string, discount: number = 0, finalTotal?: number, status?: string, customAddonCost?: number, planItems?: string[], assignedVendorsJson?: string) => {
     let url = `/events/${eventId}/approve-proposal?discount=${discount}`;
     if (finalTotal !== undefined) {
       url += `&finalTotal=${finalTotal}`;
@@ -104,7 +114,25 @@ export const eventService = {
     if (customAddonCost !== undefined) {
       url += `&customAddonCost=${customAddonCost}`;
     }
+    if (assignedVendorsJson) {
+      url += `&assignedVendorsJson=${encodeURIComponent(assignedVendorsJson)}`;
+    }
     const response = await apiClient.post(url, planItems || null);
+    return response.data;
+  },
+
+  // Live Synchronize Working Proposal Draft
+  syncProposalDraft: async (
+    eventId: string,
+    payload: {
+      finalTotal: number;
+      weatherTentCost?: number;
+      weatherTentName?: string;
+      assignedVendorsJson?: string;
+      planItems?: string[];
+    }
+  ) => {
+    const response = await apiClient.put(`/events/${eventId}/sync-draft`, payload);
     return response.data;
   },
 
@@ -174,6 +202,19 @@ export const vendorService = {
     const res = await apiClient.delete(`/venues/vendors/${id}`);
     return res.data;
   },
+  getAssignedEvents: async (vendorId?: string, userId?: string) => {
+    let url = '/venues/vendors/assigned-events';
+    const params = new URLSearchParams();
+    if (vendorId) params.append('vendorId', vendorId);
+    if (userId) params.append('userId', userId);
+    if (params.toString()) url += `?${params.toString()}`;
+    const res = await apiClient.get(url);
+    return res.data;
+  },
+  assignVendorsToEvent: async (eventId: string, vendors: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>) => {
+    const res = await apiClient.put(`/events/${eventId}/assigned-vendors`, vendors);
+    return res.data;
+  },
 };
 
 export interface LivePaymentItem {
@@ -200,6 +241,32 @@ export const paymentService = {
   },
   getRevenueForecast: async () => {
     const res = await apiClient.get('/payments/analytics/revenue-forecast');
+    return res.data;
+  },
+};
+
+export interface ManagerNotificationItem {
+  notificationId: string;
+  userId: string;
+  eventId?: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const notificationService = {
+  getManagerNotifications: async (): Promise<{ unreadCount: number; notifications: ManagerNotificationItem[] }> => {
+    const res = await apiClient.get('/notifications/manager');
+    return res.data;
+  },
+  markAsRead: async (id: string) => {
+    const res = await apiClient.post(`/notifications/${id}/mark-read`);
+    return res.data;
+  },
+  markAllAsRead: async () => {
+    const res = await apiClient.post('/notifications/mark-all-read');
     return res.data;
   },
 };

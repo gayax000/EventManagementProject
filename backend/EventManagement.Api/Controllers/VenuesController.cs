@@ -175,4 +175,234 @@ public class VenuesController : ControllerBase
 
         return Ok(new { message = "Vendor deleted successfully." });
     }
+
+    // 8. GET: api/venues/vendors/assigned-events (Vendor Portal View for Assigned Work Orders)
+    [HttpGet("vendors/assigned-events")]
+    public async Task<ActionResult> GetAssignedEventsForVendor([FromQuery] Guid? vendorId, [FromQuery] Guid? userId)
+    {
+        var systemCatalogUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var vendorQuery = _context.Vendors.AsNoTracking().AsQueryable();
+        if (vendorId.HasValue && vendorId.Value != Guid.Empty && userId.HasValue && userId.Value != Guid.Empty && userId.Value != systemCatalogUserId)
+        {
+            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value || v.UserId == userId.Value);
+        }
+        else if (vendorId.HasValue && vendorId.Value != Guid.Empty)
+        {
+            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
+        }
+        else if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+        }
+        else
+        {
+            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
+            {
+                vendorQuery = vendorQuery.Where(v => v.UserId == parsedClaimId);
+            }
+        }
+
+        var vendors = await vendorQuery.ToListAsync();
+        if (!vendors.Any())
+        {
+            return Ok(new List<object>());
+        }
+
+        var vendorIds = vendors.Select(v => v.VendorId.ToString().ToLower()).ToHashSet();
+        var vendorNames = vendors.Select(v => v.BusinessName.ToLower().Trim()).ToHashSet();
+
+        var events = await _context.Events
+            .AsNoTracking()
+            .Include(e => e.BanquetHall)
+            .ThenInclude(h => h!.Venue)
+            .Include(e => e.Venue)
+            .Include(e => e.Booking)
+            .Include(e => e.AIWorkflowState)
+            .Where(e => e.Status != "Cancelled" && (
+                !string.IsNullOrEmpty(e.AssignedVendorsJson) ||
+                e.Status == "ApprovedByManager" ||
+                e.Status == "ClientChoiceSubmitted" ||
+                e.Status == "PendingClientBudgetApproval" ||
+                e.Status == "Confirmed" ||
+                e.Status == "Completed"))
+            .OrderByDescending(e => e.CreatedAt)
+            .ToListAsync();
+
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var results = new List<object>();
+
+        string FormatSessionLabel(string? session) => session switch
+        {
+            "NightDinner" => "Night Dinner (6:00 PM - 11:30 PM)",
+            "EveningHighTea" => "Evening High Tea (3:30 PM - 7:00 PM)",
+            "FullDay" => "Full Day Event",
+            _ => "Day Lunch (10:00 AM - 3:30 PM)"
+        };
+
+        string FormatBookingStatus(string? evStatus, bool isAdvancePaid)
+        {
+            if (isAdvancePaid || evStatus == "Confirmed") return "Advance Paid - Confirmed";
+            if (evStatus == "ClientChoiceSubmitted") return "Client Agreed to Proposal (Booked)";
+            if (evStatus == "ApprovedByManager") return "Approved by Manager (Booked)";
+            if (evStatus == "PendingClientBudgetApproval") return "Assigned (Awaiting Client Confirmation)";
+            return "Allocated in Event Proposal";
+        }
+
+        string BuildNotificationMessage(string vendorBusiness, string evTitle, DateTime targetDate, string sessionLabel, string venueLabel, string pkgName, decimal payout, string? evStatus, bool isAdvancePaid)
+        {
+            string dateStr = targetDate.ToString("MMM dd, yyyy");
+            if (isAdvancePaid || evStatus == "Confirmed")
+                return $"Confirmed Work Order: '{vendorBusiness}' is officially booked (Advance Paid) for event '{evTitle}' on {dateStr} ({sessionLabel}) at {venueLabel}. Package: {pkgName} (Rs. {payout:N0}).";
+            if (evStatus == "ClientChoiceSubmitted")
+                return $"Client Confirmed Proposal: The client has agreed to the proposal for '{evTitle}' on {dateStr} ({sessionLabel}) at {venueLabel} with your '{pkgName}' package (Rs. {payout:N0}).";
+            if (evStatus == "ApprovedByManager")
+                return $"Manager Approved Booking: '{vendorBusiness}' has been approved by the Operations Manager for '{evTitle}' on {dateStr} ({sessionLabel}) at {venueLabel}. Package: {pkgName} (Rs. {payout:N0}).";
+            return $"New Event Assignment: '{vendorBusiness}' has been allocated for '{evTitle}' on {dateStr} ({sessionLabel}) at {venueLabel} with package '{pkgName}' (Rs. {payout:N0}).";
+        }
+
+        foreach (var ev in events)
+        {
+            string venueLabel = ev.BanquetHall != null 
+                ? $"{ev.BanquetHall.Venue?.Name ?? "Selected Hotel"} ({ev.BanquetHall.HallName})" 
+                : (ev.Venue != null ? ev.Venue.Name : (ev.PreferredLocation ?? "Main Event Venue"));
+
+            bool isAdvancePaid = ev.Booking != null && (ev.Booking.Status == "Confirmed" || ev.Booking.Status == "AdvancePaid");
+            string sessionLabel = FormatSessionLabel(ev.EventSession);
+            bool matchedForEvent = false;
+
+            if (!string.IsNullOrWhiteSpace(ev.AssignedVendorsJson))
+            {
+                try
+                {
+                    var assignedList = System.Text.Json.JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson!, jsonOptions) ?? new();
+                    foreach (var av in assignedList)
+                    {
+                        bool isMatch = (av.VendorId.HasValue && vendorIds.Contains(av.VendorId.Value.ToString().ToLower())) ||
+                                       (!string.IsNullOrWhiteSpace(av.VendorName) && vendorNames.Contains(av.VendorName.ToLower().Trim()));
+
+                        if (isMatch)
+                        {
+                            matchedForEvent = true;
+                            var matchedVendor = vendors.FirstOrDefault(v =>
+                                (av.VendorId.HasValue && v.VendorId == av.VendorId.Value) ||
+                                (!string.IsNullOrWhiteSpace(av.VendorName) && string.Equals(v.BusinessName.Trim(), av.VendorName.Trim(), StringComparison.OrdinalIgnoreCase))) ?? vendors.First();
+
+                            string pkgName = !string.IsNullOrWhiteSpace(av.PackageName) ? av.PackageName : (matchedVendor.PackageName ?? "Standard Event Package");
+                            decimal payout = av.PackagePrice ?? matchedVendor.PackagePrice ?? 0m;
+
+                            results.Add(new
+                            {
+                                eventId = ev.EventId,
+                                eventTitle = ev.Title,
+                                eventType = ev.EventType ?? "Celebration",
+                                targetDate = ev.TargetDate,
+                                eventSession = ev.EventSession ?? "DayLunch",
+                                sessionLabel = sessionLabel,
+                                guestCount = ev.GuestCount,
+                                venueName = venueLabel,
+                                vendorName = matchedVendor.BusinessName,
+                                category = !string.IsNullOrWhiteSpace(av.Category) ? av.Category : matchedVendor.Category,
+                                packageName = pkgName,
+                                agreedPayout = payout,
+                                eventStatus = ev.Status,
+                                advancePaid = isAdvancePaid,
+                                bookingStatus = FormatBookingStatus(ev.Status, isAdvancePaid),
+                                notificationMessage = BuildNotificationMessage(matchedVendor.BusinessName, ev.Title, ev.TargetDate, sessionLabel, venueLabel, pkgName, payout, ev.Status, isAdvancePaid)
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // Fallback: Check AIWorkflowState.GeneratedPlanJson for [Partner: <VendorName>] or matching PackageName if AssignedVendorsJson did not already match
+            if (!matchedForEvent && ev.AIWorkflowState != null && !string.IsNullOrWhiteSpace(ev.AIWorkflowState.GeneratedPlanJson))
+            {
+                try
+                {
+                    var planLines = System.Text.Json.JsonSerializer.Deserialize<List<string>>(ev.AIWorkflowState.GeneratedPlanJson, jsonOptions) ?? new();
+                    var matchedVendorIdsInPlan = new HashSet<Guid>();
+
+                    foreach (var line in planLines)
+                    {
+                        Vendor? matchedVendor = null;
+                        string pkgName = "";
+                        decimal payout = 0m;
+
+                        var partnerMatch = System.Text.RegularExpressions.Regex.Match(line, @"^(.*?)\s*\[Partner:\s*([^\]]+)\]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        if (partnerMatch.Success)
+                        {
+                            string extractedPkg = partnerMatch.Groups[1].Value.Trim();
+                            string extractedPartner = partnerMatch.Groups[2].Value.Trim();
+
+                            matchedVendor = vendors.FirstOrDefault(v =>
+                                string.Equals(v.BusinessName.Trim(), extractedPartner, StringComparison.OrdinalIgnoreCase) ||
+                                (!string.IsNullOrWhiteSpace(v.PackageName) && string.Equals(v.PackageName.Trim(), extractedPkg, StringComparison.OrdinalIgnoreCase)));
+
+                            if (matchedVendor != null)
+                            {
+                                payout = matchedVendor.PackagePrice ?? 0m;
+                                var priceMatch = System.Text.RegularExpressions.Regex.Match(line, @"\(Rs\.\s*([\d,]+)\)");
+                                if (priceMatch.Success && decimal.TryParse(priceMatch.Groups[1].Value.Replace(",", ""), out var parsedPrice) && parsedPrice > 0)
+                                {
+                                    payout = parsedPrice;
+                                }
+                                pkgName = !string.IsNullOrWhiteSpace(extractedPkg) ? extractedPkg : (matchedVendor.PackageName ?? "Standard Event Package");
+                            }
+                        }
+                        else
+                        {
+                            // Also match if the plan line starts with or contains the vendor's exact PackageName or BusinessName
+                            matchedVendor = vendors.FirstOrDefault(v =>
+                                (!string.IsNullOrWhiteSpace(v.PackageName) && v.PackageName.Trim().Length > 6 && line.Contains(v.PackageName.Trim(), StringComparison.OrdinalIgnoreCase)) ||
+                                (!string.IsNullOrWhiteSpace(v.BusinessName) && v.BusinessName.Trim().Length > 5 && line.Contains(v.BusinessName.Trim(), StringComparison.OrdinalIgnoreCase)));
+
+                            if (matchedVendor != null)
+                            {
+                                payout = matchedVendor.PackagePrice ?? 0m;
+                                var priceMatch = System.Text.RegularExpressions.Regex.Match(line, @"\(Rs\.\s*([\d,]+)\)");
+                                if (priceMatch.Success && decimal.TryParse(priceMatch.Groups[1].Value.Replace(",", ""), out var parsedLinePrice) && parsedLinePrice > 0)
+                                {
+                                    payout = parsedLinePrice;
+                                }
+                                pkgName = matchedVendor.PackageName ?? "Standard Event Package";
+                            }
+                        }
+
+                        if (matchedVendor != null && !matchedVendorIdsInPlan.Contains(matchedVendor.VendorId))
+                        {
+                            matchedVendorIdsInPlan.Add(matchedVendor.VendorId);
+                            results.Add(new
+                            {
+                                eventId = ev.EventId,
+                                eventTitle = ev.Title,
+                                eventType = ev.EventType ?? "Celebration",
+                                targetDate = ev.TargetDate,
+                                eventSession = ev.EventSession ?? "DayLunch",
+                                sessionLabel = sessionLabel,
+                                guestCount = ev.GuestCount,
+                                venueName = venueLabel,
+                                vendorName = matchedVendor.BusinessName,
+                                category = matchedVendor.Category,
+                                packageName = pkgName,
+                                agreedPayout = payout,
+                                eventStatus = ev.Status,
+                                advancePaid = isAdvancePaid,
+                                bookingStatus = FormatBookingStatus(ev.Status, isAdvancePaid),
+                                notificationMessage = BuildNotificationMessage(matchedVendor.BusinessName, ev.Title, ev.TargetDate, sessionLabel, venueLabel, pkgName, payout, ev.Status, isAdvancePaid)
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        return Ok(results);
+    }
 }
