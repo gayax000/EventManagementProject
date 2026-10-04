@@ -3,33 +3,29 @@ import { Package, Cpu, Check, Search, ShieldCheck, Phone, Tent, Utensils, Car, C
 import { vendorService } from '../services/api';
 
 const getServiceCategoryIcon = (type?: string, name?: string) => {
-  const t = (type || '').toLowerCase();
-  const n = (name || '').toLowerCase();
+  const t = (type || '').toLowerCase().trim();
+  const n = (name || '').toLowerCase().trim();
 
-  if (t.includes('tent') || t.includes('marquee') || n.includes('tent') || n.includes('hangar') || n.includes('canopy') || n.includes('marquee')) {
-    return Tent;
-  }
-  if (t.includes('cater') || n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('menu')) {
-    return Utensils;
-  }
-  if (t.includes('transport') || t.includes('car') || t.includes('vip') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('vehicle')) {
-    return Car;
-  }
-  if (t.includes('photo') || n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) {
-    return Camera;
-  }
-  if (t.includes('sound') || t.includes('audio') || t.includes('light') || n.includes('sound') || n.includes('audio') || n.includes('light') || n.includes('line-array')) {
-    return Volume2;
-  }
-  if (t.includes('decor') || t.includes('flower') || t.includes('floral') || n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('drapes') || n.includes('stage')) {
-    return Sparkles;
-  }
-  if (t.includes('cake') || n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) {
-    return Cake;
-  }
-  if (t.includes('power') || t.includes('gen') || n.includes('power') || n.includes('generator') || n.includes('backup') || n.includes('genset')) {
-    return Zap;
-  }
+  // 1. Strict Category Match (Primary Authority)
+  if (t.includes('cake')) return Cake;
+  if (t.includes('photo')) return Camera;
+  if (t.includes('transport') || t.includes('car') || t.includes('vip')) return Car;
+  if (t.includes('sound') || t.includes('audio') || t.includes('light')) return Volume2;
+  if (t.includes('cater') || t.includes('food') || t.includes('buffet')) return Utensils;
+  if (t.includes('tent') || t.includes('marquee')) return Tent;
+  if (t.includes('power') || t.includes('gen')) return Zap;
+  if (t.includes('decor') || t.includes('flower') || t.includes('stage')) return Sparkles;
+
+  // 2. Name-based Match (Secondary Fallback)
+  if (n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) return Cake;
+  if (n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) return Camera;
+  if (n.includes('transport') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('escort') || n.includes('vehicle')) return Car;
+  if (n.includes('sound') || n.includes('audio') || n.includes('lighting') || n.includes('line-array') || n.includes('speaker')) return Volume2;
+  if (n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('platter') || n.includes('canapé') || n.includes('canapes') || n.includes('mocktail') || n.includes('espresso')) return Utensils;
+  if (n.includes('tent') || n.includes('marquee') || n.includes('hangar') || n.includes('canopy') || n.includes('pagoda')) return Tent;
+  if (n.includes('generator') || n.includes('genset') || n.includes('power backup') || n.includes('diesel silent')) return Zap;
+  if (n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('stage') || n.includes('drapes') || n.includes('backdrop')) return Sparkles;
+
   return Package;
 };
 
