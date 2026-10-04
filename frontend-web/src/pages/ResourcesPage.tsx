@@ -1,6 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Cpu, Check, Search, ShieldCheck, Phone } from 'lucide-react';
+import { Package, Cpu, Check, Search, ShieldCheck, Phone, Tent, Utensils, Car, Camera, Volume2, Sparkles, Cake, Zap } from 'lucide-react';
 import { vendorService } from '../services/api';
+
+const getServiceCategoryIcon = (type?: string, name?: string) => {
+  const t = (type || '').toLowerCase();
+  const n = (name || '').toLowerCase();
+
+  if (t.includes('tent') || t.includes('marquee') || n.includes('tent') || n.includes('hangar') || n.includes('canopy') || n.includes('marquee')) {
+    return Tent;
+  }
+  if (t.includes('cater') || n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('menu')) {
+    return Utensils;
+  }
+  if (t.includes('transport') || t.includes('car') || t.includes('vip') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('vehicle')) {
+    return Car;
+  }
+  if (t.includes('photo') || n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) {
+    return Camera;
+  }
+  if (t.includes('sound') || t.includes('audio') || t.includes('light') || n.includes('sound') || n.includes('audio') || n.includes('light') || n.includes('line-array')) {
+    return Volume2;
+  }
+  if (t.includes('decor') || t.includes('flower') || t.includes('floral') || n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('drapes') || n.includes('stage')) {
+    return Sparkles;
+  }
+  if (t.includes('cake') || n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) {
+    return Cake;
+  }
+  if (t.includes('power') || t.includes('gen') || n.includes('power') || n.includes('generator') || n.includes('backup') || n.includes('genset')) {
+    return Zap;
+  }
+  return Package;
+};
 
 export interface ResourceItem {
   id: string;
@@ -164,14 +195,18 @@ export const ResourcesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
-              {filteredResources.map(res => (
-                <tr key={res.id} className="hover:bg-slate-50/80 transition bg-purple-50/5">
-                  <td className="px-6 py-4 font-semibold text-slate-900">
-                    <div className="flex items-center space-x-2.5">
-                      <Package className="w-4 h-4 flex-shrink-0 text-purple-600" />
-                      <span className="text-sm font-semibold text-slate-900">{res.name}</span>
-                    </div>
-                  </td>
+              {filteredResources.map(res => {
+                const ServiceIcon = getServiceCategoryIcon(res.type, res.name);
+                return (
+                  <tr key={res.id} className="hover:bg-slate-50/80 transition">
+                    <td className="px-6 py-4 font-semibold text-slate-900">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-300/80 flex items-center justify-center shrink-0 shadow-2xs">
+                          <ServiceIcon className="w-4 h-4 text-slate-900 stroke-[2.2]" />
+                        </div>
+                        <span className="text-sm font-semibold text-slate-900 leading-snug">{res.name}</span>
+                      </div>
+                    </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-medium px-2.5 py-1 bg-slate-100 rounded-md text-slate-700 border border-slate-200">
                       {res.type === 'CateringPackage' ? 'Catering' : res.type}
@@ -198,7 +233,8 @@ export const ResourcesPage: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
               {filteredResources.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">
