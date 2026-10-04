@@ -48,23 +48,60 @@ const getCategoryBadge = (vendorCat?: string) => {
 
 const getCategoryIconBadge = (vendorCat?: string) => {
   let Icon = Store;
+  let bg = 'bg-indigo-50';
+  let text = 'text-indigo-600';
+  let border = 'border-indigo-200';
+
   if (vendorCat) {
     const v = vendorCat.toLowerCase().trim();
-    if (v.includes('photo')) Icon = Camera;
-    else if (v.includes('cake')) Icon = Cake;
-    else if (v.includes('transport') || v.includes('car') || v.includes('vip')) Icon = Car;
-    else if (v.includes('sound') || v.includes('audio') || v.includes('light')) Icon = Volume2;
-    else if (v.includes('cater') || v.includes('food') || v.includes('buffet')) Icon = Utensils;
-    else if (v.includes('decor') || v.includes('flower') || v.includes('floral')) Icon = Sparkles;
-    else if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) Icon = Tent;
-    else if (v.includes('power') || v.includes('gen')) Icon = Zap;
+    if (v.includes('photo')) {
+      Icon = Camera;
+      bg = 'bg-sky-50';
+      text = 'text-sky-600';
+      border = 'border-sky-200';
+    } else if (v.includes('cake')) {
+      Icon = Cake;
+      bg = 'bg-rose-50';
+      text = 'text-rose-600';
+      border = 'border-rose-200';
+    } else if (v.includes('transport') || v.includes('car') || v.includes('vip')) {
+      Icon = Car;
+      bg = 'bg-purple-50';
+      text = 'text-purple-600';
+      border = 'border-purple-200';
+    } else if (v.includes('sound') || v.includes('audio') || v.includes('light')) {
+      Icon = Volume2;
+      bg = 'bg-amber-50';
+      text = 'text-amber-600';
+      border = 'border-amber-200';
+    } else if (v.includes('cater') || v.includes('food') || v.includes('buffet')) {
+      Icon = Utensils;
+      bg = 'bg-emerald-50';
+      text = 'text-emerald-600';
+      border = 'border-emerald-200';
+    } else if (v.includes('decor') || v.includes('flower') || v.includes('floral')) {
+      Icon = Sparkles;
+      bg = 'bg-pink-50';
+      text = 'text-pink-600';
+      border = 'border-pink-200';
+    } else if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) {
+      Icon = Tent;
+      bg = 'bg-teal-50';
+      text = 'text-teal-600';
+      border = 'border-teal-200';
+    } else if (v.includes('power') || v.includes('gen')) {
+      Icon = Zap;
+      bg = 'bg-yellow-50';
+      text = 'text-yellow-600';
+      border = 'border-yellow-200';
+    }
   }
 
   return {
     Icon,
-    bg: 'bg-slate-100',
-    text: 'text-slate-900',
-    border: 'border-slate-300/80',
+    bg,
+    text,
+    border,
   };
 };
 
