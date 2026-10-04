@@ -10,6 +10,7 @@ import galleImg from '../assets/cities/galle.png';
 import negomboImg from '../assets/cities/negombo.png';
 import dambullaImg from '../assets/cities/dambulla.png';
 import kandyImg from '../assets/cities/kandy.png';
+import weligamaImg from '../assets/cities/weligama.png';
 import tangalleImg from '../assets/cities/tangalle.png';
 
 const QUICK_CITY_FILTERS = [
@@ -34,7 +35,7 @@ const CITY_IMAGES: Record<string, string> = {
   'Galle': galleImg,
   'Dambulla': dambullaImg,
   'Negombo': negomboImg,
-  'Weligama': '',
+  'Weligama': weligamaImg,
   'Tangalle': tangalleImg,
 };
 
