@@ -47,35 +47,25 @@ const getCategoryBadge = (vendorCat?: string) => {
 };
 
 const getCategoryIconBadge = (vendorCat?: string) => {
-  if (!vendorCat) {
-    return { Icon: Store, bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' };
+  let Icon = Store;
+  if (vendorCat) {
+    const v = vendorCat.toLowerCase().trim();
+    if (v.includes('photo')) Icon = Camera;
+    else if (v.includes('cake')) Icon = Cake;
+    else if (v.includes('transport') || v.includes('car') || v.includes('vip')) Icon = Car;
+    else if (v.includes('sound') || v.includes('audio') || v.includes('light')) Icon = Volume2;
+    else if (v.includes('cater') || v.includes('food') || v.includes('buffet')) Icon = Utensils;
+    else if (v.includes('decor') || v.includes('flower') || v.includes('floral')) Icon = Sparkles;
+    else if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) Icon = Tent;
+    else if (v.includes('power') || v.includes('gen')) Icon = Zap;
   }
-  const v = vendorCat.toLowerCase().trim();
-  if (v.includes('photo')) {
-    return { Icon: Camera, bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200' };
-  }
-  if (v.includes('cake')) {
-    return { Icon: Cake, bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' };
-  }
-  if (v.includes('transport') || v.includes('car') || v.includes('vip')) {
-    return { Icon: Car, bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' };
-  }
-  if (v.includes('sound') || v.includes('audio') || v.includes('light')) {
-    return { Icon: Volume2, bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' };
-  }
-  if (v.includes('cater') || v.includes('food') || v.includes('buffet')) {
-    return { Icon: Utensils, bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' };
-  }
-  if (v.includes('decor') || v.includes('flower') || v.includes('floral')) {
-    return { Icon: Sparkles, bg: 'bg-pink-50', text: 'text-pink-600', border: 'border-pink-200' };
-  }
-  if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) {
-    return { Icon: Tent, bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-200' };
-  }
-  if (v.includes('power') || v.includes('gen')) {
-    return { Icon: Zap, bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200' };
-  }
-  return { Icon: Store, bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' };
+
+  return {
+    Icon,
+    bg: 'bg-slate-100',
+    text: 'text-slate-900',
+    border: 'border-slate-300/80',
+  };
 };
 
 export const VendorsPage: React.FC = () => {
@@ -266,8 +256,8 @@ export const VendorsPage: React.FC = () => {
               return (
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                   <div className="flex items-start space-x-3.5">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-sm mt-0.5`}>
-                      <CategoryIcon className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-xs mt-0.5`}>
+                      <CategoryIcon className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
@@ -393,8 +383,8 @@ export const VendorsPage: React.FC = () => {
               return (
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
                   <div className="flex items-start space-x-3.5">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-sm mt-0.5`}>
-                      <CategoryIcon className="w-5 h-5" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-xs mt-0.5`}>
+                      <CategoryIcon className="w-5 h-5 stroke-[2.2]" />
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
@@ -464,8 +454,8 @@ export const VendorsPage: React.FC = () => {
                 const modalIconBadge = getCategoryIconBadge(selectedVendorForView.category);
                 const ModalCategoryIcon = modalIconBadge.Icon;
                 return (
-                  <div className={`w-12 h-12 ${modalIconBadge.bg} border ${modalIconBadge.border} rounded-2xl flex items-center justify-center ${modalIconBadge.text} flex-shrink-0 shadow-sm`}>
-                    <ModalCategoryIcon className="w-6 h-6" />
+                  <div className={`w-12 h-12 ${modalIconBadge.bg} border ${modalIconBadge.border} rounded-2xl flex items-center justify-center ${modalIconBadge.text} flex-shrink-0 shadow-xs`}>
+                    <ModalCategoryIcon className="w-6 h-6 stroke-[2.2]" />
                   </div>
                 );
               })()}
