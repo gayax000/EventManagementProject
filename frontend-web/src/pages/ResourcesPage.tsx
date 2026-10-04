@@ -23,7 +23,7 @@ const getServiceCategoryBadge = (type?: string, name?: string) => {
     return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
   }
   if (t.includes('tent') || t.includes('marquee')) {
-    return { Icon: Tent, bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+    return { Icon: Tent, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
   }
   if (t.includes('power') || t.includes('gen')) {
     return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };
@@ -49,7 +49,7 @@ const getServiceCategoryBadge = (type?: string, name?: string) => {
     return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
   }
   if (n.includes('tent') || n.includes('marquee') || n.includes('hangar') || n.includes('canopy') || n.includes('pagoda')) {
-    return { Icon: Tent, bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+    return { Icon: Tent, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
   }
   if (n.includes('generator') || n.includes('genset') || n.includes('power backup') || n.includes('diesel silent')) {
     return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };

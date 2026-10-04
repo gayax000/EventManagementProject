@@ -86,9 +86,9 @@ const getCategoryIconBadge = (vendorCat?: string) => {
       border = 'border-pink-200';
     } else if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) {
       Icon = Tent;
-      bg = 'bg-teal-50';
-      text = 'text-teal-600';
-      border = 'border-teal-200';
+      bg = 'bg-blue-50';
+      text = 'text-blue-600';
+      border = 'border-blue-200';
     } else if (v.includes('power') || v.includes('gen')) {
       Icon = Zap;
       bg = 'bg-yellow-50';
