@@ -110,57 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF1E293B)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.event_seat_rounded, color: Color(0xFF38BDF8), size: 24),
-            SizedBox(width: 10),
-            Text(
-              'EventCraft AI Platform',
-              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Version 1.0.0 (Production Build)\nModule: SE3090 - Software Engineering Frameworks',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5),
-            ),
-            SizedBox(height: 14),
-            Text(
-              'Autonomous Agentic AI event planning platform engineered with ASP.NET Core, Flutter, and LangGraph multi-agent orchestration.',
-              style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.45),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              PoliciesScreen.show(context);
-            },
-            child: const Text('View Policies', style: TextStyle(color: Color(0xFF38BDF8))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
