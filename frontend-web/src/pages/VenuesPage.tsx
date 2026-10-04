@@ -8,6 +8,7 @@ import colomboImg from '../assets/cities/colombo.png';
 import bentotaImg from '../assets/cities/bentota.png';
 import galleImg from '../assets/cities/galle.png';
 import negomboImg from '../assets/cities/negombo.png';
+import dambullaImg from '../assets/cities/dambulla.png';
 
 const QUICK_CITY_FILTERS = [
   'All',
@@ -29,7 +30,7 @@ const CITY_IMAGES: Record<string, string> = {
   'Nuwara Eliya': nuwaraEliyaImg,
   'Bentota': bentotaImg,
   'Galle': galleImg,
-  'Dambulla': '',
+  'Dambulla': dambullaImg,
   'Negombo': negomboImg,
   'Weligama': '',
   'Tangalle': '',
