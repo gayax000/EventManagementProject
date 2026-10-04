@@ -156,29 +156,17 @@ export const ResourcesPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header with Dark Luxury Style matching Dashboard & Venues */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center space-x-1">
-              <Package className="w-3.5 h-3.5 mr-1 text-sky-400" />
-              Service Packages & AI Allocation Rules
-            </span>
-          </div>
-          <h1 className="text-2xl font-black mt-2">Verified Vendor Catalog & Resource Inventory</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Browse verified partner packages, equipment catalogs, and pricing tiers across service categories.
-          </p>
+      <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center space-x-1">
+            <Package className="w-3.5 h-3.5 mr-1 text-sky-400" />
+            Service Packages & AI Allocation Rules
+          </span>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={fetchVerifiedPartnerVendors}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center space-x-2 transition cursor-pointer"
-            title="Refresh Live Resources"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
-            <span>Sync Catalog</span>
-          </button>
-        </div>
+        <h1 className="text-2xl font-black mt-2">Verified Vendor Catalog & Resource Inventory</h1>
+        <p className="text-slate-400 text-sm mt-1">
+          Browse verified partner packages, equipment catalogs, and pricing tiers across service categories.
+        </p>
       </div>
 
       {/* Search & Category Filter Tabs */}
