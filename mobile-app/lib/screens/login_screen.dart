@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
+import 'policies_screen.dart';
+import 'onboarding_screen.dart';
 
 const String FEATURED_HERO_IMAGE = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1600&q=85';
 
@@ -26,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _regPhoneController = TextEditingController();
   final _regPasswordController = TextEditingController();
   bool _regLoading = false;
+  bool _regAgreedToPolicies = false;
   String? _regNameError;
   String? _regEmailError;
   String? _regPhoneError;
@@ -193,6 +196,11 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (!_regAgreedToPolicies) {
+      _triggerTopMessage('Please accept the Terms of Service & Privacy Policy to register.', setModalState);
+      return;
+    }
+
     setModalState(() {
       _regLoading = true;
       _regNameError = null;
@@ -233,6 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _regEmailError = null;
     _regPhoneError = null;
     _regPasswordError = null;
+    _regAgreedToPolicies = false;
 
     showModalBottomSheet(
       context: context,
@@ -503,6 +512,59 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         onSubmitted: (_) => _regLoading ? null : _handleRegister(setModalState),
                       ),
+                      const SizedBox(height: 14),
+                      // Policy Agreement Checkbox
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B).withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: _regAgreedToPolicies ? const Color(0xFF0284C7).withOpacity(0.5) : const Color(0xFF334155),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: _regAgreedToPolicies,
+                                activeColor: const Color(0xFF0284C7),
+                                checkColor: Colors.white,
+                                side: const BorderSide(color: Color(0xFF64748B), width: 1.5),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                onChanged: (val) {
+                                  setModalState(() => _regAgreedToPolicies = val ?? false);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => PoliciesScreen.show(context),
+                                child: RichText(
+                                  text: const TextSpan(
+                                    text: "I agree to the ",
+                                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+                                    children: [
+                                      TextSpan(
+                                        text: "Terms of Service, Privacy & AI Safety Policy",
+                                        style: TextStyle(
+                                          color: Color(0xFF38BDF8),
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _regLoading ? null : () => _handleRegister(setModalState),
@@ -750,6 +812,30 @@ class _LoginScreenState extends State<LoginScreen> {
                               _buildFeatureBadge(Icons.hotel_rounded, "5-Star Venues"),
                               _buildFeatureBadge(Icons.cloud_done_rounded, "Weather Safeguard"),
                               _buildFeatureBadge(Icons.verified_rounded, "Verified Vendors"),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Quick Legal & App Tour Links
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
+                                  );
+                                },
+                                icon: const Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 16),
+                                label: const Text("App Tour", style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12)),
+                              ),
+                              const Text("•", style: TextStyle(color: Colors.white24)),
+                              TextButton.icon(
+                                onPressed: () => PoliciesScreen.show(context),
+                                icon: const Icon(Icons.shield_outlined, color: Color(0xFF94A3B8), size: 16),
+                                label: const Text("Policies & AI Safety", style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                              ),
                             ],
                           ),
                         ],
