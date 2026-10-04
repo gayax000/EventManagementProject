@@ -10,10 +10,7 @@ import {
   Phone, 
   CheckCircle,
   ArrowRight,
-  ShieldCheck,
-  Building2,
-  Calendar,
-  Check
+  Building2
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import luxuryHallImg from '../assets/luxury-event-hall.jpg';
@@ -189,17 +186,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               className="w-full h-full object-cover object-center"
               loading="eager"
             />
-            
-            {/* Subtle Gradient Vignette Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20 pointer-events-none"></div>
-
-            {/* Bottom Floating Badge Inside Photo */}
-            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 right-4 sm:right-auto flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md text-white text-xs font-semibold border border-white/20 shadow-lg">
-                <ShieldCheck className="w-4 h-4 text-sky-400" />
-                <span>Certified 5-Star Luxury Venues & Weather Safeguarded Events</span>
-              </span>
-            </div>
           </div>
         </div>
 
