@@ -10,6 +10,7 @@ import galleImg from '../assets/cities/galle.png';
 import negomboImg from '../assets/cities/negombo.png';
 import dambullaImg from '../assets/cities/dambulla.png';
 import kandyImg from '../assets/cities/kandy.png';
+import tangalleImg from '../assets/cities/tangalle.png';
 
 const QUICK_CITY_FILTERS = [
   'All',
@@ -34,7 +35,7 @@ const CITY_IMAGES: Record<string, string> = {
   'Dambulla': dambullaImg,
   'Negombo': negomboImg,
   'Weligama': '',
-  'Tangalle': '',
+  'Tangalle': tangalleImg,
 };
 
 export const VenuesPage: React.FC = () => {
