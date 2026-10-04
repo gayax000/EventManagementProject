@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'policies_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _agreedToPolicies = false;
 
   Future<void> _handleRegister() async {
     final name = _nameController.text.trim();
@@ -31,6 +33,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password must be at least 6 characters', style: TextStyle(color: Colors.white)), backgroundColor: Colors.amber),
+      );
+      return;
+    }
+
+    if (!_agreedToPolicies) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please agree to the Terms of Service & Privacy Policy', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
       return;
     }
@@ -124,6 +136,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   icon: Icons.lock_outline, 
                   obscureText: true,
                   onSubmitted: (_) => _isLoading ? null : _handleRegister(),
+                ),
+                
+                const SizedBox(height: 14),
+                // Policy Agreement Checkbox
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _agreedToPolicies ? Colors.cyanAccent.withOpacity(0.5) : Colors.white12,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _agreedToPolicies,
+                          activeColor: Colors.cyanAccent.shade700,
+                          checkColor: Colors.white,
+                          side: const BorderSide(color: Colors.white38, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          onChanged: (val) {
+                            setState(() => _agreedToPolicies = val ?? false);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => PoliciesScreen.show(context),
+                          child: RichText(
+                            text: const TextSpan(
+                              text: "I agree to the ",
+                              style: TextStyle(color: Colors.white60, fontSize: 12),
+                              children: [
+                                TextSpan(
+                                  text: "Terms, Privacy Policy & AI Safety Rules",
+                                  style: TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 
                 const SizedBox(height: 16),
