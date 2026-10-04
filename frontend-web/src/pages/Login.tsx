@@ -111,26 +111,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-sky-500 selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500 selection:text-white">
       
-      {/* Full-Screen Immersive Background Image */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <img 
-          src={FEATURED_HERO_IMAGE} 
-          alt="EventCraft Luxury Grand Ballroom" 
-          className="w-full h-full object-cover object-center"
-          loading="eager"
-        />
-        {/* Subtle cinematic overlays for elegance and crystal-clear text readability */}
-        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/80"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-transparent to-slate-950/60"></div>
-      </div>
-
       {/* ========================================================================= */}
-      {/* 1. TOP NAVBAR: Floating with backdrop blur over the full screen photo       */}
+      {/* 1. TOP NAVBAR: Logo on Left Corner, Log In & Sign Up on Right Corner       */}
       {/* ========================================================================= */}
-      <nav className="relative z-20 w-full bg-slate-950/60 backdrop-blur-md border-b border-white/10 sticky top-0">
+      <nav className="w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
           
           {/* Left Corner: Logo */}
@@ -148,7 +134,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             {/* Log In Button */}
             <button
               onClick={() => openAuth('login')}
-              className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-200 hover:text-white hover:bg-white/10 rounded-xl transition duration-150"
+              className="px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-900 rounded-xl transition duration-150"
             >
               Log In
             </button>
@@ -169,13 +155,14 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       {/* ========================================================================= */}
       {/* 2. MIDDLE CONTENT: Welcome to EventCraft + Attractive Business Description */}
       {/* ========================================================================= */}
-      <main className="relative z-10 flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 flex flex-col items-center justify-center text-center my-auto">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 flex flex-col items-center">
         
-        {/* Glassmorphic Hero Card */}
-        <div className="w-full max-w-3xl p-6 sm:p-10 rounded-3xl bg-slate-950/60 backdrop-blur-md border border-white/15 shadow-2xl space-y-5">
+        {/* Centered Hero Heading & Description */}
+        <div className="text-center max-w-3xl mx-auto space-y-4 sm:space-y-5">
+          
           {/* Subtle Tag Pill */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-sky-500/10 border border-sky-400/30 text-sky-300 text-xs font-semibold shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-sky-400 text-xs font-semibold shadow-xs">
+            <Sparkles className="w-3.5 h-3.5" />
             <span>Smart Multi-Agent AI Event Management</span>
           </div>
 
@@ -185,49 +172,41 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </h1>
 
           {/* Customer Attracting Description */}
-          <p className="text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed font-normal">
+          <p className="text-sm sm:text-base md:text-lg text-slate-300 leading-relaxed font-normal">
             EventCraft is Sri Lanka's premier AI event management platform, transforming how extraordinary celebrations are born. We seamlessly pair certified 5-star hotel banquet halls with verified elite suppliers, gourmet catering, and real-time environmental weather contingency safeguards into one transparent proposal. Experience stress-free planning, transparent pricing, and unforgettable moments for your royal wedding, corporate gala, or milestone celebration.
           </p>
 
-          {/* Primary Action Buttons */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <button
-              onClick={() => openAuth('register')}
-              className="w-full sm:auto px-6 py-3 text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 rounded-xl shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 transition duration-150 flex items-center justify-center space-x-2"
-            >
-              <span>Get Started & Plan Event</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => openAuth('login')}
-              className="w-full sm:w-auto px-6 py-3 text-sm font-semibold text-slate-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl backdrop-blur-sm transition duration-150 flex items-center justify-center space-x-2"
-            >
-              <LogIn className="w-4 h-4 text-sky-400" />
-              <span>Manager & Client Log In</span>
-            </button>
-          </div>
         </div>
 
-        {/* Floating Feature Badges */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <span className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950/70 backdrop-blur-md text-white text-xs font-semibold border border-white/15 shadow-lg">
-            <ShieldCheck className="w-4 h-4 text-sky-400" />
-            <span>Certified 5-Star Luxury Venues</span>
-          </span>
-          <span className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950/70 backdrop-blur-md text-white text-xs font-semibold border border-white/15 shadow-lg">
-            <Building2 className="w-4 h-4 text-emerald-400" />
-            <span>Verified Elite Supplier Network</span>
-          </span>
-          <span className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-slate-950/70 backdrop-blur-md text-white text-xs font-semibold border border-white/15 shadow-lg">
-            <Calendar className="w-4 h-4 text-indigo-400" />
-            <span>Weather Safeguarded Proposals</span>
-          </span>
+        {/* ========================================================================= */}
+        {/* 3. UNDERNEATH DESCRIPTION: ONLY ONE FULL-SIZE LUXURY PHOTO               */}
+        {/* ========================================================================= */}
+        <div className="w-full max-w-6xl mt-10 sm:mt-14">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900 aspect-[16/9] sm:aspect-[21/9]">
+            <img 
+              src={FEATURED_HERO_IMAGE} 
+              alt="Luxury Grand Event Celebration" 
+              className="w-full h-full object-cover object-center"
+              loading="eager"
+            />
+            
+            {/* Subtle Gradient Vignette Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20 pointer-events-none"></div>
+
+            {/* Bottom Floating Badge Inside Photo */}
+            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 right-4 sm:right-auto flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md text-white text-xs font-semibold border border-white/20 shadow-lg">
+                <ShieldCheck className="w-4 h-4 text-sky-400" />
+                <span>Certified 5-Star Luxury Venues & Weather Safeguarded Events</span>
+              </span>
+            </div>
+          </div>
         </div>
 
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 py-5 text-center text-xs text-slate-400 border-t border-white/10 bg-slate-950/70 backdrop-blur-md">
+      <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-900 bg-slate-950">
         EventCraft AI Management Platform
       </footer>
 
