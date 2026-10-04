@@ -2,31 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { Package, Cpu, Check, Search, ShieldCheck, Phone, Tent, Utensils, Car, Camera, Volume2, Sparkles, Cake, Zap } from 'lucide-react';
 import { vendorService } from '../services/api';
 
-const getServiceCategoryIcon = (type?: string, name?: string) => {
+const getServiceCategoryBadge = (type?: string, name?: string) => {
   const t = (type || '').toLowerCase().trim();
   const n = (name || '').toLowerCase().trim();
 
   // 1. Strict Category Match (Primary Authority)
-  if (t.includes('cake')) return Cake;
-  if (t.includes('photo')) return Camera;
-  if (t.includes('transport') || t.includes('car') || t.includes('vip')) return Car;
-  if (t.includes('sound') || t.includes('audio') || t.includes('light')) return Volume2;
-  if (t.includes('cater') || t.includes('food') || t.includes('buffet')) return Utensils;
-  if (t.includes('tent') || t.includes('marquee')) return Tent;
-  if (t.includes('power') || t.includes('gen')) return Zap;
-  if (t.includes('decor') || t.includes('flower') || t.includes('stage')) return Sparkles;
+  if (t.includes('cake')) {
+    return { Icon: Cake, bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600' };
+  }
+  if (t.includes('photo')) {
+    return { Icon: Camera, bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' };
+  }
+  if (t.includes('transport') || t.includes('car') || t.includes('vip')) {
+    return { Icon: Car, bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' };
+  }
+  if (t.includes('sound') || t.includes('audio') || t.includes('light')) {
+    return { Icon: Volume2, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' };
+  }
+  if (t.includes('cater') || t.includes('food') || t.includes('buffet')) {
+    return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
+  }
+  if (t.includes('tent') || t.includes('marquee')) {
+    return { Icon: Tent, bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+  }
+  if (t.includes('power') || t.includes('gen')) {
+    return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };
+  }
+  if (t.includes('decor') || t.includes('flower') || t.includes('stage')) {
+    return { Icon: Sparkles, bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600' };
+  }
 
   // 2. Name-based Match (Secondary Fallback)
-  if (n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) return Cake;
-  if (n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) return Camera;
-  if (n.includes('transport') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('escort') || n.includes('vehicle')) return Car;
-  if (n.includes('sound') || n.includes('audio') || n.includes('lighting') || n.includes('line-array') || n.includes('speaker')) return Volume2;
-  if (n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('platter') || n.includes('canapé') || n.includes('canapes') || n.includes('mocktail') || n.includes('espresso')) return Utensils;
-  if (n.includes('tent') || n.includes('marquee') || n.includes('hangar') || n.includes('canopy') || n.includes('pagoda')) return Tent;
-  if (n.includes('generator') || n.includes('genset') || n.includes('power backup') || n.includes('diesel silent')) return Zap;
-  if (n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('stage') || n.includes('drapes') || n.includes('backdrop')) return Sparkles;
+  if (n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) {
+    return { Icon: Cake, bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600' };
+  }
+  if (n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) {
+    return { Icon: Camera, bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' };
+  }
+  if (n.includes('transport') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('escort') || n.includes('vehicle')) {
+    return { Icon: Car, bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' };
+  }
+  if (n.includes('sound') || n.includes('audio') || n.includes('lighting') || n.includes('line-array') || n.includes('speaker')) {
+    return { Icon: Volume2, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' };
+  }
+  if (n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('platter') || n.includes('canapé') || n.includes('canapes') || n.includes('mocktail') || n.includes('espresso')) {
+    return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
+  }
+  if (n.includes('tent') || n.includes('marquee') || n.includes('hangar') || n.includes('canopy') || n.includes('pagoda')) {
+    return { Icon: Tent, bg: 'bg-teal-50', border: 'border-teal-200', text: 'text-teal-600' };
+  }
+  if (n.includes('generator') || n.includes('genset') || n.includes('power backup') || n.includes('diesel silent')) {
+    return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };
+  }
+  if (n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('stage') || n.includes('drapes') || n.includes('backdrop')) {
+    return { Icon: Sparkles, bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600' };
+  }
 
-  return Package;
+  return { Icon: Package, bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-600' };
 };
 
 export interface ResourceItem {
@@ -192,13 +224,14 @@ export const ResourcesPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
               {filteredResources.map(res => {
-                const ServiceIcon = getServiceCategoryIcon(res.type, res.name);
+                const badge = getServiceCategoryBadge(res.type, res.name);
+                const ServiceIcon = badge.Icon;
                 return (
                   <tr key={res.id} className="hover:bg-slate-50/80 transition">
                     <td className="px-6 py-4 font-semibold text-slate-900">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-300/80 flex items-center justify-center shrink-0 shadow-2xs">
-                          <ServiceIcon className="w-4 h-4 text-slate-900 stroke-[2.2]" />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${badge.bg} ${badge.border} ${badge.text} shadow-2xs`}>
+                          <ServiceIcon className="w-4 h-4 stroke-[2.2]" />
                         </div>
                         <span className="text-sm font-semibold text-slate-900 leading-snug">{res.name}</span>
                       </div>
