@@ -247,8 +247,9 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF0F172A),
+      constraints: const BoxConstraints(maxWidth: 580),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) {
         bool inRegisterMode = isRegister;
@@ -256,10 +257,10 @@ class _LoginScreenState extends State<LoginScreen> {
           builder: (context, setModalState) {
             return Padding(
               padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                left: 28,
+                right: 28,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 28,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -269,15 +270,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Handle Bar
                     Center(
                       child: Container(
-                        width: 40,
-                        height: 4,
+                        width: 48,
+                        height: 5,
                         decoration: BoxDecoration(
                           color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 18),
 
                     // =========================================================
                     // TOP DISAPPEARING VALIDATION / ERROR MESSAGE BANNER
@@ -348,31 +349,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           inRegisterMode ? "Client Registration" : "Client Sign In",
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.bold),
                         ),
                         GestureDetector(
                           onTap: () {
                             _bannerTimer?.cancel();
                             Navigator.pop(ctx);
                           },
-                          child: const Icon(Icons.close, color: Colors.white54, size: 20),
+                          child: const Icon(Icons.close, color: Colors.white54, size: 24),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       inRegisterMode 
                         ? "Create your client account to explore venues & plan events."
                         : "Access your personalized AI proposals and live event statuses.",
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+                      style: TextStyle(color: Colors.grey.shade400, fontSize: 14, height: 1.35),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     if (!inRegisterMode) ...[
                       // Login Fields
                       TextField(
                         controller: _emailController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(color: Colors.white, fontSize: 15.5),
                         decoration: _buildInputDecoration(
                           "Client Email Address",
                           Icons.email_outlined,
@@ -388,11 +389,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       TextField(
                         controller: _passwordController,
                         obscureText: true,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(color: Colors.white, fontSize: 15.5),
                         decoration: _buildInputDecoration(
                           "Password",
                           Icons.lock_outline,
@@ -408,21 +409,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         onSubmitted: (_) => _isLoading ? null : _handleLogin(setModalState),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _isLoading ? null : () => _handleLogin(setModalState),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2563EB), // Executive Royal Blue
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 3,
                         ),
                         child: _isLoading
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Sign In as Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text("Sign In as Client", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       Center(
                         child: GestureDetector(
                           onTap: () => setModalState(() {
@@ -439,7 +440,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: RichText(
                             text: const TextSpan(
                               text: "Don't have an account? ",
-                              style: TextStyle(color: Colors.white60, fontSize: 12),
+                              style: TextStyle(color: Colors.white60, fontSize: 13.5),
                               children: [
                                 TextSpan(text: "Sign Up as Client", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
                               ],
@@ -571,15 +572,15 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1D4ED8), // Deep Royal Blue
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 2,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 3,
                         ),
                         child: _regLoading
-                            ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text("Create Client Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : const Text("Create Client Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
                       Center(
                         child: GestureDetector(
                           onTap: () => setModalState(() {
@@ -596,7 +597,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: RichText(
                             text: const TextSpan(
                               text: "Already have an account? ",
-                              style: TextStyle(color: Colors.white60, fontSize: 12),
+                              style: TextStyle(color: Colors.white60, fontSize: 13.5),
                               children: [
                                 TextSpan(text: "Sign In", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
                               ],
@@ -619,24 +620,24 @@ class _LoginScreenState extends State<LoginScreen> {
     return InputDecoration(
       labelText: label,
       errorText: errorText,
-      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
-      labelStyle: const TextStyle(color: Colors.white54, fontSize: 13),
-      prefixIcon: Icon(icon, color: errorText != null ? Colors.redAccent : const Color(0xFF0284C7), size: 18),
+      errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 12),
+      labelStyle: const TextStyle(color: Colors.white54, fontSize: 14.5),
+      prefixIcon: Icon(icon, color: errorText != null ? Colors.redAccent : const Color(0xFF0284C7), size: 22),
       filled: true,
       fillColor: const Color(0xFF1E293B),
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      isDense: false,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       focusedBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.all(Radius.circular(14)),
         borderSide: BorderSide(color: Color(0xFF2563EB), width: 1.5),
       ),
       errorBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.all(Radius.circular(14)),
         borderSide: BorderSide(color: Colors.redAccent, width: 1.2),
       ),
       focusedErrorBorder: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.all(Radius.circular(14)),
         borderSide: BorderSide(color: Colors.redAccent, width: 1.4),
       ),
     );

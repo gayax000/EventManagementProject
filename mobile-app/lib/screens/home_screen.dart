@@ -290,75 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Safety Agent Shield Icon with Sleek Dark Popup Menu (Matching Previous Design)
-          Theme(
-            data: Theme.of(context).copyWith(
-              cardColor: const Color(0xFF0F172A),
-            ),
-            child: PopupMenuButton<String>(
-              color: const Color(0xFF0F172A),
-              elevation: 12,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: Color(0xFF1E293B)),
-              ),
-              offset: const Offset(0, 48),
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF059669).withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
-                ),
-                child: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 20),
-              ),
-              onSelected: (value) {
-                if (value == 'tour') {
-                  _showAppTourDialog();
-                } else if (value == 'legal') {
-                  _showLegalPoliciesDialog();
-                } else if (value == 'about') {
-                  _showAboutDialog();
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<String>(
-                  value: 'tour',
-                  child: Row(
-                    children: [
-                      Icon(Icons.explore_rounded, color: Color(0xFF38BDF8), size: 18),
-                      SizedBox(width: 12),
-                      Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem<String>(
-                  value: 'legal',
-                  child: Row(
-                    children: [
-                      Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
-                      SizedBox(width: 12),
-                      Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(height: 1),
-                const PopupMenuItem<String>(
-                  value: 'about',
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
-                      SizedBox(width: 12),
-                      Text('About EventCraft AI', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Logout Button
+          // Legal, Policies & App Tour Button
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
@@ -1005,96 +937,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- SHIELD MENU DIALOG HANDLERS (EXACTLY MATCHING SCREENSHOT) ---
-  void _showAppTourDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF1E293B)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.explore_rounded, color: Color(0xFF38BDF8)),
-            SizedBox(width: 10),
-            Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('Welcome to EventCraft AI Concierge!', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4)),
-              SizedBox(height: 14),
-              _TourFeatureRow(icon: Icons.auto_awesome_rounded, title: 'AI Event Assistant', desc: 'Auto-calculates catering, sound, & hall budgets in seconds.'),
-              SizedBox(height: 10),
-              _TourFeatureRow(icon: Icons.cloud_sync_rounded, title: 'Weather Safeguards', desc: 'Monitors real-time rain risks for outdoor events.'),
-              SizedBox(height: 10),
-              _TourFeatureRow(icon: Icons.qr_code_2_rounded, title: 'VIP QR Passes', desc: 'Generate encrypted QR entry passes for venue security staff.'),
-              SizedBox(height: 10),
-              _TourFeatureRow(icon: Icons.verified_user_rounded, title: 'Safety Agent Active', desc: 'Autonomous monitoring of venue capacity and security.'),
-            ],
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close Overview', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLegalPoliciesDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF1E293B)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8)),
-            SizedBox(width: 10),
-            Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text('EventCraft Platform Terms & Policies:', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text('1. Cancellation & Refunds: Cancel 14+ days prior for a 90% refund. 7-14 days prior eligible for 50% refund.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
-              SizedBox(height: 8),
-              Text('2. AI Budget Tolerances: Estimated cost quotes are guaranteed within a 5% margin of actual vendor invoices.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
-              SizedBox(height: 8),
-              Text('3. Digital Signatures: Electronic contract signatures are legally binding under Sri Lankan Law No. 19 of 2006.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('I Understand', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showAboutDialog() {
     showDialog(
       context: context,
@@ -1134,42 +976,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TourFeatureRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String desc;
-
-  const _TourFeatureRow({required this.icon, required this.title, required this.desc});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: const Color(0xFF38BDF8), size: 16),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 2),
-              Text(desc, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, height: 1.3)),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
