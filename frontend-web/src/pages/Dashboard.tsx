@@ -1060,7 +1060,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       category: 'Catering',
       vendorId: cateringAssigned?.vendorId || cateringFallback?.vendorId,
       vendorName: cateringAssigned?.vendorName || cateringFallback?.businessName || (selectedEvent.banquetHallName || selectedEvent.venueName ? `${selectedEvent.banquetHallName || selectedEvent.venueName} Banquet Kitchen` : 'Perera & Sons (P&S Event Catering)'),
-      packageName: cateringAssigned?.packageName || `Banquet Catering Buffet (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()})`,
+      packageName: cateringAssigned?.packageName || `Banquet Catering Buffet (Rs. ${perPlate.toLocaleString()}/guest)`,
       packagePrice: cateringCost
     });
 
@@ -1181,12 +1181,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     const planItems = [
       `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
-      `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
+      `Hotel Buffet Catering (Rs. ${perPlate.toLocaleString()}/guest) = Rs. ${cateringCost.toLocaleString()}`,
     ];
 
     if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
       alloc.refreshmentsItems.forEach(r => {
-        planItems.push(`${r.name} (${selectedEvent.guestCount} guests @ Rs. ${r.itemPerHead.toLocaleString()}) = Rs. ${r.cost.toLocaleString()}`);
+        planItems.push(`${r.name} (Rs. ${r.itemPerHead.toLocaleString()}/guest) = Rs. ${r.cost.toLocaleString()}`);
       });
     }
 
@@ -1644,13 +1644,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
         category: 'Catering',
         vendorId: catAssigned?.vendorId || catFallback?.vendorId,
         vendorName: catAssigned?.vendorName || catFallback?.businessName || 'Perera & Sons (P&S Event Catering)',
-        packageName: catAssigned?.packageName || `Banquet Catering Buffet (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()})`,
+        packageName: catAssigned?.packageName || `Banquet Catering Buffet (Rs. ${perPlate.toLocaleString()}/guest)`,
         packagePrice: cateringCost
       });
 
       const draftPlanItems: string[] = [
         `Venue Rental: ${selectedEvent.banquetHallName || selectedEvent.venueName || "Selected Venue"} (Rs. ${hallRental.toLocaleString()})`,
-        `Hotel Buffet Catering (${selectedEvent.guestCount} guests @ Rs. ${perPlate.toLocaleString()}) = Rs. ${cateringCost.toLocaleString()}`,
+        `Hotel Buffet Catering (Rs. ${perPlate.toLocaleString()}/guest) = Rs. ${cateringCost.toLocaleString()}`,
       ];
 
       if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
@@ -1664,7 +1664,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           packagePrice: alloc.refreshmentsCost
         });
         alloc.refreshmentsItems.forEach(r => {
-          draftPlanItems.push(`${r.name} (${selectedEvent.guestCount} guests @ Rs. ${r.itemPerHead.toLocaleString()}) = Rs. ${r.cost.toLocaleString()}`);
+          draftPlanItems.push(`${r.name} (Rs. ${r.itemPerHead.toLocaleString()}/guest) = Rs. ${r.cost.toLocaleString()}`);
         });
       }
 
