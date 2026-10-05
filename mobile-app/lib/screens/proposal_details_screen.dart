@@ -1639,16 +1639,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       : "Bank Slip Upload Locked (Awaiting Manager Review)",
                     style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 13.5),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    isChoiceSubmitted
-                      ? "You submitted your budget choice. Once the Operations Manager gives final confirmation on the Web Dashboard, this payment deposit section will unlock automatically!"
-                      : isPendingBudgetApproval
-                      ? "Please review the Manager's recommendation card above and select your budget choice to proceed."
-                      : "Our AI Multi-Agent system has compiled your preliminary plan. The Event Manager is reviewing vendor packages and pricing on the Web Portal. Please check back shortly!",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, height: 1.4),
-                  ),
                 ],
               ),
             ),
