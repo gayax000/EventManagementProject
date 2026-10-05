@@ -2269,7 +2269,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
         venueTitle = proposal.banquetHallName!;
       }
-      double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
+      double cateringPrice = (proposal.perPlatePrice ?? 5200.0) * proposal.guestCount;
 
       if (hallPrice > 0 || !isPrivateOrCustomVenue) {
         items.add({
@@ -2281,7 +2281,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
 
       items.add({
-        'label': 'Banquet Catering Buffet (${proposal.guestCount} Guests)',
+        'label': 'Banquet Catering Buffet (Rs. ${(proposal.perPlatePrice ?? 5200.0).toStringAsFixed(0)}/guest)',
         'cost': cateringPrice,
         'isDiscount': false,
         'isSpecial': false,
@@ -2382,7 +2382,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           }
 
           items.add({
-            'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
+            'label': '$r (Rs. ${rCostPerHead.toStringAsFixed(0)}/guest)',
             'cost': rCostPerHead * proposal.guestCount,
             'isDiscount': false,
             'isSpecial': false,
@@ -2461,6 +2461,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 .replaceAll(RegExp(r'\s+'), ' ')
                 .trim();
           }
+
+          // Format guest rate tags e.g. (250 guests @ Rs. 5,200) -> (Rs. 5,200/guest)
+          mainLabel = mainLabel.replaceAllMapped(
+            RegExp(r'\(\s*(?:\d+\s*[Gg]uests?\s*(?:@|at)\s*)(?:Rs\.?|LKR)?\s*([\d,]+)\s*\)', caseSensitive: false),
+            (m) => '(Rs. ${m[1]}/guest)',
+          );
+          mainLabel = mainLabel.replaceAllMapped(
+            RegExp(r'\(\s*(?:Rs\.?|LKR)?\s*([\d,]+)\s*(?:per\s*plate|per\s*guest)\s*\)', caseSensitive: false),
+            (m) => '(Rs. ${m[1]}/guest)',
+          );
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3.5),
