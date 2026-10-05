@@ -1,14 +1,61 @@
 using System.Net;
+using EventManagement.Core.Entities;
+using EventManagement.Infrastructure.Data;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace EventManagement.Tests;
 
-public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(services =>
+        {
+            var descriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+
+            if (descriptor != null)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseInMemoryDatabase("IntegrationTestDb");
+            });
+
+            var sp = services.BuildServiceProvider();
+            using var scope = sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.EnsureCreated();
+
+            if (!db.Venues.Any())
+            {
+                db.Venues.Add(new Venue
+                {
+                    VenueId = Guid.NewGuid(),
+                    Name = "Grand Ballroom",
+                    LocationAddress = "Colombo",
+                    MaxCapacity = 500,
+                    BaseRentalPrice = 150000,
+                    IsOutdoor = false,
+                    Status = "Available"
+                });
+                db.SaveChanges();
+            }
+        });
+    }
+}
+
+public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public ApiIntegrationTests(WebApplicationFactory<Program> factory)
+    public ApiIntegrationTests(CustomWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
@@ -16,10 +63,7 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task RootHealthCheckEndpoint_ReturnsSuccessAndJson()
     {
-        // Act
         var response = await _client.GetAsync("/");
-
-        // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("EventManagement API", content);
@@ -28,30 +72,21 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task HealthEndpoint_ReturnsHealthyStatus()
     {
-        // Act
         var response = await _client.GetAsync("/health");
-
-        // Assert
         Assert.True(response.StatusCode == HttpStatusCode.OK || response.StatusCode == (HttpStatusCode)530);
     }
 
     [Fact]
     public async Task ProtectedPaymentsEndpoint_WithoutToken_ReturnsUnauthorized()
     {
-        // Act
         var response = await _client.GetAsync("/api/payments");
-
-        // Assert
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task GetVenuesEndpoint_WithPagination_ReturnsOk()
     {
-        // Act
         var response = await _client.GetAsync("/api/venues?pageNumber=1&pageSize=5");
-
-        // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
         Assert.Contains("items", content, StringComparison.OrdinalIgnoreCase);

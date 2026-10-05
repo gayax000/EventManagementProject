@@ -77,11 +77,27 @@ class TestAgenticAIEvaluation(unittest.TestCase):
     def test_weather_tool_live_api_and_seasonal_fallback(self):
         import datetime
         import tools
+        from unittest.mock import patch, MagicMock
 
         today_str = datetime.date.today().isoformat()
-        live_res = tools.check_weather_forecast("Colombo", today_str)
-        self.assertIn("Live OpenWeatherMap 5-Day Forecast API", live_res["dataSource"])
-        self.assertEqual(live_res["city"], "Colombo")
+
+        mock_res = MagicMock()
+        mock_res.status_code = 200
+        mock_res.json.return_value = {
+            "list": [
+                {
+                    "dt_txt": f"{today_str} 12:00:00",
+                    "pop": 0.85,
+                    "weather": [{"description": "heavy intensity rain"}]
+                }
+            ]
+        }
+
+        with patch("tools.PRIMARY_API_KEY", "mock_key_for_ci_testing"), \
+             patch("tools.requests.get", return_value=mock_res):
+            live_res = tools.check_weather_forecast("Colombo", today_str)
+            self.assertIn("Live OpenWeatherMap 5-Day Forecast API", live_res["dataSource"])
+            self.assertEqual(live_res["city"], "Colombo")
 
         future_str = (datetime.date.today() + datetime.timedelta(days=60)).isoformat()
         fallback_res = tools.check_weather_forecast("Kandy", future_str)
