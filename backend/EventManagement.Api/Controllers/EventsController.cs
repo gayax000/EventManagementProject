@@ -53,13 +53,23 @@ public class EventsController : ControllerBase
         {
             await EnsureSchemaAsync();
 
-            // Extract customer ID securely from token, payload, or fallback
+            var claimUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+            bool isManagerOrAdmin = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) ||
+                                    string.Equals(roleClaim, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                    User.IsInRole("Manager") || User.IsInRole("Admin");
+
             Guid customerId = Guid.Empty;
-            if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
+            if (!string.IsNullOrEmpty(claimUserIdStr) && Guid.TryParse(claimUserIdStr, out var parsedClaimId) && !isManagerOrAdmin)
+            {
+                customerId = parsedClaimId;
+            }
+
+            if (customerId == Guid.Empty && dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
             {
                 customerId = dto.CustomerId.Value;
             }
-            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+            else if (customerId == Guid.Empty && Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
             {
                 customerId = parsedId;
             }

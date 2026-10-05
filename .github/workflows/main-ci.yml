@@ -1,0 +1,77 @@
+name: EventCraft End-to-End CI Pipeline
+
+on:
+  push:
+    branches: [ main, fix/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    name: ASP.NET Core 8 Web API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore dependencies
+        run: dotnet restore backend/EventManagement.Tests/EventManagement.Tests.csproj
+      - name: Build
+        run: dotnet build backend/EventManagement.Tests/EventManagement.Tests.csproj --no-restore
+      - name: Test
+        run: dotnet test backend/EventManagement.Tests/EventManagement.Tests.csproj --no-build --verbosity normal
+
+  ai-subsystem-test:
+    name: Agentic AI Python Subsystem Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Dependencies
+        run: |
+          cd ai-service
+          pip install -r requirements.txt
+      - name: Run AI Evaluation Unit Tests
+        run: |
+          cd ai-service
+          python -m unittest test_agent_evaluation.py
+
+  frontend-react-build:
+    name: React Web Application Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install & Build
+        run: |
+          cd frontend-web
+          npm ci
+          npm run build
+
+  flutter-app-test:
+    name: Flutter Mobile Application Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - name: Install & Analyze
+        run: |
+          cd mobile-app
+          flutter pub get
+          flutter analyze

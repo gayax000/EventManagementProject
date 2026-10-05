@@ -118,15 +118,36 @@ public class PaymentsController : ControllerBase
     }
 
     // 1.1 GET: api/payments (List all customer payment slips for Manager Verification Queue)
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Admin")]
     [HttpGet]
-    public async Task<ActionResult> GetAllPayments()
+    public async Task<ActionResult> GetAllPayments(
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? status)
     {
-        var payments = await _context.Payments
+        var query = _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Event)
                     .ThenInclude(e => e!.Customer)
-            .OrderByDescending(p => p.PaidAt)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(p => p.Status == status);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var pagedQuery = query.OrderByDescending(p => p.PaidAt);
+
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+            int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+            pagedQuery = (IOrderedQueryable<Payment>)pagedQuery.Skip((page - 1) * size).Take(size);
+        }
+
+        var payments = await pagedQuery
             .Select(p => new
             {
                 id = p.PaymentId.ToString(),
@@ -146,6 +167,20 @@ public class PaymentsController : ControllerBase
                     .FirstOrDefault()
             })
             .ToListAsync();
+
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+            int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+
+            return Ok(new PagedResult<object>
+            {
+                Items = payments,
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = size
+            });
+        }
 
         return Ok(payments);
     }

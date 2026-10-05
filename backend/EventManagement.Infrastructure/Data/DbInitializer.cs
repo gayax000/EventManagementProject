@@ -60,7 +60,7 @@ public static class DbInitializer
                 UserId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 FullName = "Kasun Bandara (Operations Manager)",
                 Email = "manager@eventcraft.lk",
-                PasswordHash = "Manager@2026",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Manager@2026"),
                 PhoneNumber = "+94771234567",
                 RoleId = managerRole.RoleId,
                 AccountStatus = "Active"
@@ -75,7 +75,7 @@ public static class DbInitializer
                 UserId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
                 FullName = "Sahan Perera (Client)",
                 Email = "sahan@gmail.com",
-                PasswordHash = "Customer@2026",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@2026"),
                 PhoneNumber = "+94719876543",
                 RoleId = customerRole.RoleId,
                 AccountStatus = "Active"
@@ -317,7 +317,7 @@ public static class DbInitializer
                 UserId = systemCatalogVendorId,
                 FullName = "EventCraft System Catalog",
                 Email = "catalog-system@eventcraft.lk",
-                PasswordHash = "SystemCatalog@2026",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("SystemCatalog@2026"),
                 PhoneNumber = "+94112000000",
                 RoleId = managerRole.RoleId,
                 AccountStatus = "Active"

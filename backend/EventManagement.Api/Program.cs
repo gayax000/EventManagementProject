@@ -5,6 +5,7 @@ using EventManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,10 +66,35 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// 5. Add Controllers & Swagger
+// 5. Add Controllers & Swagger with JWT Bearer Authentication Support
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "EventCraft Web API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Configure listening port for Railway or default to 8080
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
@@ -76,20 +102,48 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 var app = builder.Build();
 
-// 6. Configure HTTP pipeline (CORS first to ensure all responses & preflights have headers)
+// 6. Configure HTTP pipeline (CORS & Global Exception Handler)
 app.UseCors("AllowAll");
+app.UseMiddleware<EventManagement.Api.Middleware.GlobalExceptionHandlerMiddleware>();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Root health check endpoint for Railway and monitoring
-app.MapGet("/", () => Results.Ok(new 
-{ 
-    status = "healthy", 
-    service = "EventManagement API (.NET 8)", 
-    database = "Neon PostgreSQL (Connected)",
-    timestamp = DateTime.UtcNow 
-}));
+// Root health check endpoint with real DB Connectivity Verification
+app.MapGet("/", async (AppDbContext dbContext) =>
+{
+    bool canConnect = false;
+    try
+    {
+        canConnect = await dbContext.Database.CanConnectAsync();
+    }
+    catch { }
+
+    return Results.Ok(new 
+    { 
+        status = canConnect ? "Healthy" : "Degraded", 
+        service = "EventManagement API (.NET 8)", 
+        database = canConnect ? "Neon PostgreSQL (Connected)" : "Neon PostgreSQL (Disconnected)",
+        timestamp = DateTime.UtcNow 
+    });
+});
+
+app.MapGet("/health", async (AppDbContext dbContext) =>
+{
+    bool canConnect = false;
+    try
+    {
+        canConnect = await dbContext.Database.CanConnectAsync();
+    }
+    catch { }
+
+    if (!canConnect)
+    {
+        return Results.Json(new { status = "Degraded", database = "Disconnected" }, statusCode: 530);
+    }
+
+    return Results.Ok(new { status = "Healthy", database = "Connected", timestamp = DateTime.UtcNow });
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -113,3 +167,5 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+public partial class Program { }
