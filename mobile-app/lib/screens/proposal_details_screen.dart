@@ -1676,23 +1676,42 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             // Payment Slip Locked Message
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7).withOpacity(0.5),
+                color: const Color(0xFFFEF3C7).withOpacity(0.55),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: const Color(0xFFFCD34D)),
               ),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Icon(Icons.lock_clock, color: Color(0xFFD97706), size: 32),
                   const SizedBox(height: 8),
+                  const Text(
+                    "Bank Slip Upload Locked",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF92400E),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
                     isChoiceSubmitted
-                      ? "Bank Slip Upload Locked (Awaiting Manager Final Approval)"
+                      ? "(Awaiting Manager Final Approval)"
                       : isPendingBudgetApproval
-                      ? "Bank Slip Upload Locked (Awaiting Budget Choice)"
-                      : "Bank Slip Upload Locked (Awaiting Manager Review)",
-                    style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 13.5),
+                      ? "(Awaiting Budget Choice)"
+                      : "(Awaiting Manager Review)",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFB45309),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                      letterSpacing: 0.1,
+                    ),
                   ),
                 ],
               ),
