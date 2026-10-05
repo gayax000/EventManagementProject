@@ -33,7 +33,7 @@ dependencies:
 
   # UI Icons & Styling
   cupertino_icons: ^1.0.8
-  google_fonts: ^6.3.3
+  google_fonts: 6.3.0
 
   # HTTP & Storage
   http: ^1.2.2
