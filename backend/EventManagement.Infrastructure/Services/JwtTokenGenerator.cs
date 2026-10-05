@@ -19,8 +19,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     public string GenerateToken(User user, string roleName)
     {
-        var secretKey = _configuration["JwtSettings:SecretKey"] 
-            ?? "EventCraftAI_Super_Secret_JWT_Signing_Key_2026_SE3090!";
+        var secretKey = _configuration["JwtSettings:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            throw new InvalidOperationException("JwtSettings:SecretKey is not configured in Environment Variables or User Secrets.");
+        }
         var issuer = _configuration["JwtSettings:Issuer"] ?? "EventCraft.Api";
         var audience = _configuration["JwtSettings:Audience"] ?? "EventCraft.Client";
         var expiryDaysStr = _configuration["JwtSettings:ExpiryInDays"] ?? "7";

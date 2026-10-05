@@ -95,21 +95,28 @@ public class VenuesController : ControllerBase
     }
 
     // 4b. GET: api/venues/vendors/my-vendors
+    [Authorize]
     [HttpGet("vendors/my-vendors")]
     public async Task<ActionResult<IEnumerable<Vendor>>> GetMyVendors([FromQuery] Guid? userId)
     {
+        var claimUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+        bool isManagerOrAdmin = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(roleClaim, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                User.IsInRole("Manager") || User.IsInRole("Admin");
+
         Guid targetUserId = Guid.Empty;
-        if (userId.HasValue && userId.Value != Guid.Empty)
+        if (isManagerOrAdmin && userId.HasValue && userId.Value != Guid.Empty)
         {
             targetUserId = userId.Value;
         }
-        else
+        else if (!string.IsNullOrEmpty(claimUserIdStr) && Guid.TryParse(claimUserIdStr, out var parsedClaimId))
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                targetUserId = parsedClaimId;
-            }
+            targetUserId = parsedClaimId;
+        }
+        else if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            targetUserId = userId.Value;
         }
 
         if (targetUserId == Guid.Empty)
@@ -121,26 +128,36 @@ public class VenuesController : ControllerBase
     }
 
     // 5. POST: api/venues/vendors/register (Vendor Portal Registration)
+    [Authorize]
     [HttpPost("vendors/register")]
     public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
     {
+        var claimUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+        bool isManagerOrAdmin = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(roleClaim, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                                User.IsInRole("Manager") || User.IsInRole("Admin");
+
         Guid effectiveUserId = Guid.Empty;
-        if (dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
+        if (!string.IsNullOrEmpty(claimUserIdStr) && Guid.TryParse(claimUserIdStr, out var parsedClaimId))
+        {
+            effectiveUserId = parsedClaimId;
+        }
+
+        if (isManagerOrAdmin && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
         {
             effectiveUserId = dto.UserId.Value;
         }
-        else
+
+        if (effectiveUserId == Guid.Empty && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                effectiveUserId = parsedClaimId;
-            }
-            else
-            {
-                var defaultUser = await _context.Users.FirstOrDefaultAsync();
-                if (defaultUser != null) effectiveUserId = defaultUser.UserId;
-            }
+            effectiveUserId = dto.UserId.Value;
+        }
+
+        if (effectiveUserId == Guid.Empty)
+        {
+            var defaultUser = await _context.Users.FirstOrDefaultAsync();
+            if (defaultUser != null) effectiveUserId = defaultUser.UserId;
         }
 
         var vendor = new Vendor
@@ -163,7 +180,6 @@ public class VenuesController : ControllerBase
         }
         catch (Exception ex)
         {
-            // If DB column save fails due to pending migration on remote server, still return Ok with vendor object
             System.Console.WriteLine($"[RegisterVendor DB Warning] {ex.Message}");
         }
 
@@ -202,6 +218,7 @@ public class VenuesController : ControllerBase
     }
 
     // 8. GET: api/venues/vendors/assigned-events (Vendor Portal View for Assigned Work Orders)
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpGet("vendors/assigned-events")]
     public async Task<ActionResult> GetAssignedEventsForVendor([FromQuery] Guid? vendorId, [FromQuery] Guid? userId)
     {
