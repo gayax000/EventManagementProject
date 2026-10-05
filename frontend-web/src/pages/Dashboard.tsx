@@ -1827,109 +1827,130 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* LIVE CLIENT EVENT PROPOSALS & OPERATIONAL MANAGEMENT HUB                  */}
       {/* ========================================================================= */}
       <div>
-        {/* Operational Section Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
-          <div>
+        {/* Operational Hero Workspace Banner (3x Enlarged with Luxury Ballroom Image Background) */}
+        <div className="relative overflow-hidden rounded-3xl shadow-2xl border border-slate-800/80 mb-6 bg-slate-950 text-white min-h-[300px] md:min-h-[340px] flex flex-col justify-between">
+          {/* Background Ballroom Photo */}
+          <div 
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+            style={{ backgroundImage: `url('/workspace-hero-bg.jpg')` }}
+          />
+
+          {/* Luxury Subtle Gradient Vignette Overlay - reduced darkness so the ballroom photo is vibrant & clearly visible */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/20" />
+
+          {/* Top Bar inside Banner: Tag and Action Controls (Notification Bell & Reload) */}
+          <div className="relative z-10 p-6 md:p-8 flex flex-wrap justify-between items-center gap-4">
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
+              <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-900/80 text-sky-300 border border-sky-500/40 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
                 Client Event Proposals & AI Budgets
               </span>
             </div>
-            <h2 className="text-2xl font-black mt-2">Active Celebrations & Curation Workspace</h2>
-            <p className="text-slate-400 text-sm mt-1">Review live hotel catering, hall rentals, audio/visual gear, and autonomous weather safeguards.</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            {/* Manager Notification Bell Button & Floating Dropdown */}
-            <div className="relative">
-              <button 
-                onClick={() => setShowNotificationMenu(!showNotificationMenu)}
-                className="relative flex items-center justify-center p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl shadow-sm transition"
-                title="Manager Live Notifications"
-              >
-                <Bell className="w-4 h-4 text-sky-400" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-xs animate-pulse">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
 
-              {/* Floating Notification Menu Panel */}
-              {showNotificationMenu && (
-                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 text-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-                    <div className="flex items-center space-x-2">
-                      <Bell className="w-4 h-4 text-sky-400" />
-                      <span className="font-bold text-sm">Manager Notifications</span>
+            <div className="flex items-center space-x-3">
+              {/* Manager Notification Bell Button & Floating Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotificationMenu(!showNotificationMenu)}
+                  className="relative flex items-center justify-center p-3 bg-slate-900/85 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl shadow-lg backdrop-blur-md transition hover:scale-105"
+                  title="Manager Live Notifications"
+                >
+                  <Bell className="w-4 h-4 text-sky-400" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-extrabold text-white shadow-xs animate-pulse">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Floating Notification Menu Panel */}
+                {showNotificationMenu && (
+                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 text-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                      <div className="flex items-center space-x-2">
+                        <Bell className="w-4 h-4 text-sky-400" />
+                        <span className="font-bold text-sm">Manager Notifications</span>
+                        {unreadCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white">
+                            {unreadCount} New
+                          </span>
+                        )}
+                      </div>
                       {unreadCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white">
-                          {unreadCount} New
-                        </span>
+                        <button 
+                          onClick={handleMarkAllAsRead}
+                          className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition"
+                        >
+                          Mark all read
+                        </button>
                       )}
                     </div>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={handleMarkAllAsRead}
-                        className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition"
-                      >
-                        Mark all read
-                      </button>
-                    )}
-                  </div>
 
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                    {managerNotifications.length === 0 ? (
-                      <div className="p-6 text-center text-slate-400 text-xs">
-                        <CheckCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-60" />
-                        No notifications yet. You're all caught up!
-                      </div>
-                    ) : (
-                      managerNotifications.map((n) => (
-                        <div 
-                          key={n.notificationId}
-                          onClick={() => handleMarkAsRead(n.notificationId, n.eventId)}
-                          className={`p-3.5 hover:bg-sky-50/60 cursor-pointer transition flex items-start space-x-3 ${!n.isRead ? 'bg-sky-50/30' : ''}`}
-                        >
-                          <div className="text-base flex-shrink-0 mt-0.5">
-                            {n.type === 'NewEvent' && '🆕'}
-                            {n.type === 'RevisionRequest' && '📝'}
-                            {n.type === 'PaymentSlipUploaded' && '💳'}
-                            {n.type === 'ProposalAccepted' && '✅'}
-                            {n.type === 'WeatherAlert' && '🌦️'}
-                            {n.type === 'VendorResponse' && '🏬'}
-                            {!['NewEvent', 'RevisionRequest', 'PaymentSlipUploaded', 'ProposalAccepted', 'WeatherAlert', 'VendorResponse'].includes(n.type) && '🛎️'}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <h4 className={`text-xs font-bold truncate ${!n.isRead ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
-                                {n.title}
-                              </h4>
-                              {!n.isRead && (
-                                <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                              {n.message}
-                            </p>
-                            <span className="text-[10px] text-slate-400 mt-1 block">
-                              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                      {managerNotifications.length === 0 ? (
+                        <div className="p-6 text-center text-slate-400 text-xs">
+                          <CheckCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-60" />
+                          No notifications yet. You're all caught up!
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        managerNotifications.map((n) => (
+                          <div 
+                            key={n.notificationId}
+                            onClick={() => handleMarkAsRead(n.notificationId, n.eventId)}
+                            className={`p-3.5 hover:bg-sky-50/60 cursor-pointer transition flex items-start space-x-3 ${!n.isRead ? 'bg-sky-50/30' : ''}`}
+                          >
+                            <div className="text-base flex-shrink-0 mt-0.5">
+                              {n.type === 'NewEvent' && '🆕'}
+                              {n.type === 'RevisionRequest' && '📝'}
+                              {n.type === 'PaymentSlipUploaded' && '💳'}
+                              {n.type === 'ProposalAccepted' && '✅'}
+                              {n.type === 'WeatherAlert' && '🌦️'}
+                              {n.type === 'VendorResponse' && '🏬'}
+                              {!['NewEvent', 'RevisionRequest', 'PaymentSlipUploaded', 'ProposalAccepted', 'WeatherAlert', 'VendorResponse'].includes(n.type) && '🛎️'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <h4 className={`text-xs font-bold truncate ${!n.isRead ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
+                                  {n.title}
+                                </h4>
+                                {!n.isRead && (
+                                  <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                {n.message}
+                              </p>
+                              <span className="text-[10px] text-slate-400 mt-1 block">
+                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <button 
-              onClick={loadEvents}
-              className="flex items-center space-x-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold shadow-sm transition"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
-              <span>Reload</span>
-            </button>
+              <button 
+                onClick={loadEvents}
+                className="flex items-center space-x-2 px-4 py-3 bg-slate-900/85 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl text-xs font-bold shadow-lg backdrop-blur-md transition hover:scale-105"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-400' : ''}`} />
+                <span>Reload</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Main Hero Content (Title & Subtitle with high-end typography) */}
+          <div className="relative z-10 px-6 md:px-8 pb-8 md:pb-10 max-w-3xl">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] leading-tight">
+              Active Celebrations & <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Curation Workspace</span>
+            </h2>
+            <p className="text-slate-200 text-sm sm:text-base mt-3 leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] font-medium max-w-2xl">
+              Review live 5-star hotel banquet halls, gourmet catering, verified vendor allocations, audio/visual equipment, and autonomous weather risk safeguards.
+            </p>
           </div>
         </div>
 
