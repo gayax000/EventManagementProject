@@ -122,8 +122,8 @@ class _PackagesScreenState extends State<PackagesScreen> {
   final List<Map<String, dynamic>> _cateringPackages = [
     {
       'title': 'International Hotel Buffet',
-      'price': 'Rs. 5,000',
-      'unit': 'per plate',
+      'price': 'Rs. 5,200',
+      'unit': '/guest',
       'tag': 'MOST POPULAR',
       'tagColor': Color(0xFF2563EB),
       'icon': Icons.restaurant_rounded,
@@ -140,7 +140,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'Outdoor Live BBQ Grill Feast',
       'price': 'Rs. 6,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'PREMIUM LIVE ACTION',
       'tagColor': Color(0xFFD97706),
       'icon': Icons.outdoor_grill_rounded,
@@ -157,7 +157,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'Sri Lankan Heritage Traditional Buffet',
       'price': 'Rs. 4,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'AUTHENTIC CEYLON',
       'tagColor': Color(0xFF059669),
       'icon': Icons.rice_bowl_rounded,
@@ -174,7 +174,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'High Tea Canapé & Snack Platter',
       'price': 'Rs. 3,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'AFTERNOON RECEPTION',
       'tagColor': Color(0xFF7C3AED),
       'icon': Icons.local_cafe_rounded,
