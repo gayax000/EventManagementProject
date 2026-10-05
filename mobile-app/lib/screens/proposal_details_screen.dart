@@ -489,22 +489,45 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                // Responsive Event Meta Info (Properly wrapped and constrained within card)
                 Row(
                   children: [
                     const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF64748B)),
                     const SizedBox(width: 6),
-                    Text(formattedDate, style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 14),
                     const Icon(Icons.people_alt_outlined, size: 14, color: Color(0xFF64748B)),
                     const SizedBox(width: 6),
-                    Text("Guests: ${proposal.guestCount}  |  Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                    Text(
+                      "${proposal.guestCount} Guests",
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        "Venue: ${proposal.venueName}",
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, height: 1.3),
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -512,10 +535,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       children: [
                         Icon(Icons.payments_outlined, size: 14, color: Color(0xFF059669)),
                         SizedBox(width: 6),
-                        Text("Proposal Total:", style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        Text(
+                          "Proposal Total:",
+                          style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
-                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 13.5, fontWeight: FontWeight.bold)),
+                    Text(
+                      "LKR $formattedCost",
+                      style: const TextStyle(color: Color(0xFF059669), fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ],
@@ -1104,7 +1133,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF0369A1), fontSize: 11)),
                             const SizedBox(height: 2),
-                            const Text("• Safeguard: Not needed (Saved Rs. 150,000 tent cost).", 
+                            const Text("• Safeguard: Not needed.", 
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
@@ -1367,11 +1396,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Review the preliminary AI budget breakdown above. You can agree with this proposal or request custom adjustments (e.g. adjust photography, catering, or decor packages):",
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, height: 1.35),
-                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -1422,7 +1446,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             ),
           ],
 
-          // 4. Bank Transfer & Payment Slip Section (Member 4 Mobile Integration)
+          // 4. Bank Transfer & Payment Slip Section
           if (isApproved || isConfirmed) ...[
             _buildPaymentSlipSection(proposal, formattedCost),
             const SizedBox(height: 16),
@@ -1643,16 +1667,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       ? "Bank Slip Upload Locked (Awaiting Budget Choice)"
                       : "Bank Slip Upload Locked (Awaiting Manager Review)",
                     style: const TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 13.5),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    isChoiceSubmitted
-                      ? "You submitted your budget choice. Once the Operations Manager gives final confirmation on the Web Dashboard, this payment deposit section will unlock automatically!"
-                      : isPendingBudgetApproval
-                      ? "Please review the Manager's recommendation card above and select your budget choice to proceed."
-                      : "Our AI Multi-Agent system has compiled your preliminary plan. The Event Manager is reviewing vendor packages and pricing on the Web Portal. Please check back shortly!",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, height: 1.4),
                   ),
                 ],
               ),
@@ -2284,7 +2298,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
         venueTitle = proposal.banquetHallName!;
       }
-      double cateringPrice = (proposal.perPlatePrice ?? 5000.0) * proposal.guestCount;
+      double cateringPrice = (proposal.perPlatePrice ?? 5200.0) * proposal.guestCount;
 
       if (hallPrice > 0 || !isPrivateOrCustomVenue) {
         items.add({
@@ -2296,7 +2310,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
 
       items.add({
-        'label': 'Banquet Catering Buffet (${proposal.guestCount} Guests)',
+        'label': 'Banquet Catering Buffet (Rs. ${(proposal.perPlatePrice ?? 5200.0).toStringAsFixed(0)}/guest)',
         'cost': cateringPrice,
         'isDiscount': false,
         'isSpecial': false,
@@ -2397,7 +2411,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           }
 
           items.add({
-            'label': '$r (${proposal.guestCount} Guests @ LKR ${rCostPerHead.toStringAsFixed(0)})',
+            'label': '$r (Rs. ${rCostPerHead.toStringAsFixed(0)}/guest)',
             'cost': rCostPerHead * proposal.guestCount,
             'isDiscount': false,
             'isSpecial': false,
@@ -2476,6 +2490,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 .replaceAll(RegExp(r'\s+'), ' ')
                 .trim();
           }
+
+          // Format guest rate tags e.g. (250 guests @ Rs. 5,200) -> (Rs. 5,200/guest)
+          mainLabel = mainLabel.replaceAllMapped(
+            RegExp(r'\(\s*(?:\d+\s*[Gg]uests?\s*(?:@|at)\s*)(?:Rs\.?|LKR)?\s*([\d,]+)\s*\)', caseSensitive: false),
+            (m) => '(Rs. ${m[1]}/guest)',
+          );
+          mainLabel = mainLabel.replaceAllMapped(
+            RegExp(r'\(\s*(?:Rs\.?|LKR)?\s*([\d,]+)\s*(?:per\s*plate|per\s*guest)\s*\)', caseSensitive: false),
+            (m) => '(Rs. ${m[1]}/guest)',
+          );
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3.5),

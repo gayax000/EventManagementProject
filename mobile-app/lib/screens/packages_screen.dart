@@ -10,7 +10,7 @@ class PackagesScreen extends StatefulWidget {
 }
 
 class _PackagesScreenState extends State<PackagesScreen> {
-  // Member 3 Weather Agent state simulation
+  // Weather Agent state simulation
   String _selectedCity = 'Nuwara Eliya';
   final List<String> _cities = ['Nuwara Eliya', 'Kandy', 'Colombo', 'Galle', 'Bentota', 'Negombo'];
 
@@ -122,8 +122,8 @@ class _PackagesScreenState extends State<PackagesScreen> {
   final List<Map<String, dynamic>> _cateringPackages = [
     {
       'title': 'International Hotel Buffet',
-      'price': 'Rs. 5,000',
-      'unit': 'per plate',
+      'price': 'Rs. 5,200',
+      'unit': '/guest',
       'tag': 'MOST POPULAR',
       'tagColor': Color(0xFF2563EB),
       'icon': Icons.restaurant_rounded,
@@ -140,7 +140,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'Outdoor Live BBQ Grill Feast',
       'price': 'Rs. 6,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'PREMIUM LIVE ACTION',
       'tagColor': Color(0xFFD97706),
       'icon': Icons.outdoor_grill_rounded,
@@ -157,7 +157,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'Sri Lankan Heritage Traditional Buffet',
       'price': 'Rs. 4,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'AUTHENTIC CEYLON',
       'tagColor': Color(0xFF059669),
       'icon': Icons.rice_bowl_rounded,
@@ -174,7 +174,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'title': 'High Tea Canapé & Snack Platter',
       'price': 'Rs. 3,500',
-      'unit': 'per plate',
+      'unit': '/guest',
       'tag': 'AFTERNOON RECEPTION',
       'tagColor': Color(0xFF7C3AED),
       'icon': Icons.local_cafe_rounded,
@@ -256,7 +256,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. MEMBER 3 AGENTIC AI WEATHER RISK RADAR
+                // 1. AGENTIC AI WEATHER RISK RADAR
                 _buildWeatherRadarCard(),
                 const SizedBox(height: 24),
 
@@ -283,7 +283,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        'Member 3 Resources',
+                        'Curated Packages',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
                       ),
                     ),
@@ -368,7 +368,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     );
   }
 
-  // --- MEMBER 3 AGENTIC AI WEATHER RADAR WIDGET ---
+  // --- AGENTIC AI WEATHER RADAR WIDGET ---
   Widget _buildWeatherRadarCard() {
     final isHighRisk = _riskLevel == 'High';
     final riskColor = isHighRisk ? const Color(0xFFEF4444) : (_riskLevel == 'Moderate' ? const Color(0xFFF59E0B) : const Color(0xFF10B981));
@@ -406,7 +406,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Weather Risk Agent (Member 3)',
+                      'Weather Risk Agent',
                       style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -439,54 +439,73 @@ class _PackagesScreenState extends State<PackagesScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 1. Target Event Date Selection
+          // 1. Target Event Date Selection (Spacious, responsive layout with dedicated date row)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFF334155)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Target Event Date:',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600),
+                      'Target Event Date',
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.event_available_rounded, color: Color(0xFF38BDF8), size: 15),
-                        const SizedBox(width: 6),
-                        Text(
-                          DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    InkWell(
+                      onTap: () => _pickDate(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
                         ),
-                      ],
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_month_rounded, size: 13, color: Color(0xFF38BDF8)),
+                            SizedBox(width: 5),
+                            Text(
+                              'Change Date',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF38BDF8)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB).withOpacity(0.2),
-                    foregroundColor: const Color(0xFF38BDF8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFF2563EB).withOpacity(0.5)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.event_available_rounded, color: Color(0xFF38BDF8), size: 16),
                     ),
-                  ),
-                  onPressed: () => _pickDate(context),
-                  icon: const Icon(Icons.calendar_month_rounded, size: 15),
-                  label: const Text('Change Date', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

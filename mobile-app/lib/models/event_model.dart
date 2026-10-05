@@ -291,7 +291,7 @@ class BanquetHallItem {
       hallName: json['hallName']?.toString() ?? 'Banquet Hall',
       maxCapacity: json['maxCapacity'] ?? 0,
       hallRentalPrice: (json['hallRentalPrice'] as num?)?.toDouble() ?? 0.0,
-      perPlatePrice: (json['perPlatePrice'] as num?)?.toDouble() ?? 5000.0,
+      perPlatePrice: (json['perPlatePrice'] as num?)?.toDouble() ?? 5200.0,
       isOutdoor: json['isOutdoor'] == true,
       isAvailable: json['isAvailable'] != false,
     );
