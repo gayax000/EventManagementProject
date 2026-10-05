@@ -37,7 +37,7 @@ This document represents the single source of truth for production deployment UR
 - `PORT`: `8080`
 
 ### Python Agentic AI Subsystem (`ai-service/`)
-- `OPENWEATHER_API_KEY`: OpenWeatherMap 5-Day Forecast API Key (`0a87ba3892616d06236da5470bca8bea`)
+- `OPENWEATHER_API_KEY`: YOUR_OPENWEATHERMAP_API_KEY
 - `PORT`: `8000`
 
 ---

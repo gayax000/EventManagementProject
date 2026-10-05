@@ -8,11 +8,16 @@ public class GlobalExceptionHandlerMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlerMiddleware> _logger;
+    private readonly IHostEnvironment _environment;
 
-    public GlobalExceptionHandlerMiddleware(RequestDelegate next, ILogger<GlobalExceptionHandlerMiddleware> logger)
+    public GlobalExceptionHandlerMiddleware(
+        RequestDelegate next, 
+        ILogger<GlobalExceptionHandlerMiddleware> logger,
+        IHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
+        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -28,7 +33,7 @@ public class GlobalExceptionHandlerMiddleware
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         context.Response.ContentType = "application/problem+json";
         
@@ -43,11 +48,34 @@ public class GlobalExceptionHandlerMiddleware
 
         context.Response.StatusCode = statusCode;
 
+        string title;
+        string detail;
+
+        if (statusCode == (int)HttpStatusCode.InternalServerError)
+        {
+            title = "Internal Server Error";
+            detail = _environment.IsDevelopment()
+                ? exception.Message
+                : "An unexpected error occurred while processing the request.";
+        }
+        else
+        {
+            title = exception switch
+            {
+                ArgumentException => "Bad Request",
+                KeyNotFoundException => "Not Found",
+                UnauthorizedAccessException => "Unauthorized",
+                InvalidOperationException => "Bad Request",
+                _ => "Error"
+            };
+            detail = exception.Message;
+        }
+
         var problemDetails = new ProblemDetails
         {
             Status = statusCode,
-            Title = exception.GetType().Name,
-            Detail = exception.Message,
+            Title = title,
+            Detail = detail,
             Instance = context.Request.Path
         };
 

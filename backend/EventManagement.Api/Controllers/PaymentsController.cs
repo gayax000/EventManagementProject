@@ -21,7 +21,22 @@ public class PaymentsController : ControllerBase
         _logger = logger;
     }
 
+    private Guid? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
+        if (Guid.TryParse(claim, out var userId))
+            return userId;
+        return null;
+    }
+
+    private bool IsManagerOrAdmin()
+    {
+        return User.IsInRole("Manager") || User.IsInRole("Admin");
+    }
+
     // 1. POST: api/payments/upload-slip (Customer uploads Bank Transfer Slip)
+    [Authorize(Roles = "Customer,Manager,Admin")]
     [HttpPost("upload-slip")]
     public async Task<ActionResult> UploadPaymentSlip([FromBody] SubmitPaymentSlipDto dto)
     {
@@ -30,32 +45,64 @@ public class PaymentsController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
             Booking? booking = null;
             if (dto.BookingId.HasValue && dto.BookingId.Value != Guid.Empty)
             {
-                booking = await _context.Bookings.FindAsync(dto.BookingId.Value);
+                booking = await _context.Bookings
+                    .Include(b => b.Event)
+                    .FirstOrDefaultAsync(b => b.BookingId == dto.BookingId.Value);
+
+                if (booking != null && !IsManagerOrAdmin())
+                {
+                    if (booking.Event == null || booking.Event.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
             }
 
             if (booking == null && dto.EventId.HasValue && dto.EventId.Value != Guid.Empty)
             {
-                booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+                booking = await _context.Bookings
+                    .Include(b => b.Event)
+                    .FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+
+                if (booking != null && !IsManagerOrAdmin())
+                {
+                    if (booking.Event == null || booking.Event.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
+
                 if (booking == null)
                 {
                     var ev = await _context.Events.FindAsync(dto.EventId.Value);
-                    if (ev != null)
+                    if (ev == null)
                     {
-                        var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
-                        booking = new Booking
-                        {
-                            EventId = ev.EventId,
-                            BookingReferenceCode = refCode,
-                            TotalAgreedAmount = dto.AmountPaid,
-                            Status = "PendingPaymentVerification",
-                            ConfirmedAt = null
-                        };
-                        _context.Bookings.Add(booking);
-                        await _context.SaveChangesAsync();
+                        return NotFound(new { message = "Event not found." });
                     }
+
+                    if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+
+                    var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
+                    booking = new Booking
+                    {
+                        EventId = ev.EventId,
+                        BookingReferenceCode = refCode,
+                        TotalAgreedAmount = dto.AmountPaid,
+                        Status = "PendingPaymentVerification",
+                        ConfirmedAt = null
+                    };
+                    _context.Bookings.Add(booking);
+                    await _context.SaveChangesAsync();
                 }
             }
 
@@ -93,7 +140,10 @@ public class PaymentsController : ControllerBase
                 });
                 await _context.SaveChangesAsync();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create manager notification for payment slip {PaymentId}", payment.PaymentId);
+            }
 
             return Ok(new
             {
@@ -110,9 +160,7 @@ public class PaymentsController : ControllerBase
             _logger.LogError(ex, "Error uploading payment slip for booking {BookingId}, event {EventId}", dto.BookingId, dto.EventId);
             return StatusCode(500, new
             {
-                message = "An error occurred while uploading payment slip.",
-                error = ex.Message,
-                inner = ex.InnerException?.Message
+                message = "An unexpected error occurred while processing the payment slip."
             });
         }
     }
@@ -186,36 +234,28 @@ public class PaymentsController : ControllerBase
     }
 
     // 1.2 GET: api/payments/my-payments (Customer payment history, slips, and invoices)
+    [Authorize(Roles = "Customer,Manager,Admin")]
     [HttpGet("my-payments")]
     public async Task<ActionResult> GetMyPayments([FromQuery] Guid? customerId)
     {
-        Guid targetCustomerId = Guid.Empty;
-        if (customerId.HasValue && customerId.Value != Guid.Empty)
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        Guid targetCustomerId = currentUserId.Value;
+
+        if (IsManagerOrAdmin() && customerId.HasValue && customerId.Value != Guid.Empty)
         {
             targetCustomerId = customerId.Value;
         }
-        else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
-        {
-            targetCustomerId = parsedId;
-        }
-        else
-        {
-            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (claim != null && Guid.TryParse(claim.Value, out var cId))
-            {
-                targetCustomerId = cId;
-            }
-        }
 
         var query = _context.Payments
+            .AsNoTracking()
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Event)
-            .AsQueryable();
-
-        if (targetCustomerId != Guid.Empty)
-        {
-            query = query.Where(p => p.Booking != null && p.Booking.Event != null && p.Booking.Event.CustomerId == targetCustomerId);
-        }
+            .Where(p => p.Booking != null && p.Booking.Event != null && p.Booking.Event.CustomerId == targetCustomerId);
 
         var list = await query
             .OrderByDescending(p => p.PaidAt)

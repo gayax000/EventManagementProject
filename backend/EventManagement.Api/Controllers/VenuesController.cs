@@ -12,10 +12,12 @@ namespace EventManagement.Api.Controllers;
 public class VenuesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<VenuesController> _logger;
 
-    public VenuesController(AppDbContext context)
+    public VenuesController(AppDbContext context, ILogger<VenuesController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -356,7 +358,10 @@ public class VenuesController : ControllerBase
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse AssignedVendorsJson for event {EventId}", ev.EventId);
+                }
             }
 
             // Fallback: Check AIWorkflowState.GeneratedPlanJson for [Partner: <VendorName>] or matching PackageName if AssignedVendorsJson did not already match
@@ -438,7 +443,10 @@ public class VenuesController : ControllerBase
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse GeneratedPlanJson for event {EventId}", ev.EventId);
+                }
             }
         }
 
