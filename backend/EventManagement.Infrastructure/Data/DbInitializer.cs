@@ -7,35 +7,24 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(AppDbContext context)
     {
-        // Ensure new schema columns exist in PostgreSQL database
-        try
+        // Migrate any existing users with plaintext passwords to secure BCrypt hashes safely
+        var existingUsers = await context.Users.ToListAsync();
+        bool usersUpdated = false;
+        foreach (var user in existingUsers)
         {
-            await context.Database.ExecuteSqlRawAsync(@"
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""EventSession"" text DEFAULT 'DayLunch';
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""CateringStyle"" text DEFAULT 'InternationalBuffet';
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""PreferredLocation"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""SelectedServicesJson"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""InspirationImageUrl"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AdditionalDetails"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""IsOutdoor"" boolean DEFAULT false;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
-                ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackageName"" text;
-                ALTER TABLE ""Vendors"" ADD COLUMN IF NOT EXISTS ""PackagePrice"" numeric;
-                CREATE TABLE IF NOT EXISTS ""Notifications"" (
-                    ""NotificationId"" uuid NOT NULL CONSTRAINT ""PK_Notifications"" PRIMARY KEY,
-                    ""UserId"" uuid NOT NULL,
-                    ""EventId"" uuid NULL,
-                    ""Title"" text NOT NULL,
-                    ""Message"" text NOT NULL,
-                    ""Type"" text NOT NULL DEFAULT 'General',
-                    ""IsRead"" boolean NOT NULL DEFAULT false,
-                    ""CreatedAt"" timestamp with time zone NOT NULL DEFAULT NOW()
-                );
-            ");
+            if (!string.IsNullOrEmpty(user.PasswordHash) &&
+                !user.PasswordHash.StartsWith("$2a$") &&
+                !user.PasswordHash.StartsWith("$2b$") &&
+                !user.PasswordHash.StartsWith("$2y$"))
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+                usersUpdated = true;
+            }
         }
-        catch { }
+        if (usersUpdated)
+        {
+            await context.SaveChangesAsync();
+        }
 
         // 1. Roles Seed
         if (!await context.Roles.AnyAsync())

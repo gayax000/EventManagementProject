@@ -9,14 +9,31 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configure CORS (Allows React Web & Flutter to communicate with ASP.NET Core)
+// 1. Configure ProblemDetails & CORS
+builder.Services.AddProblemDetails();
+
+var allowedOriginsConfig = builder.Configuration["AllowedOrigins"]
+    ?? "http://localhost:5173,http://localhost:3000,http://localhost:8080,http://127.0.0.1:5173,http://localhost:58458";
+var allowedOrigins = allowedOriginsConfig
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (builder.Environment.IsDevelopment() || allowedOrigins.Contains("*"))
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 

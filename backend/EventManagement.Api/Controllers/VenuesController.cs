@@ -81,8 +81,25 @@ public class VenuesController : ControllerBase
         return CreatedAtAction(nameof(GetVenues), new { id = venue.VenueId }, venue);
     }
 
-    // 4. GET: api/venues/vendors
-    // 4. GET: api/venues/vendors (Supports optional userId filtering)
+    private Guid? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                 ?? User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private bool IsManagerOrAdmin()
+    {
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value;
+        return string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+               User.IsInRole("Manager") || User.IsInRole("Admin");
+    }
+
+    // 4. GET: api/venues/vendors (Supports optional userId filtering for Manager/Admin)
     [HttpGet("vendors")]
     public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors([FromQuery] Guid? userId)
     {
@@ -95,69 +112,50 @@ public class VenuesController : ControllerBase
     }
 
     // 4b. GET: api/venues/vendors/my-vendors
-    [Authorize]
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpGet("vendors/my-vendors")]
     public async Task<ActionResult<IEnumerable<Vendor>>> GetMyVendors([FromQuery] Guid? userId)
     {
-        var claimUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
-        bool isManagerOrAdmin = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(roleClaim, "Admin", StringComparison.OrdinalIgnoreCase) ||
-                                User.IsInRole("Manager") || User.IsInRole("Admin");
-
-        Guid targetUserId = Guid.Empty;
-        if (isManagerOrAdmin && userId.HasValue && userId.Value != Guid.Empty)
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
         {
-            targetUserId = userId.Value;
-        }
-        else if (!string.IsNullOrEmpty(claimUserIdStr) && Guid.TryParse(claimUserIdStr, out var parsedClaimId))
-        {
-            targetUserId = parsedClaimId;
-        }
-        else if (userId.HasValue && userId.Value != Guid.Empty)
-        {
-            targetUserId = userId.Value;
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
         }
 
-        if (targetUserId == Guid.Empty)
+        Guid targetUserId;
+        if (IsManagerOrAdmin())
         {
-            return Ok(new List<Vendor>());
+            targetUserId = (userId.HasValue && userId.Value != Guid.Empty) ? userId.Value : currentUserId.Value;
+        }
+        else
+        {
+            // For Vendor: ALWAYS use JWT user ID only. Ignore supplied userId completely.
+            targetUserId = currentUserId.Value;
         }
 
         return await _context.Vendors.Where(v => v.UserId == targetUserId).OrderByDescending(v => v.CreatedAt).ToListAsync();
     }
 
     // 5. POST: api/venues/vendors/register (Vendor Portal Registration)
-    [Authorize]
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpPost("vendors/register")]
     public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
     {
-        var claimUserIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
-        bool isManagerOrAdmin = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) ||
-                                string.Equals(roleClaim, "Admin", StringComparison.OrdinalIgnoreCase) ||
-                                User.IsInRole("Manager") || User.IsInRole("Admin");
-
-        Guid effectiveUserId = Guid.Empty;
-        if (!string.IsNullOrEmpty(claimUserIdStr) && Guid.TryParse(claimUserIdStr, out var parsedClaimId))
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
         {
-            effectiveUserId = parsedClaimId;
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
         }
 
-        if (isManagerOrAdmin && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
+        Guid effectiveUserId;
+        if (IsManagerOrAdmin() && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
         {
             effectiveUserId = dto.UserId.Value;
         }
-
-        if (effectiveUserId == Guid.Empty && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
+        else
         {
-            effectiveUserId = dto.UserId.Value;
-        }
-
-        if (effectiveUserId == Guid.Empty)
-        {
-            var defaultUser = await _context.Users.FirstOrDefaultAsync();
-            if (defaultUser != null) effectiveUserId = defaultUser.UserId;
+            // For Vendor: UserId MUST come from JWT only.
+            effectiveUserId = currentUserId.Value;
         }
 
         var vendor = new Vendor
@@ -173,17 +171,10 @@ public class VenuesController : ControllerBase
             UserId = effectiveUserId
         };
 
-        try
-        {
-            _context.Vendors.Add(vendor);
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            System.Console.WriteLine($"[RegisterVendor DB Warning] {ex.Message}");
-        }
+        _context.Vendors.Add(vendor);
+        await _context.SaveChangesAsync();
 
-        return Ok(vendor);
+        return CreatedAtAction(nameof(GetVendors), new { userId = vendor.UserId }, vendor);
     }
 
     // 6. PUT: api/venues/vendors/{id}/verify (Manager Admin Action)
@@ -222,27 +213,33 @@ public class VenuesController : ControllerBase
     [HttpGet("vendors/assigned-events")]
     public async Task<ActionResult> GetAssignedEventsForVendor([FromQuery] Guid? vendorId, [FromQuery] Guid? userId)
     {
-        var systemCatalogUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+        }
+
         var vendorQuery = _context.Vendors.AsNoTracking().AsQueryable();
-        if (vendorId.HasValue && vendorId.Value != Guid.Empty && userId.HasValue && userId.Value != Guid.Empty && userId.Value != systemCatalogUserId)
+
+        if (IsManagerOrAdmin())
         {
-            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value || v.UserId == userId.Value);
-        }
-        else if (vendorId.HasValue && vendorId.Value != Guid.Empty)
-        {
-            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
-        }
-        else if (userId.HasValue && userId.Value != Guid.Empty)
-        {
-            vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+            if (vendorId.HasValue && vendorId.Value != Guid.Empty && userId.HasValue && userId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value || v.UserId == userId.Value);
+            }
+            else if (vendorId.HasValue && vendorId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
+            }
+            else if (userId.HasValue && userId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+            }
         }
         else
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                vendorQuery = vendorQuery.Where(v => v.UserId == parsedClaimId);
-            }
+            // For Vendor: Ignore query vendorId and userId, derive vendor identity strictly from JWT to prevent IDOR
+            vendorQuery = vendorQuery.Where(v => v.UserId == currentUserId.Value);
         }
 
         var vendors = await vendorQuery.ToListAsync();
