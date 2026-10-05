@@ -124,7 +124,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                             ),
                           ),
                           Text(
-                            'Member 4 Payments & Billing Core',
+                            'Payments & Billing Core',
                             style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                           ),
                         ],
@@ -318,7 +318,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. EXECUTIVE METRICS ROW (MEMBER 4 BILLING KPI)
+                  // 1. EXECUTIVE METRICS ROW (BILLING KPI)
                   _buildMetricsRow(currencyFormat),
                   const SizedBox(height: 24),
 
@@ -342,7 +342,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
-                          'Member 4 Payments',
+                          'Verified Invoices',
                           style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF059669)),
                         ),
                       ),
