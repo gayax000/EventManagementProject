@@ -439,54 +439,73 @@ class _PackagesScreenState extends State<PackagesScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 1. Target Event Date Selection
+          // 1. Target Event Date Selection (Spacious, responsive layout with dedicated date row)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFF334155)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Target Event Date:',
-                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600),
+                      'Target Event Date',
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5, fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        const Icon(Icons.event_available_rounded, color: Color(0xFF38BDF8), size: 15),
-                        const SizedBox(width: 6),
-                        Text(
-                          DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    InkWell(
+                      onTap: () => _pickDate(context),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
                         ),
-                      ],
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_month_rounded, size: 13, color: Color(0xFF38BDF8)),
+                            SizedBox(width: 5),
+                            Text(
+                              'Change Date',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF38BDF8)),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB).withOpacity(0.2),
-                    foregroundColor: const Color(0xFF38BDF8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(color: const Color(0xFF2563EB).withOpacity(0.5)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0284C7).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.event_available_rounded, color: Color(0xFF38BDF8), size: 16),
                     ),
-                  ),
-                  onPressed: () => _pickDate(context),
-                  icon: const Icon(Icons.calendar_month_rounded, size: 15),
-                  label: const Text('Change Date', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        DateFormat('EEEE, dd MMM yyyy').format(_selectedDate),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
