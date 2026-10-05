@@ -183,11 +183,11 @@ export const VenuesPage: React.FC = () => {
               src={currentCityImage} 
               alt={selectedCity} 
               className={`w-full h-full object-cover object-center transform transition-all duration-700 ease-out ${
-                selectedCity === 'All' ? 'brightness-110' : ''
+                selectedCity === 'All' || selectedCity === 'Kandy' ? 'brightness-110' : ''
               }`}
             />
-            {/* Shaded overlay: for 'All' cities, ultra-light delicate shade allowing left scenery to be bright while keeping text crisp */}
-            {selectedCity === 'All' ? (
+            {/* Shaded overlay: for 'All' and 'Kandy', ultra-light delicate shade allowing scenery to be bright while keeping text crisp */}
+            {selectedCity === 'All' || selectedCity === 'Kandy' ? (
               <>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-black/10 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
