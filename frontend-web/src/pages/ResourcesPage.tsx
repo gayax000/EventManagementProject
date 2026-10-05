@@ -1,6 +1,65 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Cpu, Check, Search, ShieldCheck, Phone } from 'lucide-react';
+import { Package, Cpu, Check, Search, ShieldCheck, Phone, Tent, Utensils, Car, Camera, Volume2, Sparkles, Cake, Zap, RefreshCw } from 'lucide-react';
 import { vendorService } from '../services/api';
+
+const getServiceCategoryBadge = (type?: string, name?: string) => {
+  const t = (type || '').toLowerCase().trim();
+  const n = (name || '').toLowerCase().trim();
+
+  // 1. Strict Category Match (Primary Authority)
+  if (t.includes('cake')) {
+    return { Icon: Cake, bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600' };
+  }
+  if (t.includes('photo')) {
+    return { Icon: Camera, bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' };
+  }
+  if (t.includes('transport') || t.includes('car') || t.includes('vip')) {
+    return { Icon: Car, bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' };
+  }
+  if (t.includes('sound') || t.includes('audio') || t.includes('light')) {
+    return { Icon: Volume2, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' };
+  }
+  if (t.includes('cater') || t.includes('food') || t.includes('buffet')) {
+    return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
+  }
+  if (t.includes('tent') || t.includes('marquee')) {
+    return { Icon: Tent, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
+  }
+  if (t.includes('power') || t.includes('gen')) {
+    return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };
+  }
+  if (t.includes('decor') || t.includes('flower') || t.includes('stage')) {
+    return { Icon: Sparkles, bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600' };
+  }
+
+  // 2. Name-based Match (Secondary Fallback)
+  if (n.includes('cake') || n.includes('fondant') || n.includes('pastry') || n.includes('gateau') || n.includes('dessert')) {
+    return { Icon: Cake, bg: 'bg-rose-50', border: 'border-rose-200', text: 'text-rose-600' };
+  }
+  if (n.includes('photo') || n.includes('cinema') || n.includes('drone') || n.includes('camera') || n.includes('video')) {
+    return { Icon: Camera, bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-600' };
+  }
+  if (n.includes('transport') || n.includes('prado') || n.includes('mercedes') || n.includes('rolls royce') || n.includes('jaguar') || n.includes('sedan') || n.includes('chauffeur') || n.includes('escort') || n.includes('vehicle')) {
+    return { Icon: Car, bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-600' };
+  }
+  if (n.includes('sound') || n.includes('audio') || n.includes('lighting') || n.includes('line-array') || n.includes('speaker')) {
+    return { Icon: Volume2, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' };
+  }
+  if (n.includes('cater') || n.includes('buffet') || n.includes('gourmet') || n.includes('platter') || n.includes('canapé') || n.includes('canapes') || n.includes('mocktail') || n.includes('espresso')) {
+    return { Icon: Utensils, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' };
+  }
+  if (n.includes('tent') || n.includes('marquee') || n.includes('hangar') || n.includes('canopy') || n.includes('pagoda')) {
+    return { Icon: Tent, bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' };
+  }
+  if (n.includes('generator') || n.includes('genset') || n.includes('power backup') || n.includes('diesel silent')) {
+    return { Icon: Zap, bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600' };
+  }
+  if (n.includes('decor') || n.includes('flower') || n.includes('floral') || n.includes('stage') || n.includes('drapes') || n.includes('backdrop')) {
+    return { Icon: Sparkles, bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600' };
+  }
+
+  return { Icon: Package, bg: 'bg-indigo-50', border: 'border-indigo-200', text: 'text-indigo-600' };
+};
 
 export interface ResourceItem {
   id: string;
@@ -96,14 +155,18 @@ export const ResourcesPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Verified Vendor Catalog & Resource Packages</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Browse verified partner packages, equipment catalogs, and pricing tiers across service categories.
-          </p>
+      {/* Header with Dark Luxury Style matching Dashboard & Venues */}
+      <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center space-x-1">
+            <Package className="w-3.5 h-3.5 mr-1 text-sky-400" />
+            Service Packages & AI Allocation Rules
+          </span>
         </div>
+        <h1 className="text-2xl font-black mt-2">Verified Vendor Catalog & Resource Inventory</h1>
+        <p className="text-slate-400 text-sm mt-1">
+          Browse verified partner packages, equipment catalogs, and pricing tiers across service categories.
+        </p>
       </div>
 
       {/* Search & Category Filter Tabs */}
@@ -164,14 +227,19 @@ export const ResourcesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
-              {filteredResources.map(res => (
-                <tr key={res.id} className="hover:bg-slate-50/80 transition bg-purple-50/5">
-                  <td className="px-6 py-4 font-semibold text-slate-900">
-                    <div className="flex items-center space-x-2.5">
-                      <Package className="w-4 h-4 flex-shrink-0 text-purple-600" />
-                      <span className="text-sm font-semibold text-slate-900">{res.name}</span>
-                    </div>
-                  </td>
+              {filteredResources.map(res => {
+                const badge = getServiceCategoryBadge(res.type, res.name);
+                const ServiceIcon = badge.Icon;
+                return (
+                  <tr key={res.id} className="hover:bg-slate-50/80 transition">
+                    <td className="px-6 py-4 font-semibold text-slate-900">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${badge.bg} ${badge.border} ${badge.text} shadow-2xs`}>
+                          <ServiceIcon className="w-4 h-4 stroke-[2.2]" />
+                        </div>
+                        <span className="text-sm font-semibold text-slate-900 leading-snug">{res.name}</span>
+                      </div>
+                    </td>
                   <td className="px-6 py-4">
                     <span className="text-xs font-medium px-2.5 py-1 bg-slate-100 rounded-md text-slate-700 border border-slate-200">
                       {res.type === 'CateringPackage' ? 'Catering' : res.type}
@@ -198,7 +266,8 @@ export const ResourcesPage: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
               {filteredResources.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">

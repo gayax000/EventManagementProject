@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X, RefreshCw } from 'lucide-react';
+import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X, RefreshCw, Car, Camera, Volume2, Cake, Utensils, Tent, Zap, Store } from 'lucide-react';
 import { vendorService } from '../services/api';
 
 const VENDOR_CATEGORIES = [
@@ -44,6 +44,65 @@ const getCategoryBadge = (vendorCat?: string) => {
   if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) return { label: 'Tents & Safeguards', icon: '🎪' };
   if (v.includes('power') || v.includes('gen')) return { label: 'Power Backup', icon: '⚡' };
   return { label: vendorCat, icon: '📦' };
+};
+
+const getCategoryIconBadge = (vendorCat?: string) => {
+  let Icon = Store;
+  let bg = 'bg-indigo-50';
+  let text = 'text-indigo-600';
+  let border = 'border-indigo-200';
+
+  if (vendorCat) {
+    const v = vendorCat.toLowerCase().trim();
+    if (v.includes('photo')) {
+      Icon = Camera;
+      bg = 'bg-sky-50';
+      text = 'text-sky-600';
+      border = 'border-sky-200';
+    } else if (v.includes('cake')) {
+      Icon = Cake;
+      bg = 'bg-rose-50';
+      text = 'text-rose-600';
+      border = 'border-rose-200';
+    } else if (v.includes('transport') || v.includes('car') || v.includes('vip')) {
+      Icon = Car;
+      bg = 'bg-purple-50';
+      text = 'text-purple-600';
+      border = 'border-purple-200';
+    } else if (v.includes('sound') || v.includes('audio') || v.includes('light')) {
+      Icon = Volume2;
+      bg = 'bg-amber-50';
+      text = 'text-amber-600';
+      border = 'border-amber-200';
+    } else if (v.includes('cater') || v.includes('food') || v.includes('buffet')) {
+      Icon = Utensils;
+      bg = 'bg-emerald-50';
+      text = 'text-emerald-600';
+      border = 'border-emerald-200';
+    } else if (v.includes('decor') || v.includes('flower') || v.includes('floral')) {
+      Icon = Sparkles;
+      bg = 'bg-pink-50';
+      text = 'text-pink-600';
+      border = 'border-pink-200';
+    } else if (v.includes('tent') || v.includes('marquee') || v.includes('weather')) {
+      Icon = Tent;
+      bg = 'bg-blue-50';
+      text = 'text-blue-600';
+      border = 'border-blue-200';
+    } else if (v.includes('power') || v.includes('gen')) {
+      Icon = Zap;
+      bg = 'bg-yellow-50';
+      text = 'text-yellow-600';
+      border = 'border-yellow-200';
+    }
+  }
+
+  return {
+    Icon,
+    bg,
+    text,
+    border,
+  };
 };
 
 export const VendorsPage: React.FC = () => {
@@ -160,10 +219,16 @@ export const VendorsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Partner & Vendor Management</h1>
-        <p className="text-slate-500 text-sm mt-1">Review new vendor applications and manage confirmed business partners across all 8 certified event service categories.</p>
+      {/* Header with Dark Luxury Style matching Dashboard & Venues */}
+      <div className="mb-6 bg-slate-900 text-white p-6 rounded-2xl shadow-lg border border-slate-800">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 inline-flex items-center space-x-1">
+            <ShieldCheck className="w-3.5 h-3.5 mr-1 text-sky-400" />
+            Certified Partner & Vendor Directory
+          </span>
+        </div>
+        <h1 className="text-2xl font-black mt-2">Partner & Vendor Management</h1>
+        <p className="text-slate-400 text-sm mt-1">Review new vendor applications and manage confirmed business partners across all 8 certified event service categories.</p>
       </div>
 
       {/* SECTION 1: Pending Verifications */}
@@ -229,25 +294,32 @@ export const VendorsPage: React.FC = () => {
           ) : (
             pendingVendors.map(vendor => {
               const badge = getCategoryBadge(vendor.category);
+              const iconBadge = getCategoryIconBadge(vendor.category);
+              const CategoryIcon = iconBadge.Icon;
               return (
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
+                  <div className="flex items-start space-x-3.5">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-xs mt-0.5`}>
+                      <CategoryIcon className="w-5 h-5 stroke-[2.2]" />
                     </div>
-                    {(vendor.packageName || vendor.adminRemarks) && (
-                      <p className="text-xs text-slate-600 mt-1 font-medium">
-                        Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
-                        {vendor.packagePrice && (
-                          <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
-                        )}
-                      </p>
-                    )}
-                    <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
-                      <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
-                        <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
-                      </span>
-                      <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
+                      </div>
+                      {(vendor.packageName || vendor.adminRemarks) && (
+                        <p className="text-xs text-slate-600 mt-1 font-medium">
+                          Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
+                          {vendor.packagePrice && (
+                            <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
+                          )}
+                        </p>
+                      )}
+                      <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
+                        <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
+                          <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
+                        </span>
+                        <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -349,25 +421,32 @@ export const VendorsPage: React.FC = () => {
           ) : (
             confirmedVendors.map(vendor => {
               const badge = getCategoryBadge(vendor.category);
+              const iconBadge = getCategoryIconBadge(vendor.category);
+              const CategoryIcon = iconBadge.Icon;
               return (
                 <div key={vendor.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
+                  <div className="flex items-start space-x-3.5">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${iconBadge.bg} ${iconBadge.border} ${iconBadge.text} shadow-xs mt-0.5`}>
+                      <CategoryIcon className="w-5 h-5 stroke-[2.2]" />
                     </div>
-                    {(vendor.packageName || vendor.adminRemarks) && (
-                      <p className="text-xs text-slate-600 mt-1 font-medium">
-                        Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
-                        {vendor.packagePrice && (
-                          <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
-                        )}
-                      </p>
-                    )}
-                    <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
-                      <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
-                        <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
-                      </span>
-                      <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-bold text-slate-900 text-base">{vendor.name}</h4>
+                      </div>
+                      {(vendor.packageName || vendor.adminRemarks) && (
+                        <p className="text-xs text-slate-600 mt-1 font-medium">
+                          Package: <span className="text-indigo-600 font-semibold">{vendor.packageName || vendor.adminRemarks}</span>
+                          {vendor.packagePrice && (
+                            <span className="ml-2 text-slate-900 font-bold">| Rs. {Number(vendor.packagePrice).toLocaleString()}</span>
+                          )}
+                        </p>
+                      )}
+                      <div className="flex items-center text-xs text-slate-500 mt-1.5 space-x-3">
+                        <span className="flex items-center px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded-md">
+                          <Tag className="w-3 h-3 mr-1 text-slate-400" /> {badge.label}
+                        </span>
+                        <span className="flex items-center"><Phone className="w-3.5 h-3.5 mr-1 text-slate-400" /> {vendor.contactNumber || vendor.contact}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -413,10 +492,16 @@ export const VendorsPage: React.FC = () => {
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 flex-shrink-0">
-                <Briefcase className="w-6 h-6" />
-              </div>
+            <div className="flex items-center space-x-3.5 mb-4">
+              {(() => {
+                const modalIconBadge = getCategoryIconBadge(selectedVendorForView.category);
+                const ModalCategoryIcon = modalIconBadge.Icon;
+                return (
+                  <div className={`w-12 h-12 ${modalIconBadge.bg} border ${modalIconBadge.border} rounded-2xl flex items-center justify-center ${modalIconBadge.text} flex-shrink-0 shadow-xs`}>
+                    <ModalCategoryIcon className="w-6 h-6 stroke-[2.2]" />
+                  </div>
+                );
+              })()}
               <div>
                 <h3 className="text-lg font-bold text-slate-900">{selectedVendorForView.name}</h3>
                 <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full mt-0.5 ${

@@ -1,10 +1,6 @@
 import axios from 'axios';
 
-const isLocalhost = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-let rawUrl = import.meta.env.VITE_API_URL || 
-  (isLocalhost ? 'http://localhost:8080/api' : 'https://eventmanagementproject-production-94fe.up.railway.app/api');
+let rawUrl = import.meta.env.VITE_API_URL || 'https://eventmanagementproject-production-94fe.up.railway.app/api';
 
 rawUrl = rawUrl.trim().replace(/\/+$/, '');
 if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {

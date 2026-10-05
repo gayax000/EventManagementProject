@@ -110,57 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF1E293B)),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.event_seat_rounded, color: Color(0xFF38BDF8), size: 24),
-            SizedBox(width: 10),
-            Text(
-              'EventCraft AI Platform',
-              style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Version 1.0.0 (Production Build)\nModule: SE3090 - Software Engineering Frameworks',
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12.5),
-            ),
-            SizedBox(height: 14),
-            Text(
-              'Autonomous Agentic AI event planning platform engineered with ASP.NET Core, Flutter, and LangGraph multi-agent orchestration.',
-              style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.45),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              PoliciesScreen.show(context);
-            },
-            child: const Text('View Policies', style: TextStyle(color: Color(0xFF38BDF8))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -187,23 +137,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 1. Executive Metrics Row (Matching Web Dashboard)
-                          _buildMetricsRow(),
-                          const SizedBox(height: 20),
-
-                          // 2. Hero Action Card (Matching Web Operational Bar)
+                          // 1. Sleek Hero Action Card with Abstract Artwork Background & Smooth Transition
                           _buildHeroActionCard(),
-                          const SizedBox(height: 16),
-
-                          // 2.1 Quick Service Hub (Member 3 Catering/Weather & Member 4 Payments)
-                          _buildQuickNavCards(),
                           const SizedBox(height: 24),
 
-                          // 3. Quick Inspiration Carousel (Zero Emojis, Pure Vector Icons)
-                          _buildInspirationSection(),
-                          const SizedBox(height: 28),
-
-                          // 4. Section Header for Active Events
+                          // 2. Section Header for Active Events
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -218,6 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
+                                  const Icon(Icons.event_note_rounded, color: Color(0xFF2563EB), size: 18),
+                                  const SizedBox(width: 6),
                                   const Text(
                                     "ACTIVE EVENT REQUESTS",
                                     style: TextStyle(
@@ -249,9 +189,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 16),
 
-                          // 5. Active Content
+                          // 3. Active Events List Content
                           _buildContent(isWide),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 30),
                         ],
                       ),
                     );
@@ -266,7 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- TOP EXECUTIVE APP BAR (MATCHING WEB NAVBAR) ---
+  // --- EXECUTIVE APP BAR ---
   Widget _buildExecutiveAppBar() {
     final initials = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'C';
 
@@ -307,14 +247,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(width: 14),
 
-          // User Info & VIP Status Pill
+          // User Info & Status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  "Welcome back, $_userName!",
+                  "Welcome, $_userName",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -336,21 +276,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0EA5E9).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.3)),
-                      ),
-                      child: const Text(
-                        'EventCraft VIP Client',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF38BDF8),
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.2,
-                        ),
+                    const Text(
+                      "Client Dashboard",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -359,20 +290,75 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Actions
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF334155)),
+          // Safety Agent Shield Icon with Sleek Dark Popup Menu (Matching Previous Design)
+          Theme(
+            data: Theme.of(context).copyWith(
+              cardColor: const Color(0xFF0F172A),
             ),
-            child: IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF94A3B8), size: 20),
-              tooltip: 'Refresh Events',
-              onPressed: _loadUserAndEvents,
+            child: PopupMenuButton<String>(
+              color: const Color(0xFF0F172A),
+              elevation: 12,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFF1E293B)),
+              ),
+              offset: const Offset(0, 48),
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF059669).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+                ),
+                child: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 20),
+              ),
+              onSelected: (value) {
+                if (value == 'tour') {
+                  _showAppTourDialog();
+                } else if (value == 'legal') {
+                  _showLegalPoliciesDialog();
+                } else if (value == 'about') {
+                  _showAboutDialog();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem<String>(
+                  value: 'tour',
+                  child: Row(
+                    children: [
+                      Icon(Icons.explore_rounded, color: Color(0xFF38BDF8), size: 18),
+                      SizedBox(width: 12),
+                      Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'legal',
+                  child: Row(
+                    children: [
+                      Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
+                      SizedBox(width: 12),
+                      Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(height: 1),
+                const PopupMenuItem<String>(
+                  value: 'about',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
+                      SizedBox(width: 12),
+                      Text('About EventCraft AI', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
+
+          // Logout Button
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
@@ -452,216 +438,110 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- EXECUTIVE METRICS ROW (MATCHING MANAGER WEB DASHBOARD) ---
-  Widget _buildMetricsRow() {
-    final pendingCount = _events.where((e) => e.status != 'Confirmed').length;
-    final confirmedCount = _events.where((e) => e.status == 'Confirmed').length;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isCompact = constraints.maxWidth < 450;
-        final double spacing = isCompact ? 8.0 : 12.0;
-
-        return Row(
-          children: [
-            Expanded(
-              child: _buildKpiCard(
-                label: isCompact ? "Active\nInquiries" : "Active Inquiries",
-                value: "${_events.length}",
-                icon: Icons.calendar_today_rounded,
-                iconColor: const Color(0xFF0284C7), // Sky Blue
-                iconBg: const Color(0xFFF0F9FF),
-                valueColor: const Color(0xFF0F172A),
-                isCompact: isCompact,
-              ),
-            ),
-            SizedBox(width: spacing),
-            Expanded(
-              child: _buildKpiCard(
-                label: isCompact ? "Pending\nReview" : "Pending Review",
-                value: "$pendingCount",
-                icon: Icons.access_time_rounded,
-                iconColor: const Color(0xFFD97706), // Amber
-                iconBg: const Color(0xFFFFFBEB),
-                valueColor: const Color(0xFFD97706),
-                isCompact: isCompact,
-              ),
-            ),
-            SizedBox(width: spacing),
-            Expanded(
-              child: _buildKpiCard(
-                label: isCompact ? "Approved\n& Ready" : "Approved & Ready",
-                value: "$confirmedCount",
-                icon: Icons.check_circle_outline_rounded,
-                iconColor: const Color(0xFF059669), // Emerald
-                iconBg: const Color(0xFFECFDF5),
-                valueColor: const Color(0xFF059669),
-                isCompact: isCompact,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildKpiCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBg,
-    required Color valueColor,
-    required bool isCompact,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        vertical: isCompact ? 12 : 14,
-        horizontal: isCompact ? 8 : 12,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x080F172A),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(isCompact ? 6 : 7),
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: iconColor, size: isCompact ? 15 : 18),
-              ),
-              Flexible(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: valueColor,
-                    fontSize: isCompact ? 18 : 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: isCompact ? 8 : 10),
-          SizedBox(
-            height: isCompact ? 28 : null,
-            child: Text(
-              label,
-              maxLines: 2,
-              softWrap: true,
-              style: TextStyle(
-                color: const Color(0xFF64748B),
-                fontSize: isCompact ? 10 : 11.5,
-                fontWeight: FontWeight.bold,
-                height: 1.15,
-                letterSpacing: 0.1,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- HERO CELEBRATION ACTION BANNER (MATCHING WEB OPERATIONAL BAR) ---
+  // --- HERO ACTION CARD WITH UPLOADED ARTWORK BACKGROUND & SMOOTH FADE ---
   Widget _buildHeroActionCard() {
     return Container(
+      height: 125,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF1E293B)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x1F0F172A),
+            color: Color(0x290F172A),
             blurRadius: 16,
             offset: Offset(0, 6),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => _navigateToCreateEvent(),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0EA5E9).withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFF0EA5E9).withOpacity(0.35)),
-                      ),
-                      child: const Text(
-                        "CLIENT EVENT PROPOSALS & AI BUDGETS",
-                        style: TextStyle(
-                          color: Color(0xFF7DD3FC),
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
+      child: Stack(
+        children: [
+          // 1. Background Artwork Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/hero_banner_bg.webp',
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 2. Smooth Dark Gradient Transition Overlay
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xF50F172A), // Dense navy for text clarity
+                    Color(0xCC0F172A), // Smooth transition fade
+                    Color(0x550F172A), // Glowing abstract background highlight
                   ],
                 ),
-                const SizedBox(height: 14),
-                Row(
+              ),
+            ),
+          ),
+
+          // 3. Banner Touch Content
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _navigateToCreateEvent(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
                           Text(
-                            "Plan New Event Request",
+                            "Plan Your Next Event",
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
+                              fontSize: 20,
                               letterSpacing: 0.2,
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Review live hotel catering, hall rentals, audio/visual gear, and autonomous weather safeguards.",
-                            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.35),
+                          const SizedBox(height: 3),
+                          const Text(
+                            "Create & customize with AI assistant",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFFCBD5E1),
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
                     Container(
-                      width: 46,
-                      height: 46,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB),
-                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF2563EB).withOpacity(0.4),
-                            blurRadius: 10,
+                            color: const Color(0xFF2563EB).withOpacity(0.5),
+                            blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -672,254 +552,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // --- QUICK SERVICE HUB (MEMBER 3 CATERING/WEATHER & MEMBER 4 PAYMENTS) ---
-  Widget _buildQuickNavCards() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isCompact = constraints.maxWidth < 450;
-        final double spacing = isCompact ? 10.0 : 14.0;
-
-        return Row(
-          children: [
-            Expanded(
-              child: InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PackagesScreen()),
-                ),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x060F172A),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0284C7).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.restaurant_menu_rounded, color: Color(0xFF0284C7), size: 20),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Packages & Weather",
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        "Catering & Rain Radar",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: spacing),
-            Expanded(
-              child: InkWell(
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PaymentsScreen()),
-                ),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x060F172A),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.payment_rounded, color: Color(0xFF10B981), size: 20),
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Payments & Invoices",
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        "Slips & Tax Receipts",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // --- CURATED INSPIRATION / QUICK STARTERS (ZERO EMOJIS, CLEAN VECTOR ICONS) ---
-  Widget _buildInspirationSection() {
-    final items = [
-      {
-        'title': 'Royal Wedding',
-        'desc': '5-Star Halls & Floral Stages',
-        'icon': Icons.favorite_border_rounded,
-        'iconBg': const Color(0xFFEEF2FF),
-        'iconColor': const Color(0xFF4F46E5),
-        'type': 'Wedding',
-      },
-      {
-        'title': 'Milestone Birthday',
-        'desc': 'Theme Decor & Bespoke Cakes',
-        'icon': Icons.cake_outlined,
-        'iconBg': const Color(0xFFFFFBEB),
-        'iconColor': const Color(0xFFD97706),
-        'type': 'Birthday Party',
-      },
-      {
-        'title': 'Corporate Gala',
-        'desc': 'Concert Sound & Intelligent Rig',
-        'icon': Icons.business_center_outlined,
-        'iconBg': const Color(0xFFF0F9FF),
-        'iconColor': const Color(0xFF0284C7),
-        'type': 'Dinner/Gala',
-      },
-      {
-        'title': 'Scenic Lawn Party',
-        'desc': 'Open-Air with Rain Safeguards',
-        'icon': Icons.park_outlined,
-        'iconBg': const Color(0xFFECFDF5),
-        'iconColor': const Color(0xFF059669),
-        'type': 'Family Gathering',
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 16),
-            SizedBox(width: 6),
-            Text(
-              "CURATED CELEBRATION INSPIRATION",
-              style: TextStyle(
-                color: Color(0xFF0F172A),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 94,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final it = items[index];
-              return InkWell(
-                onTap: () => _navigateToCreateEvent(it['type'] as String),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 220,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x060F172A),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: it['iconBg'] as Color,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(it['icon'] as IconData, color: it['iconColor'] as Color, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              it['title'] as String,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF0F172A),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              it['desc'] as String,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, height: 1.25),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- CONTENT SECTION (EMPTY OR POPULATED) ---
+  // --- CONTENT SECTION (EMPTY OR POPULATED LIST) ---
   Widget _buildContent(bool isWide) {
     if (_isLoading) {
       return Container(
@@ -967,12 +608,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              "No Active Celebrations Yet",
+              "No Active Events Yet",
               style: TextStyle(color: Color(0xFF0F172A), fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             const Text(
-              "Submit a new celebration inquiry through the mobile app to trigger automated AI multi-agent orchestration.",
+              "Submit a new event request to get automated AI budget plans and hotel venue options.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF64748B), fontSize: 13, height: 1.45),
             ),
@@ -988,7 +629,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () => _navigateToCreateEvent(),
               icon: const Icon(Icons.add_rounded, size: 18),
               label: const Text(
-                "Create Your First Event",
+                "Plan Your Next Event",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
@@ -1006,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- EXECUTIVE EVENT CARD (MATCHING WEB DESIGN SYSTEM) ---
+  // --- EXECUTIVE EVENT CARD ---
   Widget _buildEventCard(EventSummary event) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     final m = event.targetDate.month >= 1 && event.targetDate.month <= 12 ? months[event.targetDate.month - 1] : '';
@@ -1022,12 +663,12 @@ class _HomeScreenState extends State<HomeScreen> {
       (Match m) => '${m[1]},',
     );
     final String costLabel = isConfirmed
-        ? "Agreed"
+        ? "Agreed Total"
         : (isApproved
-            ? "Approved"
+            ? "Approved Budget"
             : (event.estimatedTotalCost != null && event.estimatedTotalCost! > 0
-                ? "Total"
-                : "Budget"));
+                ? "Total Estimate"
+                : "Budget Limit"));
     final daysUntil = event.targetDate.difference(DateTime.now()).inDays;
 
     return Container(
@@ -1055,7 +696,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Top Ribbon & Status
+            // Top Ribbon & Status (Zero Emojis, Pure Vector Icons)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
@@ -1088,7 +729,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           isConfirmed
                               ? Icons.verified_rounded
                               : isApproved
-                                  ? Icons.draw_rounded
+                                  ? Icons.rate_review_rounded
                                   : Icons.hourglass_top_rounded,
                           size: 13,
                           color: isConfirmed
@@ -1127,7 +768,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        daysUntil == 0 ? "Today!" : "In $daysUntil Days",
+                        daysUntil == 0 ? "Today" : "In $daysUntil Days",
                         style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -1152,7 +793,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Metadata Grid
+                  // Metadata Grid (Pure Vector Icons)
                   Row(
                     children: [
                       Expanded(child: _buildMetaPill(Icons.calendar_today_rounded, "Date", formattedDate)),
@@ -1164,7 +805,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // AI Multi-Agent & Weather Safeguard Card
+                  // AI Multi-Agent & Weather Safeguard Box
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
@@ -1176,8 +817,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.auto_awesome_rounded, color: Color(0xFF2563EB), size: 14),
                             SizedBox(width: 6),
                             Text(
@@ -1207,7 +848,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Bottom Action Trigger
+            // Bottom Action Button
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: ElevatedButton(
@@ -1307,7 +948,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- MODERN EXECUTIVE BOTTOM NAVIGATION BAR ---
+  // --- MODERN EXECUTIVE BOTTOM NAVIGATION BAR (3 CLEAN TABS) ---
   Widget _buildBottomNav() {
     return Container(
       decoration: const BoxDecoration(
@@ -1330,27 +971,10 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(builder: (_) => const PackagesScreen()),
             );
           } else if (index == 2) {
-            _navigateToCreateEvent();
-          } else if (index == 3) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PaymentsScreen()),
             );
-          } else if (index == 4) {
-            final confirmed = _events.where((e) => e.status == 'Confirmed').toList();
-            if (confirmed.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => ProposalDetailsScreen(eventId: confirmed.first.eventId)),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("No confirmed events with QR Passes yet."),
-                  backgroundColor: Color(0xFF0F172A),
-                ),
-              );
-            }
           }
         },
         backgroundColor: Colors.transparent,
@@ -1372,22 +996,180 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Packages',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline_rounded),
-            activeIcon: Icon(Icons.add_circle_rounded, color: Color(0xFF2563EB)),
-            label: 'Plan Event',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.payment_rounded),
             activeIcon: Icon(Icons.payment_rounded, color: Color(0xFF2563EB)),
             label: 'Payments',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_2_rounded),
-            activeIcon: Icon(Icons.qr_code_2_rounded, color: Color(0xFF2563EB)),
-            label: 'Passes',
+        ],
+      ),
+    );
+  }
+
+  // --- SHIELD MENU DIALOG HANDLERS (EXACTLY MATCHING SCREENSHOT) ---
+  void _showAppTourDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF1E293B)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.explore_rounded, color: Color(0xFF38BDF8)),
+            SizedBox(width: 10),
+            Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('Welcome to EventCraft AI Concierge!', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, height: 1.4)),
+              SizedBox(height: 14),
+              _TourFeatureRow(icon: Icons.auto_awesome_rounded, title: 'AI Event Assistant', desc: 'Auto-calculates catering, sound, & hall budgets in seconds.'),
+              SizedBox(height: 10),
+              _TourFeatureRow(icon: Icons.cloud_sync_rounded, title: 'Weather Safeguards', desc: 'Monitors real-time rain risks for outdoor events.'),
+              SizedBox(height: 10),
+              _TourFeatureRow(icon: Icons.qr_code_2_rounded, title: 'VIP QR Passes', desc: 'Generate encrypted QR entry passes for venue security staff.'),
+              SizedBox(height: 10),
+              _TourFeatureRow(icon: Icons.verified_user_rounded, title: 'Safety Agent Active', desc: 'Autonomous monitoring of venue capacity and security.'),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close Overview', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
+    );
+  }
+
+  void _showLegalPoliciesDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF1E293B)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8)),
+            SizedBox(width: 10),
+            Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('EventCraft Platform Terms & Policies:', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+              SizedBox(height: 10),
+              Text('1. Cancellation & Refunds: Cancel 14+ days prior for a 90% refund. 7-14 days prior eligible for 50% refund.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
+              SizedBox(height: 8),
+              Text('2. AI Budget Tolerances: Estimated cost quotes are guaranteed within a 5% margin of actual vendor invoices.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
+              SizedBox(height: 8),
+              Text('3. Digital Signatures: Electronic contract signatures are legally binding under Sri Lankan Law No. 19 of 2006.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('I Understand', style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF1E293B)),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8)),
+            SizedBox(width: 10),
+            Text('About EventCraft AI', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text('EventCraft Executive Suite', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+            SizedBox(height: 4),
+            Text('Version 2.4.0 (Build 2026.10)', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.w600)),
+            SizedBox(height: 12),
+            Text('Powered by Google Antigravity Multi-Agent Architecture for luxury Sri Lankan hotel banquet reservations and autonomous vendor coordination.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, height: 1.4)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E293B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TourFeatureRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String desc;
+
+  const _TourFeatureRow({required this.icon, required this.title, required this.desc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: const Color(0xFF38BDF8), size: 16),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(desc, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, height: 1.3)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
