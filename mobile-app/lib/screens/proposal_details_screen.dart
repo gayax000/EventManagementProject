@@ -1367,11 +1367,6 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      "Review the preliminary AI budget breakdown above. You can agree with this proposal or request custom adjustments (e.g. adjust photography, catering, or decor packages):",
-                      style: TextStyle(color: Color(0xFF64748B), fontSize: 11.5, height: 1.35),
-                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
