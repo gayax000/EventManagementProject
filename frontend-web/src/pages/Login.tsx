@@ -201,35 +201,35 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           onClick={() => setAuthModal(null)}
         >
           <div 
-            className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl text-white relative"
+            className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 shadow-2xl text-white relative"
             onClick={e => e.stopPropagation()}
           >
             {/* Close Button */}
             <button 
               onClick={() => setAuthModal(null)}
-              className="absolute top-5 right-5 p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition"
+              className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
 
             {/* Dedicated Modal Header (No Tab Switching) */}
             {authModal === 'login' ? (
-              <div className="border-b border-slate-800 pb-5 mb-6">
-                <div className="flex items-center space-x-2.5 text-sky-400 mb-1.5">
-                  <LogIn className="w-6 h-6" />
-                  <h3 className="text-xl font-bold text-white">Vendor & Admin Sign In</h3>
+              <div className="border-b border-slate-800 pb-6 mb-7">
+                <div className="flex items-center space-x-3 text-sky-400 mb-2">
+                  <LogIn className="w-7 h-7" />
+                  <h3 className="text-2xl font-black text-white">Vendor & Admin Sign In</h3>
                 </div>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm sm:text-base text-slate-400">
                   Access your vendor workspace or administrative control panel.
                 </p>
               </div>
             ) : (
-              <div className="border-b border-slate-800 pb-5 mb-6">
-                <div className="flex items-center space-x-2.5 text-indigo-400 mb-1.5">
-                  <Building2 className="w-6 h-6" />
-                  <h3 className="text-xl font-bold text-white">Vendor & Supplier Registration</h3>
+              <div className="border-b border-slate-800 pb-6 mb-7">
+                <div className="flex items-center space-x-3 text-indigo-400 mb-2">
+                  <Building2 className="w-7 h-7" />
+                  <h3 className="text-2xl font-black text-white">Vendor & Supplier Registration</h3>
                 </div>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm sm:text-base text-slate-400">
                   Register your business as an official event vendor or service partner.
                 </p>
               </div>
@@ -237,45 +237,45 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
             {/* Error & Success Alerts */}
             {error && (
-              <div className="mb-5 p-3.5 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-xs sm:text-sm text-center">
+              <div className="mb-5 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-200 text-sm text-center">
                 {error}
               </div>
             )}
             {successMsg && (
-              <div className="mb-5 p-3.5 bg-emerald-500/20 border border-emerald-500/50 rounded-xl text-emerald-200 text-xs sm:text-sm text-center flex items-center justify-center space-x-2">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <div className="mb-5 p-4 bg-emerald-500/20 border border-emerald-500/50 rounded-2xl text-emerald-200 text-sm text-center flex items-center justify-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
                 <span>{successMsg}</span>
               </div>
             )}
 
             {/* Form: Log In (Log In Only - No Sign Up Switch) */}
             {authModal === 'login' ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-5">
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">Email Address</label>
+                  <label className="block text-sm sm:text-base font-semibold text-slate-200 mb-2">Email Address</label>
                   <div className="relative">
-                    <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                    <Mail className="w-5 h-5 text-slate-400 absolute left-4 top-4" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
                       placeholder="vendor@eventcraft.com"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-1.5">Password</label>
+                  <label className="block text-sm sm:text-base font-semibold text-slate-200 mb-2">Password</label>
                   <div className="relative">
-                    <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                    <Lock className="w-5 h-5 text-slate-400 absolute left-4 top-4" />
                     <input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
                       placeholder="••••••••"
                     />
                   </div>
@@ -284,9 +284,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 px-5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-sky-500/25 transition disabled:opacity-50 flex items-center justify-center space-x-2 mt-3 cursor-pointer"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-2xl text-base font-extrabold shadow-xl shadow-sky-500/25 transition disabled:opacity-50 flex items-center justify-center space-x-2.5 mt-4 cursor-pointer"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-5 h-5" />
                   <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>
                 </button>
               </form>
