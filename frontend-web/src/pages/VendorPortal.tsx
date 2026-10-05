@@ -13,7 +13,13 @@ import {
   Tag,
   ChevronRight,
   TrendingUp,
-  Cpu
+  Cpu,
+  Search,
+  Calendar,
+  MapPin,
+  DollarSign,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { vendorService, type VendorItem } from '../services/api';
 import { authService } from '../services/authService';
@@ -311,6 +317,9 @@ export const VendorPortal: React.FC = () => {
   const [selectedTierName, setSelectedTierName] = useState('');
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<'all' | 'confirmed' | 'pending'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNetworkCatalog, setShowNetworkCatalog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
 
@@ -576,6 +585,40 @@ export const VendorPortal: React.FC = () => {
     }
   };
 
+  const isConfirmedBooking = (b: any) => {
+    const statusStr = String(b.bookingStatus || b.eventStatus || 'Assigned');
+    return statusStr.includes('Confirmed') ||
+      statusStr.includes('Agreed') ||
+      statusStr.includes('Approved') ||
+      b.eventStatus === 'ClientChoiceSubmitted' ||
+      b.eventStatus === 'ApprovedByManager' ||
+      b.eventStatus === 'Confirmed' ||
+      b.advancePaid === true;
+  };
+
+  const totalAssigned = assignedBookings.length;
+  const confirmedCount = assignedBookings.filter(isConfirmedBooking).length;
+  const pendingCount = totalAssigned - confirmedCount;
+  const confirmedPayout = assignedBookings
+    .filter(isConfirmedBooking)
+    .reduce((sum, b) => sum + Number(b.agreedPayout || 0), 0);
+  const totalPipelinePayout = assignedBookings.reduce((sum, b) => sum + Number(b.agreedPayout || 0), 0);
+
+  const filteredBookings = assignedBookings.filter((b: any) => {
+    const isConf = isConfirmedBooking(b);
+    if (orderFilter === 'confirmed' && !isConf) return false;
+    if (orderFilter === 'pending' && isConf) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = String(b.eventTitle || '').toLowerCase().includes(q);
+      const venueMatch = String(b.venueName || '').toLowerCase().includes(q);
+      const pkgMatch = String(b.packageName || '').toLowerCase().includes(q);
+      const typeMatch = String(b.eventType || '').toLowerCase().includes(q);
+      if (!titleMatch && !venueMatch && !pkgMatch && !typeMatch) return false;
+    }
+    return true;
+  });
+
   const activeCategoryInfo = currentVendor ? getCategoryInfo(currentVendor.category) : null;
 
   return (
@@ -750,13 +793,54 @@ export const VendorPortal: React.FC = () => {
               </div>
             </div>
 
+            {/* Business Performance & Order KPI Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                <div className="flex items-center justify-between text-slate-500 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Work Orders</span>
+                  <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">📋</span>
+                </div>
+                <div className="text-2xl font-black text-slate-900">{totalAssigned}</div>
+                <div className="text-[11px] text-slate-400 mt-1">Assigned by Operations</div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-emerald-200 bg-emerald-50/10 p-4 shadow-xs">
+                <div className="flex items-center justify-between text-emerald-700 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Confirmed Bookings</span>
+                  <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">✓</span>
+                </div>
+                <div className="text-2xl font-black text-emerald-700">{confirmedCount}</div>
+                <div className="text-[11px] text-emerald-600/80 mt-1">Client or Manager Approved</div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-indigo-200 bg-indigo-50/10 p-4 shadow-xs">
+                <div className="flex items-center justify-between text-indigo-700 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Confirmed Payout</span>
+                  <span className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">💰</span>
+                </div>
+                <div className="text-xl font-black text-indigo-950">
+                  Rs. {confirmedPayout.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-indigo-600/80 mt-1">Pipeline: Rs. {totalPipelinePayout.toLocaleString()}</div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-amber-200 bg-amber-50/10 p-4 shadow-xs">
+                <div className="flex items-center justify-between text-amber-700 mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Pending Action</span>
+                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">⏳</span>
+                </div>
+                <div className="text-2xl font-black text-amber-800">{pendingCount}</div>
+                <div className="text-[11px] text-amber-600/80 mt-1">In Proposal Review</div>
+              </div>
+            </div>
+
             {/* Assigned Event Bookings & Live Work Orders */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
                     <span className="text-xl">🔔</span>
-                    <span>My Assigned Event Bookings & Live Work Orders ({assignedBookings.length})</span>
+                    <span>Assigned Event Bookings & Work Orders ({filteredBookings.length}{filteredBookings.length !== totalAssigned ? ` of ${totalAssigned}` : ''})</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Live client event orders assigned to your verified business by EventCraft Operations Managers.
@@ -766,47 +850,83 @@ export const VendorPortal: React.FC = () => {
                   type="button"
                   onClick={() => fetchAssignedEvents(false)}
                   disabled={loadingBookings}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 transition disabled:opacity-50"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg border border-indigo-200 transition disabled:opacity-50 self-start sm:self-auto"
                 >
                   <span>🔄 {loadingBookings ? 'Refreshing...' : 'Refresh Orders'}</span>
                 </button>
               </div>
 
-              {assignedBookings.length > 0 && (
-                <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-indigo-50 border border-emerald-200 flex items-start space-x-3 shadow-xs">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-base shadow-xs">
-                    🎉
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-xs font-extrabold text-emerald-950 uppercase tracking-wide">
-                        Official Event Booking Notification ({assignedBookings.length} Active {assignedBookings.length === 1 ? 'Order' : 'Orders'})
-                      </h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white">
-                        Live Schedule Synced
-                      </span>
-                    </div>
-                    <p className="text-xs text-emerald-900 mt-1 leading-relaxed font-medium">
-                      {assignedBookings[0].notificationMessage || `Your business "${currentVendor?.businessName || 'Verified Partner'}" has been booked for "${assignedBookings[0].eventTitle}" on ${assignedBookings[0].targetDate ? new Date(assignedBookings[0].targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'the scheduled date'}. Please review your event date, session, and package requirements below.`}
-                    </p>
-                  </div>
+              {/* Filter Tabs and Search Controls */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-5 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setOrderFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      orderFilter === 'all'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({totalAssigned})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderFilter('confirmed')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      orderFilter === 'confirmed'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-emerald-700'
+                    }`}
+                  >
+                    <span>Confirmed</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${orderFilter === 'confirmed' ? 'bg-emerald-700 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+                      {confirmedCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderFilter('pending')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                      orderFilter === 'pending'
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-amber-700'
+                    }`}
+                  >
+                    <span>Pending</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${orderFilter === 'pending' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                      {pendingCount}
+                    </span>
+                  </button>
                 </div>
-              )}
+
+                <div className="relative flex-1 sm:max-w-xs">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by event, venue, package..."
+                    className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
 
               {loadingBookings && assignedBookings.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-400">Loading assigned bookings...</div>
-              ) : assignedBookings.length > 0 ? (
+              ) : filteredBookings.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {assignedBookings.map((b: any, idx: number) => {
-                    const statusStr = String(b.bookingStatus || b.eventStatus || 'Assigned');
-                    const isConfirmedOrAgreed =
-                      statusStr.includes('Confirmed') ||
-                      statusStr.includes('Agreed') ||
-                      statusStr.includes('Approved') ||
-                      b.eventStatus === 'ClientChoiceSubmitted' ||
-                      b.eventStatus === 'ApprovedByManager' ||
-                      b.eventStatus === 'Confirmed';
-
+                  {filteredBookings.map((b: any, idx: number) => {
+                    const isConfirmedOrAgreed = isConfirmedBooking(b);
                     const formattedDate = b.targetDate
                       ? new Date(b.targetDate).toLocaleDateString('en-US', {
                           weekday: 'short',
@@ -819,77 +939,91 @@ export const VendorPortal: React.FC = () => {
                     return (
                       <div 
                         key={b.eventId ? `${b.eventId}-${idx}` : idx} 
-                        className={`p-4 rounded-xl border transition shadow-xs ${
+                        className={`p-4 rounded-xl border transition shadow-xs flex flex-col justify-between ${
                           isConfirmedOrAgreed
-                            ? 'border-emerald-300 bg-emerald-50/30 hover:border-emerald-400'
-                            : 'border-indigo-200 bg-indigo-50/30 hover:border-indigo-400'
+                            ? 'border-emerald-200 bg-white hover:border-emerald-400 hover:shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
-                                {b.category || 'Service'} Assignment
+                        <div>
+                          {/* Card Header: Category & Status */}
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                {b.category || 'Service'}
                               </span>
                               {b.eventType && (
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                   {b.eventType}
                                 </span>
                               )}
                             </div>
-                            <h4 className="font-black text-slate-900 text-base mt-1.5">{b.eventTitle}</h4>
-                            <div className="text-xs text-slate-700 mt-1.5 space-y-1">
-                              <p className="flex items-center gap-1.5 font-semibold text-indigo-950">
-                                <span>📅 Booked Date:</span>
-                                <span className="bg-white px-2 py-0.5 rounded border border-slate-200">{formattedDate}</span>
-                                <span className="text-indigo-700">• {b.sessionLabel || b.eventSession || 'Day Lunch'}</span>
-                              </p>
-                              <p className="flex flex-wrap items-center gap-1.5 text-slate-600">
-                                <span>📍 Venue: <strong className="text-slate-800">{b.venueName || 'Venue TBD'}</strong></span>
-                                {b.guestCount > 0 && (
-                                  <>
-                                    <span className="text-slate-300">•</span>
-                                    <span>👥 <strong className="text-slate-800">{b.guestCount} Guests</strong></span>
-                                  </>
-                                )}
-                              </p>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                              isConfirmedOrAgreed
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            }`}>
+                              {isConfirmedOrAgreed ? `✓ ${b.bookingStatus || 'Confirmed'}` : (b.bookingStatus || 'In Proposal')}
+                            </span>
+                          </div>
+
+                          {/* Event Title */}
+                          <h4 className="font-extrabold text-slate-900 text-base leading-snug">
+                            {b.eventTitle}
+                          </h4>
+
+                          {/* Date, Session, Venue & Guest Count */}
+                          <div className="mt-2.5 space-y-1.5 text-xs text-slate-600">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">📅</span>
+                              <span className="font-semibold text-slate-800">{formattedDate}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-indigo-600 font-medium">{b.sessionLabel || b.eventSession || 'Day Lunch'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-400">📍</span>
+                              <span className="truncate max-w-[240px] text-slate-700 font-medium" title={b.venueName}>
+                                {b.venueName || 'Venue TBD'}
+                              </span>
+                              {b.guestCount > 0 && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="text-slate-500 whitespace-nowrap">👥 {b.guestCount} Guests</span>
+                                </>
+                              )}
                             </div>
                           </div>
-                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap shadow-2xs ${
-                            isConfirmedOrAgreed
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-amber-100 text-amber-900 border border-amber-300'
-                          }`}>
-                            {isConfirmedOrAgreed ? `✓ ${b.bookingStatus || 'Booked'}` : (b.bookingStatus || 'Assigned')}
-                          </span>
                         </div>
 
-                        {b.notificationMessage && (
-                          <div className="mt-3 p-2.5 rounded-lg bg-white/90 border border-slate-200/80 text-[11px] text-slate-700 leading-relaxed">
-                            <span className="font-bold text-indigo-900">📩 Booking Notice: </span>
-                            {b.notificationMessage}
+                        {/* Package & Agreed Payout Box */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Assigned Package</span>
+                            <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5" title={b.packageName}>
+                              {b.packageName || 'Standard Service Package'}
+                            </span>
                           </div>
-                        )}
-
-                        <div className="mt-3 pt-3 border-t border-slate-200/80 text-xs space-y-1.5">
-                          <div className="flex justify-between text-slate-700">
-                            <span className="text-slate-500">Booked Package:</span>
-                            <span className="font-bold text-slate-900 text-right">{b.packageName || 'Standard Service'}</span>
+                          <div className="text-right flex-shrink-0">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Agreed Payout</span>
+                            <span className="text-base font-black text-emerald-600 block mt-0.5">
+                              Rs. {Number(b.agreedPayout || 0).toLocaleString()}
+                            </span>
                           </div>
-                          <div className="flex justify-between text-slate-700">
-                            <span className="text-slate-500">Agreed Vendor Payout:</span>
-                            <span className="font-extrabold text-emerald-700 text-sm">Rs. {Number(b.agreedPayout || 0).toLocaleString()}</span>
-                          </div>
-                          {b.advancePaid && (
-                            <div className="flex justify-between text-slate-700">
-                              <span className="text-slate-500">Client Advance Status:</span>
-                              <span className="font-bold text-emerald-700">✓ Advance Payment Verified</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
                   })}
+                </div>
+              ) : totalAssigned > 0 ? (
+                <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                  <p className="text-xs font-semibold text-slate-600">No work orders match your current filter or search.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setOrderFilter('all'); setSearchQuery(''); }}
+                    className="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 underline"
+                  >
+                    Clear Filters
+                  </button>
                 </div>
               ) : (
                 <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
@@ -978,7 +1112,7 @@ export const VendorPortal: React.FC = () => {
 
             {/* EventCraft Network 8 Service Categories Overview */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
                     <Sparkles className="w-4 h-4 text-indigo-600" />
@@ -986,23 +1120,30 @@ export const VendorPortal: React.FC = () => {
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">Explore standard rate cards and active AI allocation indexing across the entire supplier network.</p>
                 </div>
-                <span className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full font-bold border border-indigo-200">
-                  8 Services Certified
-                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowNetworkCatalog(!showNetworkCatalog)}
+                  className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                >
+                  <span>{showNetworkCatalog ? 'Hide Benchmarks' : 'View Benchmarks'}</span>
+                  {showNetworkCatalog ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {ALL_8_CAT_CARDS.map(cat => (
-                  <div key={cat.key} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 transition shadow-xs">
-                    <div className="flex items-center space-x-2 mb-1.5">
-                      <span className="text-xl">{cat.icon}</span>
-                      <h4 className="font-bold text-slate-900 text-xs">{cat.title}</h4>
+              {showNetworkCatalog && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-100">
+                  {ALL_8_CAT_CARDS.map(cat => (
+                    <div key={cat.key} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-indigo-300 transition shadow-xs">
+                      <div className="flex items-center space-x-2 mb-1.5">
+                        <span className="text-xl">{cat.icon}</span>
+                        <h4 className="font-bold text-slate-900 text-xs">{cat.title}</h4>
+                      </div>
+                      <p className="text-[11px] text-indigo-600 font-bold mb-1">{cat.price}</p>
+                      <p className="text-[11px] text-slate-500 leading-tight line-clamp-2">{cat.desc}</p>
                     </div>
-                    <p className="text-[11px] text-indigo-600 font-bold mb-1">{cat.price}</p>
-                    <p className="text-[11px] text-slate-500 leading-tight line-clamp-2">{cat.desc}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
           </div>
