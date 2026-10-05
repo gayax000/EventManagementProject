@@ -20,15 +20,26 @@ builder.Services.AddCors(options =>
 });
 
 // 2. PostgreSQL DbContext Configuration (Neon Cloud DB)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("DefaultConnection database connection string is not configured in Environment Variables or User Secrets.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // 3. Register Services in DI Container
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddHttpClient<IAiWorkflowService, AiWorkflowService>();
 
 // 4. Configure Real JWT Bearer Authentication
-var secretKey = builder.Configuration["JwtSettings:SecretKey"] ?? "EventCraftAI_Super_Secret_JWT_Signing_Key_2026_SE3090!";
+var secretKey = builder.Configuration["JwtSettings:SecretKey"];
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    throw new InvalidOperationException("JwtSettings:SecretKey is not configured in Environment Variables or User Secrets.");
+}
+
 var issuer = builder.Configuration["JwtSettings:Issuer"] ?? "EventCraft.Api";
 var audience = builder.Configuration["JwtSettings:Audience"] ?? "EventCraft.Client";
 

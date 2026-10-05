@@ -1,17 +1,23 @@
 # Visual Studio / .NET Core
 bin/
 obj/
+**/bin/
+**/obj/
 *.user
 *.suo
 .vs/
-appsettings.Development.json
-appsettings.Production.json
+appsettings.Local.json
+appsettings.Development.local.json
+
+# Environment Secrets & Credentials
+.env
+.env.*
+!.env.example
 
 # Node / React
 node_modules/
 dist/
 build/
-.env
 .env.local
 
 # Flutter / Dart
@@ -19,14 +25,13 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
-build/
+mobile-app/build/
 *.apk
 
 # Python / LangGraph AI
 __pycache__/
 *.pyc
 venv/
-.env
 
 # OS / IDE
 .DS_Store
