@@ -1104,7 +1104,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF0369A1), fontSize: 11)),
                             const SizedBox(height: 2),
-                            const Text("• Safeguard: Not needed (Saved Rs. 150,000 tent cost).", 
+                            const Text("• Safeguard: Not needed.", 
                               softWrap: true,
                               style: TextStyle(color: Color(0xFF0284C7), fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
