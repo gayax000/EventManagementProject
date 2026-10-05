@@ -116,91 +116,89 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildExecutiveAppBar(),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadUserAndEvents,
-                color: const Color(0xFF2563EB),
-                backgroundColor: Colors.white,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final bool isWide = constraints.maxWidth > 750;
-                    return SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isWide ? constraints.maxWidth * 0.12 : 16.0,
-                        vertical: 20.0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 1. Sleek Hero Action Card with Abstract Artwork Background & Smooth Transition
-                          _buildHeroActionCard(),
-                          const SizedBox(height: 24),
+      body: Column(
+        children: [
+          _buildExecutiveAppBar(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadUserAndEvents,
+              color: const Color(0xFF2563EB),
+              backgroundColor: Colors.white,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool isWide = constraints.maxWidth > 750;
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isWide ? constraints.maxWidth * 0.12 : 16.0,
+                      vertical: 18.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Sleek Hero Action Card with Abstract Artwork Background & Smooth Transition
+                        _buildHeroActionCard(),
+                        const SizedBox(height: 24),
 
-                          // 2. Section Header for Active Events
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 4,
-                                    height: 18,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF2563EB),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
+                        // 2. Section Header for Active Events
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 4,
+                                  height: 18,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2563EB),
+                                    borderRadius: BorderRadius.circular(2),
                                   ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.event_note_rounded, color: Color(0xFF2563EB), size: 18),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    "ACTIVE EVENT REQUESTS",
-                                    style: TextStyle(
-                                      color: Color(0xFF0F172A),
-                                      fontSize: 13,
-                                      letterSpacing: 1.1,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEFF6FF),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFBFDBFE)),
                                 ),
-                                child: Text(
-                                  "${_events.length} ${_events.length == 1 ? 'Event' : 'Events'}",
-                                  style: const TextStyle(
-                                    color: Color(0xFF2563EB),
-                                    fontSize: 11,
+                                const SizedBox(width: 8),
+                                const Icon(Icons.event_note_rounded, color: Color(0xFF2563EB), size: 18),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  "ACTIVE EVENT REQUESTS",
+                                  style: TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontSize: 13,
+                                    letterSpacing: 1.1,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFBFDBFE)),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                              child: Text(
+                                "${_events.length} ${_events.length == 1 ? 'Event' : 'Events'}",
+                                style: const TextStyle(
+                                  color: Color(0xFF2563EB),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
-                          // 3. Active Events List Content
-                          _buildContent(isWide),
-                          const SizedBox(height: 30),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        // 3. Active Events List Content
+                        _buildContent(isWide),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -211,161 +209,198 @@ class _HomeScreenState extends State<HomeScreen> {
     final initials = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'C';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
-        color: Color(0xFF0F172A),
-        border: Border(bottom: BorderSide(color: Color(0xFF1E293B))),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF090D1A), // Deep Midnight
+            Color(0xFF161533), // Cosmic Violet / Deep Indigo (Matches EventCraft Banner glow)
+            Color(0xFF0F172A), // Slate Navy
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x1A0F172A),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          )
+            color: Color(0x2E0F172A),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
         ],
       ),
-      child: Row(
-        children: [
-          // User Avatar
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF2563EB), width: 1.5),
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-
-          // User Info & Status
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Welcome, $_userName",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 0.2,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Row(
+            children: [
+              // User Avatar with EventCraft Gradient Ring
+              Container(
+                width: 44,
+                height: 44,
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF38BDF8), // Neon Cyan
+                      Color(0xFF818CF8), // Violet
+                      Color(0xFFC084FC), // Electric Purple / Fuchsia
+                    ],
                   ),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF10B981),
-                        shape: BoxShape.circle,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0F172A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      "Client Dashboard",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // User Info & Status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Welcome, $_userName",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x8010B981),
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Text(
+                          "Client Dashboard",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF94A3B8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Legal, Policies & App Tour Button
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xB31E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xCC334155)),
+                ),
+                child: PopupMenuButton<String>(
+                  icon: const Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 20),
+                  tooltip: 'Legal, Policies & App Tour',
+                  color: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: const BorderSide(color: Color(0xFF1E293B)),
+                  ),
+                  onSelected: (val) {
+                    if (val == 'policies') {
+                      PoliciesScreen.show(context);
+                    } else if (val == 'tour') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
+                      );
+                    } else if (val == 'about') {
+                      _showAboutDialog();
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'tour',
+                      child: Row(
+                        children: [
+                          Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 18),
+                          SizedBox(width: 10),
+                          Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'policies',
+                      child: Row(
+                        children: [
+                          Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
+                          SizedBox(width: 10),
+                          Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(height: 1),
+                    const PopupMenuItem(
+                      value: 'about',
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
+                          SizedBox(width: 10),
+                          Text('About EventCraft AI', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          // Legal, Policies & App Tour Button
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: PopupMenuButton<String>(
-              icon: const Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 20),
-              tooltip: 'Legal, Policies & App Tour',
-              color: const Color(0xFF0F172A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFF1E293B)),
               ),
-              onSelected: (val) {
-                if (val == 'policies') {
-                  PoliciesScreen.show(context);
-                } else if (val == 'tour') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
-                  );
-                } else if (val == 'about') {
-                  _showAboutDialog();
-                }
-              },
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'tour',
-                  child: Row(
-                    children: [
-                      Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 18),
-                      SizedBox(width: 10),
-                      Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 13)),
-                    ],
-                  ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0x1FEF4444),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0x59EF4444)),
                 ),
-                const PopupMenuItem(
-                  value: 'policies',
-                  child: Row(
-                    children: [
-                      Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
-                      SizedBox(width: 10),
-                      Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 13)),
-                    ],
-                  ),
+                child: IconButton(
+                  icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
+                  tooltip: 'Sign Out',
+                  onPressed: _handleLogout,
                 ),
-                const PopupMenuDivider(height: 1),
-                const PopupMenuItem(
-                  value: 'about',
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
-                      SizedBox(width: 10),
-                      Text('About EventCraft AI', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.3)),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
-              tooltip: 'Sign Out',
-              onPressed: _handleLogout,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
