@@ -10,7 +10,7 @@ class PackagesScreen extends StatefulWidget {
 }
 
 class _PackagesScreenState extends State<PackagesScreen> {
-  // Member 3 Weather Agent state simulation
+  // Weather Agent state simulation
   String _selectedCity = 'Nuwara Eliya';
   final List<String> _cities = ['Nuwara Eliya', 'Kandy', 'Colombo', 'Galle', 'Bentota', 'Negombo'];
 
@@ -256,7 +256,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. MEMBER 3 AGENTIC AI WEATHER RISK RADAR
+                // 1. AGENTIC AI WEATHER RISK RADAR
                 _buildWeatherRadarCard(),
                 const SizedBox(height: 24),
 
@@ -283,7 +283,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        'Member 3 Resources',
+                        'Curated Packages',
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
                       ),
                     ),
@@ -368,7 +368,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     );
   }
 
-  // --- MEMBER 3 AGENTIC AI WEATHER RADAR WIDGET ---
+  // --- AGENTIC AI WEATHER RADAR WIDGET ---
   Widget _buildWeatherRadarCard() {
     final isHighRisk = _riskLevel == 'High';
     final riskColor = isHighRisk ? const Color(0xFFEF4444) : (_riskLevel == 'Moderate' ? const Color(0xFFF59E0B) : const Color(0xFF10B981));
@@ -406,7 +406,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Weather Risk Agent (Member 3)',
+                      'Weather Risk Agent',
                       style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     Text(
