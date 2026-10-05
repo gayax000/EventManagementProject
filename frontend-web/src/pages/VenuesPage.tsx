@@ -182,22 +182,11 @@ export const VenuesPage: React.FC = () => {
               key={selectedCity}
               src={currentCityImage} 
               alt={selectedCity} 
-              className={`w-full h-full object-cover object-center transform transition-all duration-700 ease-out ${
-                selectedCity === 'All' || selectedCity === 'Kandy' ? 'brightness-110' : ''
-              }`}
+              className="w-full h-full object-cover object-center transform transition-all duration-700 ease-out"
             />
-            {/* Shaded overlay: for 'All' and 'Kandy', ultra-light delicate shade allowing scenery to be bright while keeping text crisp */}
-            {selectedCity === 'All' || selectedCity === 'Kandy' ? (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-r from-black/35 via-black/10 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent" />
-              </>
-            ) : (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/15" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-              </>
-            )}
+            {/* Shaded overlay: removed blue tint completely, now neutral dark gradient so vibrant image colors show clearly */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-black/15" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
           </div>
         )}
 
@@ -208,8 +197,8 @@ export const VenuesPage: React.FC = () => {
               Luxury Venues & Hotels Directory
             </span>
           </div>
-          <h1 className="text-2xl font-black mt-2 text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.85)]">Sri Lankan Venues & Banquet Halls</h1>
-          <p className="text-slate-100 text-sm mt-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] font-medium">Explore certified star hotels and event venues in Colombo, Kandy, Nuwara Eliya, Galle and across Sri Lanka.</p>
+          <h1 className="text-2xl font-black mt-2 text-white drop-shadow-md">Sri Lankan Venues & Banquet Halls</h1>
+          <p className="text-slate-200 text-sm mt-1 drop-shadow font-medium">Explore certified star hotels and event venues in Colombo, Kandy, Nuwara Eliya, Galle and across Sri Lanka.</p>
         </div>
 
         {/* Search Bar */}
