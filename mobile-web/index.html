@@ -54,6 +54,9 @@
         }
       });
     }
+    try {
+      localStorage.setItem('flutter.has_seen_onboarding', 'true');
+    } catch(e) {}
   </script>
   <script>
     var script = document.createElement('script');

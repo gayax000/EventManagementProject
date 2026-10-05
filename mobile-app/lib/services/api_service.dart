@@ -9,31 +9,34 @@ class ApiService {
     return 'https://eventmanagementproject-production-94fe.up.railway.app/api';
   }
 
-  // Helper method to build headers with Bearer Token and Customer Id
+  static http.Client _client = http.Client();
+
+  @visibleForTesting
+  static void setClient(http.Client client) {
+    _client = client;
+  }
+
+  @visibleForTesting
+  static void resetClient() {
+    _client = http.Client();
+  }
+
+  // Helper method to build headers with Bearer Token only (JWT controls identity)
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken();
-    final userId = await AuthService.getUserId();
     final headers = {'Content-Type': 'application/json'};
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
-    if (userId != null && userId.isNotEmpty) {
-      headers['X-Customer-Id'] = userId;
-    }
     return headers;
   }
 
-  // 1. Fetch live events list from Backend (strictly isolated per customer)
+  // 1. Fetch live events list from Backend (strictly isolated per customer via JWT)
   static Future<List<EventSummary>> getMyEvents() async {
     try {
-      final userId = await AuthService.getUserId();
-      var urlStr = '$baseUrl/events/my-events';
-      if (userId != null && userId.isNotEmpty) {
-        urlStr += '?customerId=$userId';
-      }
-      final url = Uri.parse(urlStr);
+      final url = Uri.parse('$baseUrl/events/my-events');
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 30));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = jsonDecode(response.body);
@@ -52,7 +55,7 @@ class ApiService {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/proposal');
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = jsonDecode(response.body);
@@ -71,7 +74,7 @@ class ApiService {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/approve-proposal?finalTotal=1500000&status=ApprovedByManager');
       final headers = await _getHeaders();
-      final response = await http.post(url, headers: headers).timeout(const Duration(seconds: 15));
+      final response = await _client.post(url, headers: headers).timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("API Error requestBudgetAutoFit: $e");
@@ -84,7 +87,7 @@ class ApiService {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/approve-proposal?finalTotal=$finalTotal&status=ApprovedByManager');
       final headers = await _getHeaders();
-      final response = await http.post(url, headers: headers).timeout(const Duration(seconds: 15));
+      final response = await _client.post(url, headers: headers).timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("API Error acceptOverrunAndApprove: $e");
@@ -102,7 +105,7 @@ class ApiService {
         'revisionNotes': revisionNotes,
         'selectedTier': choice,
       });
-      final response = await http.post(url, headers: headers, body: body).timeout(const Duration(seconds: 15));
+      final response = await _client.post(url, headers: headers, body: body).timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       debugPrint("API Error submitClientBudgetChoice: $e");
@@ -122,7 +125,7 @@ class ApiService {
 
       final url = Uri.parse(urlStr);
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = jsonDecode(response.body);
@@ -157,7 +160,6 @@ class ApiService {
     String? customPrompt,
   }) async {
     try {
-      final userId = await AuthService.getUserId();
       final url = Uri.parse('$baseUrl/events');
       final payload = jsonEncode({
         'title': title,
@@ -171,7 +173,6 @@ class ApiService {
         'customPrompt': customPrompt,
         'venueId': venueId,
         'banquetHallId': banquetHallId,
-        'customerId': userId,
         'preferredLocation': preferredLocation,
         'selectedServices': selectedServices,
         'customServiceNotes': customServiceNotes,
@@ -185,7 +186,7 @@ class ApiService {
       });
 
       final headers = await _getHeaders();
-      final response = await http
+      final response = await _client
           .post(
             url,
             headers: headers,
@@ -232,7 +233,7 @@ class ApiService {
       });
 
       final headers = await _getHeaders();
-      final response = await http.post(
+      final response = await _client.post(
         url,
         headers: headers,
         body: payload,
@@ -273,7 +274,7 @@ class ApiService {
       });
 
       final headers = await _getHeaders();
-      final response = await http
+      final response = await _client
           .post(url, headers: headers, body: payload)
           .timeout(const Duration(seconds: 30));
 
@@ -291,14 +292,9 @@ class ApiService {
   // 5.1 Fetch Customer Payments & Invoices
   static Future<List<Map<String, dynamic>>> getMyPayments() async {
     try {
-      final userId = await AuthService.getUserId();
-      var urlStr = '$baseUrl/payments/my-payments';
-      if (userId != null && userId.isNotEmpty) {
-        urlStr += '?customerId=$userId';
-      }
-      final url = Uri.parse(urlStr);
+      final url = Uri.parse('$baseUrl/payments/my-payments');
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 15));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final List<dynamic> body = jsonDecode(response.body);
@@ -346,7 +342,7 @@ class ApiService {
       final encoded = Uri.encodeComponent(qrCodeData);
       final url = Uri.parse('$baseUrl/events/verify-pass/$encoded');
       final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 15));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 15));
 
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200) {

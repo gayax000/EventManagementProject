@@ -12,10 +12,12 @@ namespace EventManagement.Api.Controllers;
 public class VenuesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<VenuesController> _logger;
 
-    public VenuesController(AppDbContext context)
+    public VenuesController(AppDbContext context, ILogger<VenuesController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -81,8 +83,25 @@ public class VenuesController : ControllerBase
         return CreatedAtAction(nameof(GetVenues), new { id = venue.VenueId }, venue);
     }
 
-    // 4. GET: api/venues/vendors
-    // 4. GET: api/venues/vendors (Supports optional userId filtering)
+    private Guid? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                 ?? User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private bool IsManagerOrAdmin()
+    {
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value;
+        return string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+               User.IsInRole("Manager") || User.IsInRole("Admin");
+    }
+
+    // 4. GET: api/venues/vendors (Supports optional userId filtering for Manager/Admin)
     [HttpGet("vendors")]
     public async Task<ActionResult<IEnumerable<Vendor>>> GetVendors([FromQuery] Guid? userId)
     {
@@ -95,52 +114,50 @@ public class VenuesController : ControllerBase
     }
 
     // 4b. GET: api/venues/vendors/my-vendors
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpGet("vendors/my-vendors")]
     public async Task<ActionResult<IEnumerable<Vendor>>> GetMyVendors([FromQuery] Guid? userId)
     {
-        Guid targetUserId = Guid.Empty;
-        if (userId.HasValue && userId.Value != Guid.Empty)
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
         {
-            targetUserId = userId.Value;
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+        }
+
+        Guid targetUserId;
+        if (IsManagerOrAdmin())
+        {
+            targetUserId = (userId.HasValue && userId.Value != Guid.Empty) ? userId.Value : currentUserId.Value;
         }
         else
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                targetUserId = parsedClaimId;
-            }
-        }
-
-        if (targetUserId == Guid.Empty)
-        {
-            return Ok(new List<Vendor>());
+            // For Vendor: ALWAYS use JWT user ID only. Ignore supplied userId completely.
+            targetUserId = currentUserId.Value;
         }
 
         return await _context.Vendors.Where(v => v.UserId == targetUserId).OrderByDescending(v => v.CreatedAt).ToListAsync();
     }
 
     // 5. POST: api/venues/vendors/register (Vendor Portal Registration)
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpPost("vendors/register")]
     public async Task<ActionResult<Vendor>> RegisterVendor([FromBody] RegisterVendorDto dto)
     {
-        Guid effectiveUserId = Guid.Empty;
-        if (dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+        }
+
+        Guid effectiveUserId;
+        if (IsManagerOrAdmin() && dto.UserId.HasValue && dto.UserId.Value != Guid.Empty)
         {
             effectiveUserId = dto.UserId.Value;
         }
         else
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                effectiveUserId = parsedClaimId;
-            }
-            else
-            {
-                var defaultUser = await _context.Users.FirstOrDefaultAsync();
-                if (defaultUser != null) effectiveUserId = defaultUser.UserId;
-            }
+            // For Vendor: UserId MUST come from JWT only.
+            effectiveUserId = currentUserId.Value;
         }
 
         var vendor = new Vendor
@@ -156,18 +173,10 @@ public class VenuesController : ControllerBase
             UserId = effectiveUserId
         };
 
-        try
-        {
-            _context.Vendors.Add(vendor);
-            await _context.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            // If DB column save fails due to pending migration on remote server, still return Ok with vendor object
-            System.Console.WriteLine($"[RegisterVendor DB Warning] {ex.Message}");
-        }
+        _context.Vendors.Add(vendor);
+        await _context.SaveChangesAsync();
 
-        return Ok(vendor);
+        return CreatedAtAction(nameof(GetVendors), new { userId = vendor.UserId }, vendor);
     }
 
     // 6. PUT: api/venues/vendors/{id}/verify (Manager Admin Action)
@@ -202,30 +211,37 @@ public class VenuesController : ControllerBase
     }
 
     // 8. GET: api/venues/vendors/assigned-events (Vendor Portal View for Assigned Work Orders)
+    [Authorize(Roles = "Vendor,Manager,Admin")]
     [HttpGet("vendors/assigned-events")]
     public async Task<ActionResult> GetAssignedEventsForVendor([FromQuery] Guid? vendorId, [FromQuery] Guid? userId)
     {
-        var systemCatalogUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+        }
+
         var vendorQuery = _context.Vendors.AsNoTracking().AsQueryable();
-        if (vendorId.HasValue && vendorId.Value != Guid.Empty && userId.HasValue && userId.Value != Guid.Empty && userId.Value != systemCatalogUserId)
+
+        if (IsManagerOrAdmin())
         {
-            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value || v.UserId == userId.Value);
-        }
-        else if (vendorId.HasValue && vendorId.Value != Guid.Empty)
-        {
-            vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
-        }
-        else if (userId.HasValue && userId.Value != Guid.Empty)
-        {
-            vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+            if (vendorId.HasValue && vendorId.Value != Guid.Empty && userId.HasValue && userId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value || v.UserId == userId.Value);
+            }
+            else if (vendorId.HasValue && vendorId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.VendorId == vendorId.Value);
+            }
+            else if (userId.HasValue && userId.Value != Guid.Empty)
+            {
+                vendorQuery = vendorQuery.Where(v => v.UserId == userId.Value);
+            }
         }
         else
         {
-            var claimUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(claimUserId) && Guid.TryParse(claimUserId, out var parsedClaimId))
-            {
-                vendorQuery = vendorQuery.Where(v => v.UserId == parsedClaimId);
-            }
+            // For Vendor: Ignore query vendorId and userId, derive vendor identity strictly from JWT to prevent IDOR
+            vendorQuery = vendorQuery.Where(v => v.UserId == currentUserId.Value);
         }
 
         var vendors = await vendorQuery.ToListAsync();
@@ -342,7 +358,10 @@ public class VenuesController : ControllerBase
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse AssignedVendorsJson for event {EventId}", ev.EventId);
+                }
             }
 
             // Fallback: Check AIWorkflowState.GeneratedPlanJson for [Partner: <VendorName>] or matching PackageName if AssignedVendorsJson did not already match
@@ -424,7 +443,10 @@ public class VenuesController : ControllerBase
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse GeneratedPlanJson for event {EventId}", ev.EventId);
+                }
             }
         }
 

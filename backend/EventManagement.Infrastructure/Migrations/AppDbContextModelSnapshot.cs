@@ -211,17 +211,29 @@ namespace EventManagement.Infrastructure.Migrations
                     b.Property<string>("AdditionalDetails")
                         .HasColumnType("text");
 
+                    b.Property<string>("AssignedVendorsJson")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("BanquetHallId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("BudgetLimit")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("CateringStyle")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CustomPrompt")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("EventSession")
+                        .HasColumnType("text");
 
                     b.Property<string>("EventType")
                         .IsRequired()
@@ -237,11 +249,20 @@ namespace EventManagement.Infrastructure.Migrations
                     b.Property<bool>("IsOutdoor")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("PreferredLocation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RevisionNotes")
+                        .HasColumnType("text");
+
                     b.Property<string>("SelectedServicesJson")
                         .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TableRefreshmentsJson")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("TargetDate")
@@ -343,6 +364,47 @@ namespace EventManagement.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Invoices");
+                });
+
+            modelBuilder.Entity("EventManagement.Core.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("NotificationId");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("EventManagement.Core.Entities.Payment", b =>
@@ -545,6 +607,12 @@ namespace EventManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PackageName")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("PackagePrice")
+                        .HasColumnType("numeric");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -708,6 +776,23 @@ namespace EventManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Booking");
+                });
+
+            modelBuilder.Entity("EventManagement.Core.Entities.Notification", b =>
+                {
+                    b.HasOne("EventManagement.Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId");
+
+                    b.HasOne("EventManagement.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("EventManagement.Core.Entities.Payment", b =>

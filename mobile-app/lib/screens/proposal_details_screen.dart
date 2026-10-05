@@ -2304,9 +2304,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 : 0.0;
             items.add({
               'label': 'Special Client Request: ${proposal.additionalDetails}',
-              'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
-                  ? proposal.specialRequestAllocation!.toDouble()
-                  : 0.0,
+              'cost': specialCost,
               'isDiscount': false,
               'isSpecial': true,
             });
@@ -2470,9 +2468,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             : 0.0;
         items.add({
           'label': 'Special Client Request: ${proposal.additionalDetails}',
-          'cost': (proposal.specialRequestAllocation != null && proposal.specialRequestAllocation! > 0)
-              ? proposal.specialRequestAllocation!.toDouble()
-              : 0.0,
+          'cost': specialCost,
           'isDiscount': false,
           'isSpecial': true,
         });

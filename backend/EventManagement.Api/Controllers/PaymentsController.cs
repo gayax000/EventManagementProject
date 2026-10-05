@@ -21,7 +21,22 @@ public class PaymentsController : ControllerBase
         _logger = logger;
     }
 
+    private Guid? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
+        if (Guid.TryParse(claim, out var userId))
+            return userId;
+        return null;
+    }
+
+    private bool IsManagerOrAdmin()
+    {
+        return User.IsInRole("Manager") || User.IsInRole("Admin");
+    }
+
     // 1. POST: api/payments/upload-slip (Customer uploads Bank Transfer Slip)
+    [Authorize(Roles = "Customer,Manager,Admin")]
     [HttpPost("upload-slip")]
     public async Task<ActionResult> UploadPaymentSlip([FromBody] SubmitPaymentSlipDto dto)
     {
@@ -30,32 +45,64 @@ public class PaymentsController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                return Unauthorized();
+
             Booking? booking = null;
             if (dto.BookingId.HasValue && dto.BookingId.Value != Guid.Empty)
             {
-                booking = await _context.Bookings.FindAsync(dto.BookingId.Value);
+                booking = await _context.Bookings
+                    .Include(b => b.Event)
+                    .FirstOrDefaultAsync(b => b.BookingId == dto.BookingId.Value);
+
+                if (booking != null && !IsManagerOrAdmin())
+                {
+                    if (booking.Event == null || booking.Event.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
             }
 
             if (booking == null && dto.EventId.HasValue && dto.EventId.Value != Guid.Empty)
             {
-                booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+                booking = await _context.Bookings
+                    .Include(b => b.Event)
+                    .FirstOrDefaultAsync(b => b.EventId == dto.EventId.Value);
+
+                if (booking != null && !IsManagerOrAdmin())
+                {
+                    if (booking.Event == null || booking.Event.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+                }
+
                 if (booking == null)
                 {
                     var ev = await _context.Events.FindAsync(dto.EventId.Value);
-                    if (ev != null)
+                    if (ev == null)
                     {
-                        var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
-                        booking = new Booking
-                        {
-                            EventId = ev.EventId,
-                            BookingReferenceCode = refCode,
-                            TotalAgreedAmount = dto.AmountPaid,
-                            Status = "PendingPaymentVerification",
-                            ConfirmedAt = null
-                        };
-                        _context.Bookings.Add(booking);
-                        await _context.SaveChangesAsync();
+                        return NotFound(new { message = "Event not found." });
                     }
+
+                    if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+                    {
+                        return Forbid();
+                    }
+
+                    var refCode = $"EV-2026-{new Random().Next(1000, 9999)}";
+                    booking = new Booking
+                    {
+                        EventId = ev.EventId,
+                        BookingReferenceCode = refCode,
+                        TotalAgreedAmount = dto.AmountPaid,
+                        Status = "PendingPaymentVerification",
+                        ConfirmedAt = null
+                    };
+                    _context.Bookings.Add(booking);
+                    await _context.SaveChangesAsync();
                 }
             }
 
@@ -93,7 +140,10 @@ public class PaymentsController : ControllerBase
                 });
                 await _context.SaveChangesAsync();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create manager notification for payment slip {PaymentId}", payment.PaymentId);
+            }
 
             return Ok(new
             {
@@ -110,23 +160,42 @@ public class PaymentsController : ControllerBase
             _logger.LogError(ex, "Error uploading payment slip for booking {BookingId}, event {EventId}", dto.BookingId, dto.EventId);
             return StatusCode(500, new
             {
-                message = "An error occurred while uploading payment slip.",
-                error = ex.Message,
-                inner = ex.InnerException?.Message
+                message = "An unexpected error occurred while processing the payment slip."
             });
         }
     }
 
     // 1.1 GET: api/payments (List all customer payment slips for Manager Verification Queue)
-    [Authorize(Roles = "Manager")]
+    [Authorize(Roles = "Manager,Admin")]
     [HttpGet]
-    public async Task<ActionResult> GetAllPayments()
+    public async Task<ActionResult> GetAllPayments(
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? status)
     {
-        var payments = await _context.Payments
+        var query = _context.Payments
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Event)
                     .ThenInclude(e => e!.Customer)
-            .OrderByDescending(p => p.PaidAt)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(p => p.Status == status);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var pagedQuery = query.OrderByDescending(p => p.PaidAt);
+
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+            int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+            pagedQuery = (IOrderedQueryable<Payment>)pagedQuery.Skip((page - 1) * size).Take(size);
+        }
+
+        var payments = await pagedQuery
             .Select(p => new
             {
                 id = p.PaymentId.ToString(),
@@ -147,40 +216,46 @@ public class PaymentsController : ControllerBase
             })
             .ToListAsync();
 
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+            int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+
+            return Ok(new PagedResult<object>
+            {
+                Items = payments,
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = size
+            });
+        }
+
         return Ok(payments);
     }
 
     // 1.2 GET: api/payments/my-payments (Customer payment history, slips, and invoices)
+    [Authorize(Roles = "Customer,Manager,Admin")]
     [HttpGet("my-payments")]
     public async Task<ActionResult> GetMyPayments([FromQuery] Guid? customerId)
     {
-        Guid targetCustomerId = Guid.Empty;
-        if (customerId.HasValue && customerId.Value != Guid.Empty)
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        Guid targetCustomerId = currentUserId.Value;
+
+        if (IsManagerOrAdmin() && customerId.HasValue && customerId.Value != Guid.Empty)
         {
             targetCustomerId = customerId.Value;
         }
-        else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
-        {
-            targetCustomerId = parsedId;
-        }
-        else
-        {
-            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (claim != null && Guid.TryParse(claim.Value, out var cId))
-            {
-                targetCustomerId = cId;
-            }
-        }
 
         var query = _context.Payments
+            .AsNoTracking()
             .Include(p => p.Booking)
                 .ThenInclude(b => b!.Event)
-            .AsQueryable();
-
-        if (targetCustomerId != Guid.Empty)
-        {
-            query = query.Where(p => p.Booking != null && p.Booking.Event != null && p.Booking.Event.CustomerId == targetCustomerId);
-        }
+            .Where(p => p.Booking != null && p.Booking.Event != null && p.Booking.Event.CustomerId == targetCustomerId);
 
         var list = await query
             .OrderByDescending(p => p.PaidAt)
@@ -212,41 +287,94 @@ public class PaymentsController : ControllerBase
         return Ok(list);
     }
 
-    // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice)
+    // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice via Database Transaction)
     [Authorize(Roles = "Manager,Admin")]
     [HttpPut("{id}/verify")]
     public async Task<ActionResult> VerifyPayment(Guid id, [FromBody] VerifyPaymentDto dto)
     {
-        var payment = await _context.Payments
-            .Include(p => p.Booking)
-            .FirstOrDefaultAsync(p => p.PaymentId == id);
-
-        if (payment == null)
-            return NotFound(new { message = "Payment record not found." });
-
-        payment.Status = dto.Status;
-        payment.RejectReason = dto.RejectReason;
-
-        if (dto.Status == "Approved" && payment.Booking != null)
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            payment.Booking.Status = "PaidAndConfirmed";
+            var payment = await _context.Payments
+                .Include(p => p.Booking)
+                    .ThenInclude(b => b!.Event)
+                .FirstOrDefaultAsync(p => p.PaymentId == id);
 
-            // Automatically issue an official Invoice
-            var invoice = new Invoice
+            if (payment == null)
             {
-                BookingId = payment.BookingId,
-                InvoiceNumber = $"INV-2026-{new Random().Next(1000, 9999)}",
-                Subtotal = payment.Booking.TotalAgreedAmount,
-                DiscountAmount = 0,
-                FinalTotal = payment.AmountPaid,
-                IssuedAt = DateTime.UtcNow
-            };
-            _context.Invoices.Add(invoice);
+                await transaction.RollbackAsync();
+                return NotFound(new { message = "Payment record not found." });
+            }
+
+            // Step 1: Update Payment Status & remarks
+            payment.Status = dto.Status;
+            payment.RejectReason = dto.RejectReason;
+
+            // Step 2: Update Booking, Event & Invoice if Approved
+            if (dto.Status == "Approved" && payment.Booking != null)
+            {
+                payment.Booking.Status = "PaidAndConfirmed";
+                payment.Booking.ConfirmedAt = DateTime.UtcNow;
+
+                if (payment.Booking.Event != null)
+                {
+                    payment.Booking.Event.Status = "Confirmed";
+                }
+
+                // Automatically issue an official Invoice
+                var invoice = new Invoice
+                {
+                    BookingId = payment.BookingId,
+                    InvoiceNumber = $"INV-2026-{new Random().Next(1000, 9999)}",
+                    Subtotal = payment.Booking.TotalAgreedAmount,
+                    DiscountAmount = 0,
+                    FinalTotal = payment.AmountPaid,
+                    IssuedAt = DateTime.UtcNow
+                };
+                _context.Invoices.Add(invoice);
+
+                // Step 3: Create customer notification
+                if (payment.Booking.Event != null && payment.Booking.Event.CustomerId != Guid.Empty)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = payment.Booking.Event.CustomerId,
+                        EventId = payment.Booking.EventId,
+                        Title = "Payment Approved & Booking Confirmed",
+                        Message = $"Your payment of LKR {payment.AmountPaid:N0} for event '{payment.Booking.Event.Title}' has been approved and your booking is confirmed.",
+                        Type = "PaymentVerified",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            else if (dto.Status == "Rejected" && payment.Booking != null)
+            {
+                payment.Booking.Status = "PaymentRejected";
+                if (payment.Booking.Event != null && payment.Booking.Event.CustomerId != Guid.Empty)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = payment.Booking.Event.CustomerId,
+                        EventId = payment.Booking.EventId,
+                        Title = "Payment Verification Rejected",
+                        Message = $"Payment slip for '{payment.Booking.Event.Title}' was rejected: {dto.RejectReason ?? "Please re-upload a clear slip."}",
+                        Type = "PaymentRejected",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { message = $"Payment has been {dto.Status}.", paymentStatus = payment.Status });
         }
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = $"Payment has been {dto.Status}.", paymentStatus = payment.Status });
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Transaction failed and rolled back while verifying payment {PaymentId}", id);
+            throw;
+        }
     }
 
     // 3. GET: api/payments/analytics/revenue-forecast (Business-Specific: AI Predictive Analytics)

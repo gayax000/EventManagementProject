@@ -26,49 +26,46 @@ public class EventsController : ControllerBase
         _logger = logger;
     }
 
-    private static bool _schemaEnsured = false;
-    private async Task EnsureSchemaAsync()
+    private Guid? GetCurrentUserId()
     {
-        if (_schemaEnsured) return;
-        try
-        {
-            await _context.Database.ExecuteSqlRawAsync(@"
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""PreferredLocation"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""TableRefreshmentsJson"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""RevisionNotes"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""AssignedVendorsJson"" text;
-                ALTER TABLE ""Events"" ADD COLUMN IF NOT EXISTS ""CustomPrompt"" text;
-            ");
-            _schemaEnsured = true;
-        }
-        catch { }
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                 ?? User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private bool IsManagerOrAdmin()
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value
+                ?? User.FindFirst("role")?.Value;
+        return string.Equals(role, "Manager", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+               User.IsInRole("Manager") || User.IsInRole("Admin");
     }
 
     // 1. POST: api/events (Create Event Request & Auto-Trigger Agentic AI)
-    [AllowAnonymous]
+    [Authorize(Roles = "Customer,Manager,Admin")]
     [HttpPost]
     public async Task<ActionResult<EventResponseDto>> CreateEvent([FromBody] CreateEventRequestDto dto)
     {
         try
         {
-            await EnsureSchemaAsync();
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+            }
 
-            // Extract customer ID securely from token, payload, or fallback
-            Guid customerId = Guid.Empty;
-            if (dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
+            Guid customerId;
+            if (IsManagerOrAdmin() && dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
             {
                 customerId = dto.CustomerId.Value;
             }
-            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+            else
             {
-                customerId = parsedId;
-            }
-
-            if (customerId == Guid.Empty)
-            {
-                var sampleCustomer = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer") 
-                                     ?? await CreateFallbackCustomer();
-                customerId = sampleCustomer.UserId;
+                // CustomerId must come strictly from authenticated JWT claim
+                customerId = currentUserId.Value;
             }
 
             Guid? venueId = dto.VenueId;
@@ -231,7 +228,10 @@ public class EventsController : ControllerBase
                 });
                 await _context.SaveChangesAsync();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create manager notification for new event {EventId}", newEvent.EventId);
+            }
 
             var response = new EventResponseDto
             {
@@ -274,6 +274,7 @@ public class EventsController : ControllerBase
     }
 
     // 2. GET: api/events/{id}
+    [Authorize]
     [HttpGet("{id}")]
     public async Task<ActionResult<EventResponseDto>> GetEventById(Guid id)
     {
@@ -286,6 +287,27 @@ public class EventsController : ControllerBase
 
         if (ev == null)
             return NotFound(new { message = "Event not found." });
+
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+        if (!IsManagerOrAdmin())
+        {
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+            if (string.Equals(role, "Customer", StringComparison.OrdinalIgnoreCase))
+            {
+                if (ev.CustomerId != currentUserId.Value)
+                    return Forbid();
+            }
+            else if (string.Equals(role, "Vendor", StringComparison.OrdinalIgnoreCase))
+            {
+                bool isAssigned = !string.IsNullOrEmpty(ev.AssignedVendorsJson) &&
+                                  ev.AssignedVendorsJson.Contains(currentUserId.Value.ToString(), StringComparison.OrdinalIgnoreCase);
+                if (!isAssigned)
+                    return Forbid();
+            }
+        }
 
         return Ok(new EventResponseDto
         {
@@ -361,7 +383,7 @@ public class EventsController : ControllerBase
     }
 
     // 2.1 GET: api/events/{id}/proposal (Detailed Proposal & Booking Pass for Mobile)
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("{id}/proposal")]
     public async Task<ActionResult> GetEventProposal(Guid id)
     {
@@ -374,6 +396,13 @@ public class EventsController : ControllerBase
 
         if (ev == null)
             return NotFound(new { message = "Event not found." });
+
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+        if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+            return Forbid();
 
         var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
         if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
@@ -463,13 +492,20 @@ public class EventsController : ControllerBase
     }
 
     // 2.2 POST: api/events/{id}/submit-client-budget-choice (Client Budget Response from Mobile)
-    [AllowAnonymous]
+    [Authorize]
     [HttpPost("{id}/submit-client-budget-choice")]
     public async Task<ActionResult> SubmitClientBudgetChoice(Guid id, [FromQuery] string? choice, [FromQuery] decimal? chosenTotal, [FromBody] SubmitClientBudgetChoiceDto? dtoBody)
     {
         var ev = await _context.Events.FindAsync(id);
         if (ev == null)
             return NotFound(new { message = "Event not found." });
+
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+        if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+            return Forbid();
 
         var clientAction = dtoBody?.ClientAction ?? choice ?? "accept";
         var isRevision = clientAction.Contains("revision", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(dtoBody?.RevisionNotes);
@@ -570,8 +606,6 @@ public class EventsController : ControllerBase
     {
         try
         {
-            await EnsureSchemaAsync();
-
             var query = _context.Events.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -672,7 +706,7 @@ public class EventsController : ControllerBase
     }
 
     // 3. GET: api/events/my-events (List Customer Events with strict per-user filtering)
-    [AllowAnonymous]
+    [Authorize]
     [HttpGet("my-events")]
     public async Task<ActionResult> GetMyEvents(
         [FromQuery] Guid? customerId,
@@ -683,44 +717,27 @@ public class EventsController : ControllerBase
     {
         try
         {
-            await EnsureSchemaAsync();
-
-            Guid targetCustomerId = Guid.Empty;
-            if (customerId.HasValue && customerId.Value != Guid.Empty)
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
             {
-                targetCustomerId = customerId.Value;
+                return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
             }
-            else if (Request.Headers.TryGetValue("X-Customer-Id", out var headerCustId) && Guid.TryParse(headerCustId, out var parsedId))
+
+            Guid targetCustomerId;
+            if (IsManagerOrAdmin())
             {
-                targetCustomerId = parsedId;
+                targetCustomerId = (customerId.HasValue && customerId.Value != Guid.Empty) ? customerId.Value : Guid.Empty;
             }
             else
             {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-                var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
-                bool isManager = string.Equals(roleClaim, "Manager", StringComparison.OrdinalIgnoreCase) || User.IsInRole("Manager");
-
-                if (!isManager && !string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var claimId))
-                {
-                    var userEntity = await _context.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == claimId);
-                    if (userEntity != null && string.Equals(userEntity.Role?.RoleName, "Manager", StringComparison.OrdinalIgnoreCase))
-                    {
-                        isManager = true;
-                    }
-                    else
-                    {
-                        targetCustomerId = claimId;
-                    }
-                }
+                // Customer ALWAYS gets only their own events derived strictly from JWT
+                targetCustomerId = currentUserId.Value;
             }
 
             var query = _context.Events.AsNoTracking().AsQueryable();
             if (targetCustomerId != Guid.Empty)
             {
-                var sampleCustomer = await _context.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Role != null && u.Role.RoleName == "Customer");
-                Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
-
-                query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
+                query = query.Where(e => e.CustomerId == targetCustomerId);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -921,13 +938,20 @@ public class EventsController : ControllerBase
     }
 
     // 4.05 PUT: api/events/{id}/sync-draft (Live Synchronize Working Proposal Draft Between Manager Dashboard & Mobile App)
-    [AllowAnonymous]
+    [Authorize]
     [HttpPut("{id}/sync-draft")]
     public async Task<ActionResult> SyncProposalDraft(Guid id, [FromBody] SyncProposalDraftDto dto)
     {
-        bool exists = await _context.Events.AsNoTracking().AnyAsync(e => e.EventId == id);
-        if (!exists)
+        var ev = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.EventId == id);
+        if (ev == null)
             return NotFound(new { message = "Event not found in database." });
+
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+        if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+            return Forbid();
 
         if (!string.IsNullOrWhiteSpace(dto.AssignedVendorsJson))
         {
@@ -999,6 +1023,7 @@ public class EventsController : ControllerBase
     }
 
     // 5. POST: api/events/{id}/sign-contract (Business-Specific: Contract Sign & QR Entry Pass Generation)
+    [Authorize]
     [HttpPost("{id}/sign-contract")]
     public async Task<ActionResult<BookingResponseDto>> SignContractAndConfirm(Guid id, [FromBody] SignContractRequestDto dto)
     {
@@ -1007,6 +1032,13 @@ public class EventsController : ControllerBase
             var ev = await _context.Events.FindAsync(id);
             if (ev == null)
                 return NotFound(new { message = "Event not found." });
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+            if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+                return Forbid();
 
             // Find existing booking if created during slip upload
             var booking = await _context.Bookings
@@ -1270,6 +1302,7 @@ public class EventsController : ControllerBase
     }
 
     // DELETE: api/events/{id} (Delete Event Request & Associated Resources/Workflow States)
+    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(Guid id)
     {
@@ -1278,6 +1311,13 @@ public class EventsController : ControllerBase
         {
             return NotFound(new { message = "Event proposal not found." });
         }
+
+        var currentUserId = GetCurrentUserId();
+        if (!currentUserId.HasValue)
+            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+        if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+            return Forbid();
 
         // Delete associated AI Workflow States
         var workflowStates = await _context.AIWorkflowStates.Where(w => w.EventId == id).ToListAsync();

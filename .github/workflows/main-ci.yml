@@ -1,0 +1,88 @@
+name: EventCraft End-to-End CI Pipeline
+
+on:
+  push:
+    branches: [ main, fix/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend-test:
+    name: ASP.NET Core 8 Web API Tests
+    runs-on: ubuntu-latest
+    env:
+      ConnectionStrings__DefaultConnection: ${{ secrets.NEON_DB_CONNECTION_STRING || 'Host=localhost;Database=testdb;Username=postgres;Password=postgres' }}
+      JwtSettings__SecretKey: ${{ secrets.JWT_SECRET_KEY || 'SuperSecretKeyForJwtTokenGeneration2026!EventCraftProject' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore dependencies
+        run: dotnet restore backend/EventManagement.Tests/EventManagement.Tests.csproj
+      - name: Build
+        run: dotnet build backend/EventManagement.Tests/EventManagement.Tests.csproj --no-restore
+      - name: Test
+        run: dotnet test backend/EventManagement.Tests/EventManagement.Tests.csproj --no-build --verbosity normal
+
+  ai-subsystem-test:
+    name: Agentic AI Python Subsystem Tests
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-ci-dummy-key' }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'ci-dummy-key' }}
+      NEON_POSTGRES_URL: ${{ secrets.NEON_POSTGRES_URL || 'postgresql://localhost:5432/dummy' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Dependencies
+        run: |
+          cd ai-service
+          pip install -r requirements.txt
+      - name: Run AI Evaluation Unit Tests
+        run: |
+          cd ai-service
+          python -m unittest test_agent_evaluation.py
+
+  frontend-react-build:
+    name: React Web Application Build & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install, Test & Build
+        run: |
+          cd frontend-web
+          npm ci
+          npm test
+          npm run build
+
+  flutter-app-test:
+    name: Flutter Mobile Application Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+      - name: Install, Analyze & Test
+        run: |
+          cd mobile-app
+          flutter pub get
+          flutter analyze --no-fatal-warnings --no-fatal-infos
+          flutter test
