@@ -915,59 +915,90 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- MODERN EXECUTIVE BOTTOM NAVIGATION BAR (3 CLEAN TABS) ---
+  // --- MODERN EXECUTIVE BOTTOM NAVIGATION BAR (MATCHING DARK CURVE & HIGH CONTRAST) ---
   Widget _buildBottomNav() {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF161533), // Cosmic Violet / Deep Indigo (Matching the Top Header)
+            Color(0xFF090D1A), // Deep Midnight
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x0A0F172A),
-            blurRadius: 10,
-            offset: Offset(0, -3),
+            color: Color(0x38090D1A),
+            blurRadius: 20,
+            offset: Offset(0, -6),
           ),
         ],
       ),
-      child: BottomNavigationBar(
-        currentIndex: _currentNavIndex,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PackagesScreen()),
-            );
-          } else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PaymentsScreen()),
-            );
-          }
-        },
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF2563EB),
-        unselectedItemColor: const Color(0xFF94A3B8),
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontSize: 10),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            activeIcon: Icon(Icons.dashboard_rounded, color: Color(0xFF2563EB)),
-            label: 'Home',
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8.0, bottom: 6.0),
+            child: BottomNavigationBar(
+              currentIndex: _currentNavIndex,
+              onTap: (index) {
+                if (index == 1) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PackagesScreen()),
+                  );
+                } else if (index == 2) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PaymentsScreen()),
+                  );
+                }
+              },
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: const Color(0xFF38BDF8),
+              unselectedItemColor: const Color(0xFFE2E8F0),
+              iconSize: 24,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                letterSpacing: 0.3,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                letterSpacing: 0.2,
+              ),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.dashboard_rounded, color: Color(0xFFCBD5E1)),
+                  activeIcon: Icon(Icons.dashboard_rounded, color: Color(0xFF38BDF8)),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.restaurant_menu_rounded, color: Color(0xFFCBD5E1)),
+                  activeIcon: Icon(Icons.restaurant_menu_rounded, color: Color(0xFF38BDF8)),
+                  label: 'Packages',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.payment_rounded, color: Color(0xFFCBD5E1)),
+                  activeIcon: Icon(Icons.payment_rounded, color: Color(0xFF38BDF8)),
+                  label: 'Payments',
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu_rounded),
-            activeIcon: Icon(Icons.restaurant_menu_rounded, color: Color(0xFF2563EB)),
-            label: 'Packages',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.payment_rounded),
-            activeIcon: Icon(Icons.payment_rounded, color: Color(0xFF2563EB)),
-            label: 'Payments',
-          ),
-        ],
+        ),
       ),
     );
   }
