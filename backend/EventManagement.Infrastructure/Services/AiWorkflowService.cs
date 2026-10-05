@@ -264,7 +264,7 @@ public class AiWorkflowService : IAiWorkflowService
                 category = "Catering",
                 vendorId = catVendor.VendorId,
                 vendorName = catVendor.BusinessName,
-                packageName = $"Banquet Catering Buffet ({ev.GuestCount} guests @ Rs. {cateringPrice:N0})",
+                packageName = $"Banquet Catering Buffet (Rs. {cateringPrice:N0}/guest)",
                 packagePrice = cateringCost
             });
         }
@@ -576,7 +576,7 @@ public class AiWorkflowService : IAiWorkflowService
             "SriLankanHeritage" => "Sri Lankan Heritage Traditional Buffet",
             _ => "International Hotel Buffet"
         };
-        planItems.Add($"Catering Style: {cateringStyleLabel} ({ev.GuestCount} guests @ Rs. {cateringPrice:N0}) = Rs. {cateringCost:N0}");
+        planItems.Add($"Catering Style: {cateringStyleLabel} (Rs. {cateringPrice:N0}/guest) = Rs. {cateringCost:N0}");
 
         foreach (var rEntry in refreshmentsPlanEntries)
         {
