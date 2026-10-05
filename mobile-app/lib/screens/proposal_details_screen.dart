@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import 'home_screen.dart';
 
 class ProposalDetailsScreen extends StatefulWidget {
   final String eventId;
@@ -310,13 +311,37 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: Colors.white,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF0F172A).withOpacity(0.12)),
+              ),
+              child: const Center(
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 16),
+              ),
+            ),
+            tooltip: 'Back',
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop(true);
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              }
+            },
+          ),
+        ),
+        titleSpacing: 4,
         title: const Text(
           "Event Proposal & Status",
           style: TextStyle(color: Color(0xFF0F172A), fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.2),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A)),
-          onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           IconButton(

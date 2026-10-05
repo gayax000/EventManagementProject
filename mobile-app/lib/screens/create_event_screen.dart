@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import 'home_screen.dart';
 import 'proposal_details_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -1042,6 +1043,36 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF0F172A).withOpacity(0.12)),
+              ),
+              child: const Center(
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F172A), size: 16),
+              ),
+            ),
+            tooltip: 'Back',
+            onPressed: () {
+              if (_currentStep > 0) {
+                _prevStep();
+              } else if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              }
+            },
+          ),
+        ),
+        titleSpacing: 4,
         title: Text(
           'Plan New Event • Step ${_currentStep + 1} of 4',
           style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A), fontSize: 16, letterSpacing: 0.2),

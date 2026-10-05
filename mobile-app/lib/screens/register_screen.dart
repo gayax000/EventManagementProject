@@ -104,9 +104,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: const Center(
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+              ),
+            ),
+            tooltip: 'Back',
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
       ),
       body: SafeArea(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
 
 class PoliciesScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -48,6 +49,35 @@ class _PoliciesScreenState extends State<PoliciesScreen> with SingleTickerProvid
         backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
         centerTitle: false,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: IconButton(
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: const Center(
+                child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+              ),
+            ),
+            tooltip: 'Back',
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              }
+            },
+          ),
+        ),
+        titleSpacing: 4,
         title: const Row(
           children: [
             Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 22),
