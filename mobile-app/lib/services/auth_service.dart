@@ -110,7 +110,8 @@ class AuthService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, token);
+      // Ensure any legacy insecure token in SharedPreferences is purged
+      await prefs.remove(_tokenKey);
       await prefs.setString(_userRoleKey, role);
       await prefs.setString(_userNameKey, name);
       if (userId != null && userId.isNotEmpty) {
@@ -127,8 +128,7 @@ class AuthService {
       final val = await _secureStorage.read(key: _tokenKey);
       if (val != null && val.isNotEmpty) return val;
     } catch (_) {}
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return null;
   }
 
   static Future<String?> getUserId() async {

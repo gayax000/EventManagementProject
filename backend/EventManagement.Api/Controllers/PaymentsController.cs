@@ -247,41 +247,94 @@ public class PaymentsController : ControllerBase
         return Ok(list);
     }
 
-    // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice)
+    // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice via Database Transaction)
     [Authorize(Roles = "Manager,Admin")]
     [HttpPut("{id}/verify")]
     public async Task<ActionResult> VerifyPayment(Guid id, [FromBody] VerifyPaymentDto dto)
     {
-        var payment = await _context.Payments
-            .Include(p => p.Booking)
-            .FirstOrDefaultAsync(p => p.PaymentId == id);
-
-        if (payment == null)
-            return NotFound(new { message = "Payment record not found." });
-
-        payment.Status = dto.Status;
-        payment.RejectReason = dto.RejectReason;
-
-        if (dto.Status == "Approved" && payment.Booking != null)
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-            payment.Booking.Status = "PaidAndConfirmed";
+            var payment = await _context.Payments
+                .Include(p => p.Booking)
+                    .ThenInclude(b => b!.Event)
+                .FirstOrDefaultAsync(p => p.PaymentId == id);
 
-            // Automatically issue an official Invoice
-            var invoice = new Invoice
+            if (payment == null)
             {
-                BookingId = payment.BookingId,
-                InvoiceNumber = $"INV-2026-{new Random().Next(1000, 9999)}",
-                Subtotal = payment.Booking.TotalAgreedAmount,
-                DiscountAmount = 0,
-                FinalTotal = payment.AmountPaid,
-                IssuedAt = DateTime.UtcNow
-            };
-            _context.Invoices.Add(invoice);
+                await transaction.RollbackAsync();
+                return NotFound(new { message = "Payment record not found." });
+            }
+
+            // Step 1: Update Payment Status & remarks
+            payment.Status = dto.Status;
+            payment.RejectReason = dto.RejectReason;
+
+            // Step 2: Update Booking, Event & Invoice if Approved
+            if (dto.Status == "Approved" && payment.Booking != null)
+            {
+                payment.Booking.Status = "PaidAndConfirmed";
+                payment.Booking.ConfirmedAt = DateTime.UtcNow;
+
+                if (payment.Booking.Event != null)
+                {
+                    payment.Booking.Event.Status = "Confirmed";
+                }
+
+                // Automatically issue an official Invoice
+                var invoice = new Invoice
+                {
+                    BookingId = payment.BookingId,
+                    InvoiceNumber = $"INV-2026-{new Random().Next(1000, 9999)}",
+                    Subtotal = payment.Booking.TotalAgreedAmount,
+                    DiscountAmount = 0,
+                    FinalTotal = payment.AmountPaid,
+                    IssuedAt = DateTime.UtcNow
+                };
+                _context.Invoices.Add(invoice);
+
+                // Step 3: Create customer notification
+                if (payment.Booking.Event != null && payment.Booking.Event.CustomerId != Guid.Empty)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = payment.Booking.Event.CustomerId,
+                        EventId = payment.Booking.EventId,
+                        Title = "Payment Approved & Booking Confirmed",
+                        Message = $"Your payment of LKR {payment.AmountPaid:N0} for event '{payment.Booking.Event.Title}' has been approved and your booking is confirmed.",
+                        Type = "PaymentVerified",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+            else if (dto.Status == "Rejected" && payment.Booking != null)
+            {
+                payment.Booking.Status = "PaymentRejected";
+                if (payment.Booking.Event != null && payment.Booking.Event.CustomerId != Guid.Empty)
+                {
+                    _context.Notifications.Add(new Notification
+                    {
+                        UserId = payment.Booking.Event.CustomerId,
+                        EventId = payment.Booking.EventId,
+                        Title = "Payment Verification Rejected",
+                        Message = $"Payment slip for '{payment.Booking.Event.Title}' was rejected: {dto.RejectReason ?? "Please re-upload a clear slip."}",
+                        Type = "PaymentRejected",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new { message = $"Payment has been {dto.Status}.", paymentStatus = payment.Status });
         }
-
-        await _context.SaveChangesAsync();
-
-        return Ok(new { message = $"Payment has been {dto.Status}.", paymentStatus = payment.Status });
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Transaction failed and rolled back while verifying payment {PaymentId}", id);
+            throw;
+        }
     }
 
     // 3. GET: api/payments/analytics/revenue-forecast (Business-Specific: AI Predictive Analytics)

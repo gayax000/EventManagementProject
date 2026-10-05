@@ -75,8 +75,13 @@ public class AuthController : ControllerBase
             }
             else
             {
-                // Fallback for unhashed legacy seed passwords
-                isValidPassword = (user.PasswordHash == dto.Password);
+                // Fallback for unhashed legacy seed passwords - verify and upgrade to BCrypt immediately
+                if (user.PasswordHash == dto.Password)
+                {
+                    isValidPassword = true;
+                    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+                    await _context.SaveChangesAsync();
+                }
             }
         }
 
