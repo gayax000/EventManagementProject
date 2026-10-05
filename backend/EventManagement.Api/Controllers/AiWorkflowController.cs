@@ -16,11 +16,13 @@ public class AiWorkflowController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IAiWorkflowService _aiWorkflowService;
+    private readonly ILogger<AiWorkflowController> _logger;
 
-    public AiWorkflowController(AppDbContext context, IAiWorkflowService aiWorkflowService)
+    public AiWorkflowController(AppDbContext context, IAiWorkflowService aiWorkflowService, ILogger<AiWorkflowController> logger)
     {
         _context = context;
         _aiWorkflowService = aiWorkflowService;
+        _logger = logger;
     }
 
     [HttpGet("resources")]
@@ -107,7 +109,10 @@ public class AiWorkflowController : ControllerBase
                     CreatedAt = DateTime.UtcNow
                 });
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create workflow status notification for event {EventId}", workflow.EventId);
+            }
         }
 
         await _context.SaveChangesAsync();

@@ -228,7 +228,10 @@ public class EventsController : ControllerBase
                 });
                 await _context.SaveChangesAsync();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create manager notification for new event {EventId}", newEvent.EventId);
+            }
 
             var response = new EventResponseDto
             {

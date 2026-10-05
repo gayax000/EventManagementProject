@@ -1874,7 +1874,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       children: _hallsForSelectedHotel.map<Widget>((hall) {
                         final isSelected = _selectedHall?.banquetHallId == hall.banquetHallId;
                         final isAvail = hall.isAvailable;
-                        final matchesSetting = _isOutdoor ? hall.isOutdoor : !hall.isOutdoor;
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),

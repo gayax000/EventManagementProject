@@ -10,10 +10,12 @@ namespace EventManagement.Api.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ILogger<NotificationsController> _logger;
 
-    public NotificationsController(AppDbContext context)
+    public NotificationsController(AppDbContext context, ILogger<NotificationsController> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     private static readonly Guid FallbackManagerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -113,7 +115,10 @@ public class NotificationsController : ControllerBase
                 await _context.SaveChangesAsync();
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to sync existing event notifications for manager {ManagerId}", managerId);
+        }
     }
 
     [HttpGet("manager")]
