@@ -171,12 +171,12 @@ def check_weather_forecast(location: str, target_date_str: str) -> dict:
         try:
             # 1. Query hyper-local town first
             url = f"https://api.openweathermap.org/data/2.5/forecast?q={city},LK&appid={PRIMARY_API_KEY}&units=metric"
-            response = requests.get(url, timeout=3.5)
+            response = requests.get(url, timeout=5.0)
 
             # 2. If town lookup returns 404, gracefully fallback to District capital
             if response.status_code != 200 and district and district.lower() != city.lower():
                 fallback_url = f"https://api.openweathermap.org/data/2.5/forecast?q={district},LK&appid={PRIMARY_API_KEY}&units=metric"
-                fallback_res = requests.get(fallback_url, timeout=3.5)
+                fallback_res = requests.get(fallback_url, timeout=5.0)
                 if fallback_res.status_code == 200:
                     response = fallback_res
                     city = district

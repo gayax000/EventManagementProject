@@ -29,6 +29,7 @@ public class AiWorkflowController : ControllerBase
         return Ok(await _context.Resources.ToListAsync());
     }
 
+    [Authorize(Roles = "Manager,Admin")]
     [HttpPost("resources")]
     public async Task<ActionResult<Resource>> CreateResource([FromBody] CreateResourceDto dto)
     {
@@ -65,6 +66,8 @@ public class AiWorkflowController : ControllerBase
             WeatherAssessmentJson = workflow.WeatherAssessmentJson
         });
     }
+
+    [Authorize(Roles = "Manager,Admin")]
     [HttpPost("{id}/approve")]
     public async Task<ActionResult> ApproveWorkflow(Guid id, [FromBody] ApproveAiWorkflowDto dto)
     {

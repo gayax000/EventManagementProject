@@ -559,10 +559,127 @@ public class EventsController : ControllerBase
         });
     }
 
+    // 2.5 GET: api/events (List All Events with Server-Side Pagination & Filtering for Manager / Admin)
+    [Authorize(Roles = "Manager,Admin")]
+    [HttpGet]
+    public async Task<ActionResult> GetAllEvents(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            await EnsureSchemaAsync();
+
+            var query = _context.Events.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = $"%{search}%";
+                query = query.Where(e => EF.Functions.ILike(e.Title, searchTerm) || EF.Functions.ILike(e.EventType, searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(e => e.Status == status);
+            }
+
+            int totalCount = await query.CountAsync();
+
+            var rawRows = await query
+                .OrderByDescending(e => e.CreatedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(ev => new
+                {
+                    Dto = new EventResponseDto
+                    {
+                        EventId = ev.EventId,
+                        Title = ev.Title,
+                        EventType = ev.EventType,
+                        TargetDate = ev.TargetDate,
+                        GuestCount = ev.GuestCount,
+                        BudgetLimit = ev.BudgetLimit,
+                        IsOutdoor = ev.IsOutdoor,
+                        AdditionalDetails = ev.AdditionalDetails,
+                        EventSession = ev.EventSession,
+                        CateringStyle = ev.CateringStyle,
+                        TableRefreshments = null,
+                        RevisionNotes = ev.RevisionNotes,
+                        AssignedVendorsJson = ev.AssignedVendorsJson,
+                        Status = ev.Status,
+                        VenueId = ev.VenueId,
+                        VenueName = ev.BanquetHall != null && ev.BanquetHall.Venue != null ? ev.BanquetHall.Venue.Name : (ev.Venue != null ? ev.Venue.Name : ev.PreferredLocation),
+                        BanquetHallId = ev.BanquetHallId,
+                        BanquetHallName = ev.BanquetHall != null ? ev.BanquetHall.HallName : null,
+                        HallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
+                        PerPlatePrice = ev.BanquetHall != null ? ev.BanquetHall.PerPlatePrice : null,
+                        PreferredLocation = ev.PreferredLocation,
+                        InspirationImageUrl = null,
+                        EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
+                        WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        CustomerId = ev.CustomerId,
+                        CustomerName = ev.Customer != null ? ev.Customer.FullName : "Kasun Customer",
+                        CustomerEmail = ev.Customer != null ? ev.Customer.Email : "customer@eventcraft.lk",
+                        CustomerPhone = ev.Customer != null ? ev.Customer.PhoneNumber : "+94 77 123 4567",
+                        CreatedAt = ev.CreatedAt
+                    },
+                    TableRefreshmentsJson = ev.TableRefreshmentsJson,
+                    SelectedServicesJson = ev.SelectedServicesJson,
+                    GeneratedPlanJson = ev.AIWorkflowState != null ? ev.AIWorkflowState.GeneratedPlanJson : null
+                })
+                .ToListAsync();
+
+            var events = new List<EventResponseDto>(rawRows.Count);
+            foreach (var row in rawRows)
+            {
+                var item = row.Dto;
+                item.InspirationImages = new List<string>();
+
+                if (!string.IsNullOrEmpty(row.TableRefreshmentsJson))
+                {
+                    try { item.TableRefreshments = JsonSerializer.Deserialize<List<string>>(row.TableRefreshmentsJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(row.SelectedServicesJson))
+                {
+                    try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(row.SelectedServicesJson); }
+                    catch { }
+                }
+                if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
+                {
+                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+                    catch { }
+                }
+
+                events.Add(item);
+            }
+
+            return Ok(new PagedResult<EventResponseDto>
+            {
+                Items = events,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all events for manager");
+            return StatusCode(500, new { message = "An error occurred while retrieving events." });
+        }
+    }
+
     // 3. GET: api/events/my-events (List Customer Events with strict per-user filtering)
     [AllowAnonymous]
     [HttpGet("my-events")]
-    public async Task<ActionResult<IEnumerable<EventResponseDto>>> GetMyEvents([FromQuery] Guid? customerId)
+    public async Task<ActionResult> GetMyEvents(
+        [FromQuery] Guid? customerId,
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? search,
+        [FromQuery] string? status)
     {
         try
         {
@@ -604,6 +721,17 @@ public class EventsController : ControllerBase
                 Guid sampleCustId = sampleCustomer?.UserId ?? Guid.Empty;
 
                 query = query.Where(e => e.CustomerId == targetCustomerId || (sampleCustId != Guid.Empty && e.CustomerId == sampleCustId));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var searchTerm = $"%{search}%";
+                query = query.Where(e => EF.Functions.ILike(e.Title, searchTerm) || EF.Functions.ILike(e.EventType, searchTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(e => e.Status == status);
             }
 
             var rawRows = await query
@@ -687,6 +815,22 @@ public class EventsController : ControllerBase
                 }
 
                 events.Add(item);
+            }
+
+            if (pageNumber.HasValue || pageSize.HasValue)
+            {
+                int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+                int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+                int totalCount = events.Count;
+                var pagedItems = events.Skip((page - 1) * size).Take(size).ToList();
+
+                return Ok(new PagedResult<EventResponseDto>
+                {
+                    Items = pagedItems,
+                    TotalCount = totalCount,
+                    PageNumber = page,
+                    PageSize = size
+                });
             }
 
             return Ok(events);

@@ -20,7 +20,12 @@ public class VenuesController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Venue>>> GetVenues([FromQuery] string? search, [FromQuery] int? minCapacity, [FromQuery] bool? isOutdoor)
+    public async Task<ActionResult> GetVenues(
+        [FromQuery] string? search, 
+        [FromQuery] int? minCapacity, 
+        [FromQuery] bool? isOutdoor,
+        [FromQuery] int? pageNumber,
+        [FromQuery] int? pageSize)
     {
         var query = _context.Venues.AsQueryable();
 
@@ -35,6 +40,24 @@ public class VenuesController : ControllerBase
 
         if (isOutdoor.HasValue)
             query = query.Where(v => v.IsOutdoor == isOutdoor.Value);
+
+        query = query.OrderBy(v => v.Name);
+
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            int page = pageNumber.HasValue && pageNumber.Value > 0 ? pageNumber.Value : 1;
+            int size = pageSize.HasValue && pageSize.Value > 0 ? pageSize.Value : 10;
+            int totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * size).Take(size).ToListAsync();
+
+            return Ok(new PagedResult<Venue>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = size
+            });
+        }
 
         return Ok(await query.ToListAsync());
     }
@@ -148,6 +171,7 @@ public class VenuesController : ControllerBase
     }
 
     // 6. PUT: api/venues/vendors/{id}/verify (Manager Admin Action)
+    [Authorize(Roles = "Manager,Admin")]
     [HttpPut("vendors/{id}/verify")]
     public async Task<ActionResult> VerifyVendor(Guid id, [FromBody] VerifyVendorDto dto)
     {
@@ -163,6 +187,7 @@ public class VenuesController : ControllerBase
     }
 
     // 7. DELETE: api/venues/vendors/{id} (Manager Delete Action)
+    [Authorize(Roles = "Manager,Admin")]
     [HttpDelete("vendors/{id}")]
     public async Task<ActionResult> DeleteVendor(Guid id)
     {

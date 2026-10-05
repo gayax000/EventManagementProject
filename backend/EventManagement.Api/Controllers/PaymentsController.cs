@@ -213,6 +213,7 @@ public class PaymentsController : ControllerBase
     }
 
     // 2. PUT: api/payments/{id}/verify (Business-Specific: Admin verifies slip & auto-generates Invoice)
+    [Authorize(Roles = "Manager,Admin")]
     [HttpPut("{id}/verify")]
     public async Task<ActionResult> VerifyPayment(Guid id, [FromBody] VerifyPaymentDto dto)
     {
@@ -249,6 +250,7 @@ public class PaymentsController : ControllerBase
     }
 
     // 3. GET: api/payments/analytics/revenue-forecast (Business-Specific: AI Predictive Analytics)
+    [Authorize(Roles = "Manager,Admin")]
     [HttpGet("analytics/revenue-forecast")]
     public async Task<ActionResult<RevenueForecastResponseDto>> GetRevenueForecast()
     {
