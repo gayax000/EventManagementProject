@@ -112,12 +112,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <img 
           src={loginBgImg} 
           alt="EventCraft Background" 
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover object-center brightness-105 contrast-105 saturate-110"
           loading="eager"
         />
-        {/* Dark overlay for optimal text contrast */}
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[0.5px]"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/80"></div>
+        {/* Refined ultra-clear overlay: sharp wavy ribbons with clear visibility */}
+        <div className="absolute inset-0 bg-slate-950/25"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-slate-950/40"></div>
       </div>
 
       {/* ========================================================================= */}
@@ -174,12 +174,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           </div>
 
           {/* Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
             Welcome to <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-pink-400 bg-clip-text text-transparent">EventCraft</span>
           </h1>
 
           {/* Customer Attracting Description */}
-          <p className="text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed font-normal">
+          <p className="text-sm sm:text-base md:text-lg text-slate-100 leading-relaxed font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
             EventCraft is Sri Lanka's premier AI event management platform, transforming how extraordinary celebrations are born. We seamlessly pair certified 5-star hotel banquet halls with verified elite suppliers, gourmet catering, and real-time environmental weather contingency safeguards into one transparent proposal. Experience stress-free planning, transparent pricing, and unforgettable moments for your royal wedding, corporate gala, or milestone celebration.
           </p>
 
