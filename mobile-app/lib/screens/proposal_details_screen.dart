@@ -1422,7 +1422,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
             ),
           ],
 
-          // 4. Bank Transfer & Payment Slip Section (Member 4 Mobile Integration)
+          // 4. Bank Transfer & Payment Slip Section
           if (isApproved || isConfirmed) ...[
             _buildPaymentSlipSection(proposal, formattedCost),
             const SizedBox(height: 16),

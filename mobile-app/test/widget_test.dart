@@ -12,7 +12,7 @@ void main() {
     expect(find.byType(EventCraftApp), findsOneWidget);
   });
 
-  testWidgets('PackagesScreen (Member 3) renders catering menus and weather radar', (WidgetTester tester) async {
+  testWidgets('PackagesScreen renders catering menus and weather radar', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: PackagesScreen(),
@@ -20,14 +20,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify header and Member 3 Weather Risk Agent radar card
+    // Verify header and Weather Risk Agent radar card
     expect(find.text('Catering & Weather Advisory'), findsOneWidget);
-    expect(find.text('Weather Risk Agent (Member 3)'), findsOneWidget);
+    expect(find.text('Weather Risk Agent'), findsOneWidget);
     expect(find.text('Curated Catering Menus'), findsOneWidget);
     expect(find.text('International Hotel Buffet'), findsOneWidget);
   });
 
-  testWidgets('PaymentsScreen (Member 4) renders billing metrics and transaction view', (WidgetTester tester) async {
+  testWidgets('PaymentsScreen renders billing metrics and transaction view', (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: PaymentsScreen(),
@@ -35,7 +35,7 @@ void main() {
     );
     await tester.pump();
 
-    // Verify header and Member 4 Billing KPI metrics
+    // Verify header and Billing KPI metrics
     expect(find.text('Payments & Invoices'), findsOneWidget);
     expect(find.text('Billing Transactions'), findsOneWidget);
   });

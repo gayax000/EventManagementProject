@@ -249,7 +249,7 @@ class ApiService {
     }
   }
 
-  // 5. Upload Bank Transfer Payment Slip (Member 4 Mobile Feature)
+  // 5. Upload Bank Transfer Payment Slip
   static Future<Map<String, dynamic>?> uploadPaymentSlip({
     String? bookingId,
     required String eventId,
@@ -288,7 +288,7 @@ class ApiService {
     }
   }
 
-  // 5.1 Fetch Customer Payments & Invoices (Member 4 Mobile Feature)
+  // 5.1 Fetch Customer Payments & Invoices
   static Future<List<Map<String, dynamic>>> getMyPayments() async {
     try {
       final userId = await AuthService.getUserId();
