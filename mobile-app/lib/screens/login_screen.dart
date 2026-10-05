@@ -653,7 +653,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Image.asset(
               'assets/images/luxury_event_hero_bg.png',
               fit: BoxFit.cover,
-              alignment: Alignment.center,
+              alignment: Alignment.topCenter,
               errorBuilder: (context, error, stackTrace) {
                 return Center(
                   child: Text(
