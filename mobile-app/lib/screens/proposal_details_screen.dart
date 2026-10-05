@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
@@ -2516,15 +2517,29 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 .trim();
           }
 
-          // Format guest rate tags e.g. (250 guests @ Rs. 5,200) -> (Rs. 5,200/guest)
-          mainLabel = mainLabel.replaceAllMapped(
-            RegExp(r'\(\s*(?:\d+\s*[Gg]uests?\s*(?:@|at)\s*)(?:Rs\.?|LKR)?\s*([\d,]+)\s*\)', caseSensitive: false),
-            (m) => '(Rs. ${m[1]}/guest)',
-          );
-          mainLabel = mainLabel.replaceAllMapped(
-            RegExp(r'\(\s*(?:Rs\.?|LKR)?\s*([\d,]+)\s*(?:per\s*plate|per\s*guest)\s*\)', caseSensitive: false),
-            (m) => '(Rs. ${m[1]}/guest)',
-          );
+          // Extract guest rate tags to display neatly UNDER the item (e.g. (Rs. 5,000/guest))
+          String? guestRate;
+          final guestRateMatch = RegExp(
+            r'\(\s*(?:(?:\d+\s*[Gg]uests?\s*(?:@|at)\s*(?:Rs\.?|LKR)?\s*([\d,]+))|(?:(?:Rs\.?|LKR)?\s*([\d,]+)\s*(?:\/|\s*per\s*)(?:guest|plate)))\s*\)',
+            caseSensitive: false,
+          ).firstMatch(mainLabel);
+
+          if (guestRateMatch != null) {
+            final rateVal = (guestRateMatch.group(1) ?? guestRateMatch.group(2))?.trim();
+            if (rateVal != null && rateVal.isNotEmpty) {
+              guestRate = '(Rs. $rateVal/guest)';
+              mainLabel = mainLabel.replaceFirst(guestRateMatch.group(0)!, '').replaceAll(RegExp(r'\s+'), ' ').trim();
+            }
+          } else if (proposal.guestCount > 0 && cost > 0) {
+            final lower = mainLabel.toLowerCase();
+            if (lower.contains('catering') || lower.contains('buffet') || lower.contains('refreshment') || lower.contains('canapé') || lower.contains('mocktail')) {
+              final double perHead = cost / proposal.guestCount;
+              if (perHead >= 50 && perHead <= 25000) {
+                final formatted = NumberFormat('#,##0', 'en_US').format(perHead.round());
+                guestRate = '(Rs. $formatted/guest)';
+              }
+            }
+          }
 
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 3.5),
@@ -2548,6 +2563,18 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           height: 1.25,
                         ),
                       ),
+                      if (guestRate != null && guestRate.isNotEmpty) ...[
+                        const SizedBox(height: 2.0),
+                        Text(
+                          guestRate,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
                       if (partnerName != null && partnerName.isNotEmpty) ...[
                         const SizedBox(height: 3.5),
                         Container(
