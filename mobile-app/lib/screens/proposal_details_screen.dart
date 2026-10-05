@@ -489,22 +489,45 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
+                // Responsive Event Meta Info (Properly wrapped and constrained within card)
                 Row(
                   children: [
                     const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF64748B)),
                     const SizedBox(width: 6),
-                    Text(formattedDate, style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-                const SizedBox(height: 5),
-                Row(
-                  children: [
+                    Text(
+                      formattedDate,
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 14),
                     const Icon(Icons.people_alt_outlined, size: 14, color: Color(0xFF64748B)),
                     const SizedBox(width: 6),
-                    Text("Guests: ${proposal.guestCount}  |  Venue: ${proposal.venueName}", style: const TextStyle(color: Color(0xFF475569), fontSize: 13)),
+                    Text(
+                      "${proposal.guestCount} Guests",
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w500),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF64748B)),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        "Venue: ${proposal.venueName}",
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 12.5, height: 1.3),
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -512,10 +535,16 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       children: [
                         Icon(Icons.payments_outlined, size: 14, color: Color(0xFF059669)),
                         SizedBox(width: 6),
-                        Text("Proposal Total:", style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        Text(
+                          "Proposal Total:",
+                          style: TextStyle(color: Color(0xFF475569), fontSize: 12.5, fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
-                    Text("LKR $formattedCost", style: const TextStyle(color: Color(0xFF059669), fontSize: 13.5, fontWeight: FontWeight.bold)),
+                    Text(
+                      "LKR $formattedCost",
+                      style: const TextStyle(color: Color(0xFF059669), fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ],
