@@ -642,8 +642,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: const Color(0xFF090D16),
       body: Stack(
@@ -780,15 +778,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF090D16).withValues(alpha: 0.55),
+                              color: const Color(0xFF090D16).withOpacity(0.55),
                               borderRadius: BorderRadius.circular(22),
                               border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
+                                color: Colors.white.withOpacity(0.15),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.45),
+                                  color: Colors.black.withOpacity(0.45),
                                   blurRadius: 24,
                                   offset: const Offset(0, 8),
                                 ),
@@ -836,7 +834,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   "Sri Lanka's premier AI event management platform. We pair certified 5-star hotel banquet halls with verified suppliers, gourmet catering, and real-time weather contingency safeguards for unforgettable celebrations.",
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.95),
+                                    color: Colors.white.withOpacity(0.95),
                                     fontSize: 13.5,
                                     height: 1.55,
                                     fontWeight: FontWeight.w400,
