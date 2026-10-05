@@ -637,62 +637,68 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: isConfirmed
-                          ? const Color(0xFFECFDF5)
-                          : isApproved
-                              ? const Color(0xFFFFFBEB)
-                              : const Color(0xFFF0F9FF),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
                         color: isConfirmed
-                            ? const Color(0xFFA7F3D0)
+                            ? const Color(0xFFECFDF5)
                             : isApproved
-                                ? const Color(0xFFFDE68A)
-                                : const Color(0xFFBAE6FD),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isConfirmed
-                              ? Icons.verified_rounded
-                              : isApproved
-                                  ? Icons.rate_review_rounded
-                                  : Icons.hourglass_top_rounded,
-                          size: 13,
+                                ? const Color(0xFFFFFBEB)
+                                : const Color(0xFFF0F9FF),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
                           color: isConfirmed
-                              ? const Color(0xFF059669)
+                              ? const Color(0xFFA7F3D0)
                               : isApproved
-                                  ? const Color(0xFFD97706)
-                                  : const Color(0xFF0284C7),
+                                  ? const Color(0xFFFDE68A)
+                                  : const Color(0xFFBAE6FD),
                         ),
-                        const SizedBox(width: 5),
-                        Text(
-                          isConfirmed
-                              ? "BOOKING CONFIRMED & PASS ACTIVE"
-                              : isApproved
-                                  ? "APPROVED BY MANAGER (SIGN NOW)"
-                                  : "UNDER MANAGER REVIEW",
-                          style: TextStyle(
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isConfirmed
+                                ? Icons.verified_rounded
+                                : isApproved
+                                    ? Icons.rate_review_rounded
+                                    : Icons.hourglass_top_rounded,
+                            size: 13,
                             color: isConfirmed
                                 ? const Color(0xFF059669)
                                 : isApproved
                                     ? const Color(0xFFD97706)
                                     : const Color(0xFF0284C7),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.4,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              isConfirmed
+                                  ? "BOOKING CONFIRMED & PASS ACTIVE"
+                                  : isApproved
+                                      ? "APPROVED BY MANAGER (SIGN NOW)"
+                                      : "UNDER MANAGER REVIEW",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isConfirmed
+                                    ? const Color(0xFF059669)
+                                    : isApproved
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFF0284C7),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  if (daysUntil >= 0)
+                  if (daysUntil >= 0) ...[
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -704,6 +710,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
+                  ],
                 ],
               ),
             ),
@@ -725,15 +732,65 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Metadata Grid (Pure Vector Icons)
+                  // Metadata Grid (Responsive 2-Row Layout: Target Date & Guests + Full-Width Financial Banner)
                   Row(
                     children: [
-                      Expanded(child: _buildMetaPill(Icons.calendar_today_rounded, "Date", formattedDate)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildMetaPill(Icons.people_alt_rounded, "Guests", "${event.guestCount}")),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildMetaPill(Icons.payments_outlined, costLabel, "LKR $formattedCost")),
+                      Expanded(
+                        child: _buildMetaPill(Icons.calendar_today_rounded, "Date", formattedDate),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildMetaPill(Icons.people_alt_rounded, "Guests", "${event.guestCount} Guests"),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Dedicated Full-Width Budget Banner (Never overflows, spacious & executive)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: isConfirmed
+                          ? const Color(0xFFECFDF5)
+                          : (isApproved ? const Color(0xFFFFFBEB) : const Color(0xFFF8FAFC)),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isConfirmed
+                            ? const Color(0xFFA7F3D0)
+                            : (isApproved ? const Color(0xFFFDE68A) : const Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.payments_rounded,
+                          size: 15,
+                          color: isConfirmed
+                              ? const Color(0xFF059669)
+                              : (isApproved ? const Color(0xFFD97706) : const Color(0xFF2563EB)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "$costLabel:",
+                          style: TextStyle(
+                            color: isApproved ? const Color(0xFF92400E) : const Color(0xFF475569),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          "LKR $formattedCost",
+                          style: TextStyle(
+                            color: isConfirmed
+                                ? const Color(0xFF059669)
+                                : (isApproved ? const Color(0xFFB45309) : const Color(0xFF0F172A)),
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 14),
 
@@ -848,16 +905,26 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(
             children: [
               Icon(icon, color: const Color(0xFF64748B), size: 12),
-              const SizedBox(width: 4),
-              Text(label, style: const TextStyle(color: Color(0xFF64748B), fontSize: 10)),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 10.5, fontWeight: FontWeight.w500),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 3),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 11, fontWeight: FontWeight.bold),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
