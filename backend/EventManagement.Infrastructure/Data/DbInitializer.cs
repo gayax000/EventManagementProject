@@ -62,13 +62,29 @@ public static class DbInitializer
             context.Users.Add(new User
             {
                 UserId = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                FullName = "Sahan Perera (Client)",
+                FullName = "Sahan Perera",
                 Email = "sahan@gmail.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@2026"),
                 PhoneNumber = "+94719876543",
                 RoleId = customerRole.RoleId,
                 AccountStatus = "Active"
             });
+            await context.SaveChangesAsync();
+        }
+
+        // Auto-fix existing users with "(Client)" or "(Manager)" suffix in FullName
+        var usersToFix = await context.Users
+            .Where(u => u.FullName.Contains(" (Client)") || u.FullName.Contains(" (Manager)"))
+            .ToListAsync();
+        if (usersToFix.Any())
+        {
+            foreach (var u in usersToFix)
+            {
+                u.FullName = u.FullName
+                    .Replace(" (Client)", "")
+                    .Replace(" (Manager)", "")
+                    .Trim();
+            }
             await context.SaveChangesAsync();
         }
 
