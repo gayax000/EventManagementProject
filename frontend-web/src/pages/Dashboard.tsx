@@ -221,7 +221,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setShowNotificationMenu(false);
 
       if (notification.type === 'PaymentSlipUploaded') {
-        navigate('/payments');
+        navigate('/payments/pending');
         return;
       }
 
