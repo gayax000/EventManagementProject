@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { VenuesPage } from '../VenuesPage';
 import { venueService } from '../../services/api';
 
@@ -24,6 +25,13 @@ vi.mock('../../assets/cities/dambulla.png', () => ({ default: 'dambulla.png' }))
 vi.mock('../../assets/cities/negombo.png', () => ({ default: 'negombo.png' }));
 vi.mock('../../assets/cities/weligama.png', () => ({ default: 'weligama.png' }));
 vi.mock('../../assets/cities/tangalle.png', () => ({ default: 'tangalle.png' }));
+
+const renderVenuesPage = () =>
+  render(
+    <MemoryRouter>
+      <VenuesPage />
+    </MemoryRouter>
+  );
 
 describe('VenuesPage Component', () => {
   const sampleVenues = [
@@ -56,7 +64,7 @@ describe('VenuesPage Component', () => {
   it('renders loading state initially and then displays venue cards', async () => {
     vi.mocked(venueService.getVenues).mockResolvedValueOnce(sampleVenues);
 
-    render(<VenuesPage />);
+    renderVenuesPage();
 
     await waitFor(() => {
       expect(venueService.getVenues).toHaveBeenCalled();
@@ -68,7 +76,7 @@ describe('VenuesPage Component', () => {
   it('filters displayed venues when searching', async () => {
     vi.mocked(venueService.getVenues).mockResolvedValue(sampleVenues);
 
-    render(<VenuesPage />);
+    renderVenuesPage();
 
     await waitFor(() => {
       expect(screen.getByText('Shangri-La Colombo')).toBeInTheDocument();
@@ -85,7 +93,7 @@ describe('VenuesPage Component', () => {
   it('filters venues by quick city selector', async () => {
     vi.mocked(venueService.getVenues).mockResolvedValue(sampleVenues);
 
-    render(<VenuesPage />);
+    renderVenuesPage();
 
     await waitFor(() => {
       expect(screen.getByText('Shangri-La Colombo')).toBeInTheDocument();
@@ -105,7 +113,7 @@ describe('VenuesPage Component', () => {
   it('handles empty API result gracefully by displaying No Venues Found', async () => {
     vi.mocked(venueService.getVenues).mockResolvedValueOnce([]);
 
-    render(<VenuesPage />);
+    renderVenuesPage();
 
     await waitFor(() => {
       expect(screen.getByText(/No Venues Found/i)).toBeInTheDocument();
