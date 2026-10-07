@@ -816,28 +816,25 @@ class _HomeScreenState extends State<HomeScreen> {
                               email: newEmail.isNotEmpty ? newEmail : _userEmail,
                               phone: newPhone,
                             );
-                            if (mounted) {
-                              setState(() {
-                                _userName = newName;
-                                if (newEmail.isNotEmpty) _userEmail = newEmail;
-                              });
-                            }
+                            if (!mounted) return;
+                            setState(() {
+                              _userName = newName;
+                              if (newEmail.isNotEmpty) _userEmail = newEmail;
+                            });
                             Navigator.pop(ctx);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
-                                      SizedBox(width: 8),
-                                      Text("Profile details updated successfully!"),
-                                    ],
-                                  ),
-                                  backgroundColor: Color(0xFF0F172A),
-                                  duration: Duration(seconds: 2),
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Row(
+                                  children: [
+                                    Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+                                    SizedBox(width: 8),
+                                    Text("Profile details updated successfully!"),
+                                  ],
                                 ),
-                              );
-                            }
+                                backgroundColor: Color(0xFF0F172A),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
                           }
                         },
                       ),
@@ -846,9 +843,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
   }
 
   // --- HERO ACTION CARD WITH UPLOADED ARTWORK BACKGROUND & SMOOTH FADE ---
@@ -927,8 +925,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               letterSpacing: 0.2,
                             ),
                           ),
-                          const SizedBox(height: 3),
-                          const Text(
+                          SizedBox(height: 3),
+                          Text(
                             "Create & customize with AI assistant",
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
