@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, CheckCircle, XCircle, Briefcase, Building2, Phone, Search, Tag, Sparkles, Eye, Trash2, X, RefreshCw, Car, Camera, Volume2, Cake, Utensils, Tent, Zap, Store } from 'lucide-react';
 import { vendorService } from '../services/api';
 
@@ -13,6 +14,27 @@ const VENDOR_CATEGORIES = [
   { id: 'MarqueeTent', label: 'Tents & Safeguards', icon: '🎪' },
   { id: 'PowerBackup', label: 'Power Backup', icon: '⚡' },
 ];
+
+const categoryToSlug = (catId: string) => {
+  if (catId === 'All') return '';
+  return catId.toLowerCase();
+};
+
+const slugToCategory = (slug?: string) => {
+  if (!slug || slug.toLowerCase() === 'all') return 'All';
+  const clean = slug.toLowerCase().replace(/[^a-z]/g, '');
+  const match = VENDOR_CATEGORIES.find(c => c.id.toLowerCase().replace(/[^a-z]/g, '') === clean);
+  if (match) return match.id;
+  if (clean.includes('cater') || clean.includes('food')) return 'Catering';
+  if (clean.includes('photo')) return 'Photography';
+  if (clean.includes('sound') || clean.includes('light')) return 'SoundLighting';
+  if (clean.includes('decor') || clean.includes('flower')) return 'Decor';
+  if (clean.includes('cake') || clean.includes('dessert')) return 'Cake';
+  if (clean.includes('transport') || clean.includes('car')) return 'Transport';
+  if (clean.includes('tent') || clean.includes('marquee')) return 'MarqueeTent';
+  if (clean.includes('power') || clean.includes('gen')) return 'PowerBackup';
+  return 'All';
+};
 
 const matchesCategoryFilter = (vendorCat?: string, filterId: string = 'All') => {
   if (!filterId || filterId === 'All') return true;
@@ -106,6 +128,8 @@ const getCategoryIconBadge = (vendorCat?: string) => {
 };
 
 export const VendorsPage: React.FC = () => {
+  const { category } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const [vendors, setVendors] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem('eventcraft_system_vendors_v2');
@@ -124,11 +148,33 @@ export const VendorsPage: React.FC = () => {
   
   // Separate states for Pending list
   const [pendingSearch, setPendingSearch] = useState('');
-  const [pendingCategory, setPendingCategory] = useState('All');
+  const [pendingCategory, setPendingCategory] = useState(() => slugToCategory(category));
 
   // Separate states for Confirmed list
   const [confirmedSearch, setConfirmedSearch] = useState('');
-  const [confirmedCategory, setConfirmedCategory] = useState('All');
+  const [confirmedCategory, setConfirmedCategory] = useState(() => slugToCategory(category));
+
+  // Sync category filter whenever URL changes
+  useEffect(() => {
+    if (category) {
+      const matched = slugToCategory(category);
+      setConfirmedCategory(matched);
+      setPendingCategory(matched);
+    } else {
+      setConfirmedCategory('All');
+      setPendingCategory('All');
+    }
+  }, [category]);
+
+  const handleCategorySelect = (catId: string) => {
+    setConfirmedCategory(catId);
+    setPendingCategory(catId);
+    if (catId === 'All') {
+      navigate('/vendors');
+    } else {
+      navigate(`/vendors/${categoryToSlug(catId)}`);
+    }
+  };
 
   const fetchVendors = async () => {
     try {
@@ -265,7 +311,7 @@ export const VendorsPage: React.FC = () => {
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setPendingCategory(cat.id)}
+                  onClick={() => handleCategorySelect(cat.id)}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
                     pendingCategory === cat.id 
                       ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
@@ -394,7 +440,7 @@ export const VendorsPage: React.FC = () => {
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setConfirmedCategory(cat.id)}
+                  onClick={() => handleCategorySelect(cat.id)}
                   className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
                     confirmedCategory === cat.id 
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 

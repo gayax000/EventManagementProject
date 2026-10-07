@@ -101,7 +101,7 @@ function AppContent() {
             } 
           />
 
-          {/* Venues & Banquet Halls Catalog */}
+          {/* Venues & Banquet Halls Catalog (with Optional City Route: /venues/kandy) */}
           <Route 
             path="/venues" 
             element={
@@ -112,8 +112,18 @@ function AppContent() {
               )
             } 
           />
+          <Route 
+            path="/venues/:city" 
+            element={
+              !isAuthenticated ? (
+                <Navigate to="/login" replace />
+              ) : (
+                <VenuesPage />
+              )
+            } 
+          />
 
-          {/* Vendors Management (Manager Only) */}
+          {/* Vendors Management (Manager Only - with Optional Category Route: /vendors/catering) */}
           <Route 
             path="/vendors" 
             element={
@@ -127,8 +137,21 @@ function AppContent() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/vendors/:category" 
+            element={
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={(tab) => navigate(`/${tab}`)}
+              >
+                <VendorsPage />
+              </ProtectedRoute>
+            } 
+          />
 
-          {/* Resources & AI Rules (Manager Only) */}
+          {/* Resources & AI Rules (Manager Only - with Optional Category Route: /resources/tents) */}
           <Route 
             path="/resources" 
             element={
@@ -142,10 +165,36 @@ function AppContent() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/resources/:category" 
+            element={
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={(tab) => navigate(`/${tab}`)}
+              >
+                <ResourcesPage />
+              </ProtectedRoute>
+            } 
+          />
 
-          {/* Payments & Financial Settlement (Manager Only) */}
+          {/* Payments & Financial Settlement (Manager Only - with Optional Filter Route: /payments/pending) */}
           <Route 
             path="/payments" 
+            element={
+              <ProtectedRoute 
+                isAuthenticated={isAuthenticated} 
+                userRole={userRole} 
+                allowedRoles={['Manager']} 
+                onFallbackTab={(tab) => navigate(`/${tab}`)}
+              >
+                <PaymentsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/payments/:filter" 
             element={
               <ProtectedRoute 
                 isAuthenticated={isAuthenticated} 

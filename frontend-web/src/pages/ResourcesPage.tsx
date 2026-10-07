@@ -1,6 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Package, Cpu, Check, Search, ShieldCheck, Phone, Tent, Utensils, Car, Camera, Volume2, Sparkles, Cake, Zap, RefreshCw } from 'lucide-react';
 import { vendorService } from '../services/api';
+
+const resCategoryToSlug = (cat: string) => {
+  if (cat === 'All') return '';
+  if (cat === 'CateringPackage') return 'catering';
+  return cat.toLowerCase();
+};
+
+const slugToResCategory = (slug?: string) => {
+  if (!slug || slug === 'all') return 'All';
+  const clean = slug.toLowerCase().replace(/[^a-z]/g, '');
+  if (clean.includes('cater') || clean.includes('food')) return 'CateringPackage';
+  if (clean.includes('photo')) return 'Photography';
+  if (clean.includes('sound') || clean.includes('light')) return 'SoundLighting';
+  if (clean.includes('decor') || clean.includes('flower')) return 'Decor';
+  if (clean.includes('cake') || clean.includes('dessert')) return 'Cake';
+  if (clean.includes('transport') || clean.includes('car')) return 'Transport';
+  if (clean.includes('tent') || clean.includes('marquee')) return 'MarqueeTent';
+  if (clean.includes('power') || clean.includes('gen')) return 'PowerBackup';
+  return 'All';
+};
 
 const getServiceCategoryBadge = (type?: string, name?: string) => {
   const t = (type || '').toLowerCase().trim();
@@ -73,9 +94,29 @@ export interface ResourceItem {
 }
 
 export const ResourcesPage: React.FC = () => {
+  const { category } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const [partnerVendors, setPartnerVendors] = useState<ResourceItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => slugToResCategory(category));
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Sync category filter whenever URL parameter changes
+  useEffect(() => {
+    if (category) {
+      setSelectedCategory(slugToResCategory(category));
+    } else {
+      setSelectedCategory('All');
+    }
+  }, [category]);
+
+  const handleCategorySelect = (catValue: string) => {
+    setSelectedCategory(catValue);
+    if (catValue === 'All') {
+      navigate('/resources');
+    } else {
+      navigate(`/resources/${resCategoryToSlug(catValue)}`);
+    }
+  };
 
   const fetchVerifiedPartnerVendors = async () => {
     try {
@@ -195,7 +236,7 @@ export const ResourcesPage: React.FC = () => {
           {categories.map(cat => (
             <button
               key={cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
+              onClick={() => handleCategorySelect(cat.value)}
               className={`flex-shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition border ${
                 selectedCategory === cat.value
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'

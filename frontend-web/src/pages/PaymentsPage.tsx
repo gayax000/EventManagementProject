@@ -1,12 +1,40 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { CreditCard, TrendingUp, CheckCircle, XCircle, Download, Eye, RefreshCw, X, ShieldCheck } from 'lucide-react';
 import { paymentService, type LivePaymentItem } from '../services/api';
 
 export const PaymentsPage: React.FC = () => {
+  const { filter } = useParams<{ filter?: string }>();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<LivePaymentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedSlip, setSelectedSlip] = useState<LivePaymentItem | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved'>(() => {
+    if (filter === 'pending' || filter === 'approved') return filter;
+    return 'all';
+  });
+
+  // Sync selectedFilter from URL parameter
+  useEffect(() => {
+    if (filter) {
+      const f = filter.toLowerCase();
+      if (f === 'pending' || f === 'approved') setSelectedFilter(f as any);
+      else setSelectedFilter('all');
+    } else {
+      setSelectedFilter('all');
+    }
+  }, [filter]);
+
+  const handleFilterSelect = (newFilter: 'all' | 'pending' | 'approved') => {
+    setSelectedFilter(newFilter);
+    if (newFilter === 'all') {
+      navigate('/payments');
+    } else {
+      navigate(`/payments/${newFilter}`);
+    }
+  };
+
   const [stats, setStats] = useState<{ totalRevenue: number; confirmedCount: number; projectedRevenue: number }>({
     totalRevenue: 0,
     confirmedCount: 0,
@@ -82,6 +110,16 @@ export const PaymentsPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const filteredPayments = payments.filter(p => {
+    if (selectedFilter === 'pending') {
+      return p.status === 'PendingVerification' || p.status === 'Pending';
+    }
+    if (selectedFilter === 'approved') {
+      return p.status === 'Approved' || p.status === 'Completed' || p.status === 'PaidAndConfirmed';
+    }
+    return true;
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header with Dark Luxury Style matching Dashboard & Venues */}
@@ -133,18 +171,55 @@ export const PaymentsPage: React.FC = () => {
           </span>
         </div>
 
+        {/* Verification Status Filter Tabs */}
+        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center space-x-2 overflow-x-auto scrollbar-hide">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap mr-1">Filter Slips:</span>
+          <button
+            onClick={() => handleFilterSelect('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+              selectedFilter === 'all'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            All Slips ({payments.length})
+          </button>
+          <button
+            onClick={() => handleFilterSelect('pending')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+              selectedFilter === 'pending'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            Pending Verification ({payments.filter(p => p.status === 'PendingVerification' || p.status === 'Pending').length})
+          </button>
+          <button
+            onClick={() => handleFilterSelect('approved')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition border ${
+              selectedFilter === 'approved'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            Approved & Verified ({payments.filter(p => p.status === 'Approved' || p.status === 'Completed' || p.status === 'PaidAndConfirmed').length})
+          </button>
+        </div>
+
         {loading ? (
           <div className="p-12 text-center text-slate-400 text-sm flex flex-col items-center">
             <RefreshCw className="w-6 h-6 animate-spin text-emerald-600 mb-2" />
             <span>Connecting to Neon Database & loading slips...</span>
           </div>
-        ) : payments.length === 0 ? (
+        ) : filteredPayments.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-sm">
-            No bank transfer slips uploaded yet. When a customer submits a deposit slip via the mobile app, it will appear here immediately.
+            {selectedFilter !== 'all' 
+              ? `No bank transfer slips match '${selectedFilter}'.` 
+              : 'No bank transfer slips uploaded yet. When a customer submits a deposit slip via the mobile app, it will appear here immediately.'}
           </div>
         ) : (
           <div className="divide-y divide-slate-200">
-            {payments.map(payment => {
+            {filteredPayments.map(payment => {
               const isPending = payment.status === 'PendingVerification' || payment.status === 'Pending';
               const isApproved = payment.status === 'Approved' || payment.status === 'Completed' || payment.status === 'PaidAndConfirmed';
               const isRejected = payment.status === 'Rejected' || payment.status === 'Failed';
