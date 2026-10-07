@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_screen.dart';
 import 'policies_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -71,9 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (widget.isReviewMode) {
         Navigator.pop(context);
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/login');
       }
     }
   }

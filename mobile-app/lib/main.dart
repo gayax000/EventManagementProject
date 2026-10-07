@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/splash_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() {
   runApp(const EventCraftApp());
@@ -44,7 +47,13 @@ class EventCraftApp extends StatelessWidget {
           iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
         ),
       ),
-      home: const SplashScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const SplashScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/onboarding': (context) => const OnboardingScreen(),
+      },
     );
   }
 }

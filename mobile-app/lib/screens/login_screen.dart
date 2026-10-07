@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart';
 import 'policies_screen.dart';
 import 'onboarding_screen.dart';
 class LoginScreen extends StatefulWidget {
@@ -138,9 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         _bannerTimer?.cancel();
         Navigator.of(context, rootNavigator: true).pop();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/home');
       }
     } else {
       final errorMsg = (result.message != null && result.message!.isNotEmpty)
@@ -215,9 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (autoLogin.success && mounted) {
         _bannerTimer?.cancel();
         Navigator.of(context, rootNavigator: true).pop();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/home');
       } else if (mounted) {
         _bannerTimer?.cancel();
         Navigator.of(context, rootNavigator: true).pop();

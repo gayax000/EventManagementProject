@@ -836,7 +836,7 @@ public class AiWorkflowService : IAiWorkflowService
             existingState.ToolExecutionLogsJson = JsonSerializer.Serialize(traceLogs);
             existingState.EstimatedTotalCost = computedTotal;
             await _context.SaveChangesAsync();
-            await _context.Events.Where(e => e.EventId == eventId && string.IsNullOrEmpty(e.AssignedVendorsJson))
+            await _context.Events.Where(e => e.EventId == eventId)
                 .ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, autoAssignedVendorsJson));
             _logger.LogInformation("Updated dynamic native AI Workflow for Event {EventId}. Total: {Total}", eventId, computedTotal);
             return existingState;

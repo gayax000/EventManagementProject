@@ -7,7 +7,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
 
 class ProposalDetailsScreen extends StatefulWidget {
   final String eventId;
@@ -332,9 +331,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop(true);
               } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
+                Navigator.of(context).pushReplacementNamed('/home');
               }
             },
           ),

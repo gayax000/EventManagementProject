@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
 import 'proposal_details_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -1065,9 +1064,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               } else if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
+                Navigator.of(context).pushReplacementNamed('/home');
               }
             },
           ),

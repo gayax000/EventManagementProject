@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart';
-import 'login_screen.dart';
-import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,17 +25,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (mounted) {
       if (!hasSeenOnboarding) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
-        );
+        Navigator.of(context).pushReplacementNamed('/onboarding');
         return;
       }
 
       final loggedIn = await AuthService.isLoggedIn();
       if (loggedIn) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+        Navigator.of(context).pushReplacementNamed('/home');
       } else {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+        Navigator.of(context).pushReplacementNamed('/login');
       }
     }
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'create_event_screen.dart';
-import 'home_screen.dart';
 
 class PackagesScreen extends StatefulWidget {
   const PackagesScreen({super.key});
@@ -250,9 +249,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
+                Navigator.of(context).pushReplacementNamed('/home');
               }
             },
           ),

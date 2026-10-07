@@ -352,12 +352,16 @@ public class EventsController : ControllerBase
         });
     }
 
-    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson)
+    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson, decimal? estimatedTotalCost = null)
     {
         if (status == "ApprovedByManager" || status == "Confirmed" || status == "Completed")
             return false;
 
         if (string.IsNullOrEmpty(planJson))
+            return true;
+
+        // Auto-fit guardrail: If proposal exceeds budget ceiling, mark out-of-sync to trigger surgical minimal auto-fit
+        if (estimatedTotalCost.HasValue && budgetLimit > 0 && estimatedTotalCost.Value > budgetLimit)
             return true;
 
         if (planJson.Contains("1. Weather & Environmental Assessment") ||
@@ -405,12 +409,19 @@ public class EventsController : ControllerBase
             return Forbid();
 
         var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
-        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
+        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson, aiState?.EstimatedTotalCost))
         {
             try
             {
                 await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
                 aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+                // Re-fetch ev with updated AssignedVendorsJson
+                ev = await _context.Events
+                    .AsNoTracking()
+                    .Include(e => e.Venue)
+                    .Include(e => e.BanquetHall)
+                    .ThenInclude(h => h!.Venue)
+                    .FirstOrDefaultAsync(e => e.EventId == id) ?? ev;
             }
             catch (Exception ex)
             {
@@ -480,6 +491,10 @@ public class EventsController : ControllerBase
             estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
             weatherAssessment = aiState?.WeatherAssessmentJson,
             generatedPlan = aiState?.GeneratedPlanJson,
+            assignedVendorsJson = ev.AssignedVendorsJson,
+            assignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
+                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                : new List<AssignedVendorDto>(),
             bookingId = booking?.BookingId,
             bookingRef = booking?.BookingReferenceCode,
             qrCodeData = booking?.EntryPass?.QrCodeData,
@@ -799,7 +814,7 @@ public class EventsController : ControllerBase
                 var item = row.Dto;
                 item.InspirationImages = new List<string>();
 
-                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment))
+                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment, item.EstimatedTotalCost))
                 {
                     try
                     {
@@ -810,6 +825,8 @@ public class EventsController : ControllerBase
                         {
                             item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
                             item.WeatherAssessment = refreshed.WeatherAssessmentJson;
+                            var updatedEv = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.EventId == item.EventId);
+                            item.AssignedVendorsJson = updatedEv?.AssignedVendorsJson;
                         }
                     }
                     catch { }
@@ -964,7 +981,11 @@ public class EventsController : ControllerBase
         {
             if (dto.FinalTotal > 0)
             {
-                aiState.EstimatedTotalCost = dto.FinalTotal;
+                // Enforce Budget Ceiling Guardrail: Unless formally approved by manager, a live draft cannot exceed client budget limit
+                decimal safeTotal = (ev.BudgetLimit > 0 && dto.FinalTotal > ev.BudgetLimit)
+                    ? ev.BudgetLimit
+                    : dto.FinalTotal;
+                aiState.EstimatedTotalCost = safeTotal;
             }
             if (dto.PlanItems != null && dto.PlanItems.Count > 0)
             {
