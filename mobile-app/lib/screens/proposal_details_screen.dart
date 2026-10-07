@@ -1008,8 +1008,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                       .trim();
                                   if (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000 &&
                                       (lower.contains('auto-injected') || lower.contains('aluminium'))) {
-                                    resolvedTentCost = 350000;
-                                    resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                                    if (proposal.estimatedTotalCost <= 0 || proposal.estimatedTotalCost + (350000 - 150000) <= proposal.budgetLimit) {
+                                      resolvedTentCost = 350000;
+                                      resolvedTentLabel = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft)';
+                                    }
                                   }
                                   break;
                                 }
@@ -2202,15 +2204,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
   double _getEffectiveProposalTotal(EventProposalDetail proposal) {
     final res = _resolveBreakdownItems(proposal);
-    final bool wasLegacyUpgraded = res['wasLegacyUpgraded'] == true;
     final List<Map<String, dynamic>> items = res['items'] as List<Map<String, dynamic>>;
-    if (wasLegacyUpgraded) {
-      return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
-    }
-    if (proposal.estimatedTotalCost > 0) {
+    double total = items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+    if (proposal.estimatedTotalCost > 0 && proposal.estimatedTotalCost <= proposal.budgetLimit) {
       return proposal.estimatedTotalCost;
     }
-    return items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+    if (proposal.budgetLimit > 0 && total > proposal.budgetLimit && proposal.status != 'ApprovedByManager' && proposal.status != 'PendingClientBudgetApproval') {
+      return proposal.budgetLimit;
+    }
+    return total > 0 ? total : (proposal.estimatedTotalCost > 0 ? proposal.estimatedTotalCost : 0.0);
   }
 
   Map<String, dynamic> _resolveBreakdownItems(EventProposalDetail proposal) {
@@ -2260,10 +2262,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               final bool isUnfinalized = proposal.status != 'ApprovedByManager' && proposal.status != 'Confirmed';
               if (isUnfinalized && proposal.budgetLimit >= 2000000) {
                 final String lowerLabel = label.toLowerCase();
-                if (lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee')) {
+                if ((lowerLabel.contains('auto-injected') || lowerLabel.contains('aluminium marquee')) &&
+                    (proposal.estimatedTotalCost <= 0 || proposal.estimatedTotalCost + (350000.0 - cost) <= proposal.budgetLimit)) {
                   label = 'Air-Conditioned Transparent German Hangar Marquee (40x80 ft) [Partner: Grand Royal German Hangar Marquees]';
                   cost = 350000.0;
-                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower')) {
+                } else if (cost == 200000 && lowerLabel.contains('royal fresh flower') &&
+                    (proposal.estimatedTotalCost <= 0 || proposal.estimatedTotalCost + (220000.0 - cost) <= proposal.budgetLimit)) {
                   cost = 220000.0;
                 }
               }

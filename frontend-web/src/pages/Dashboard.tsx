@@ -168,6 +168,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     specialDiscount: number;
   } | null>(null);
   const [clientApprovalRequested, setClientApprovalRequested] = useState<boolean>(false);
+  const [isManualReset, setIsManualReset] = useState<boolean>(false);
   const [specialAllocation, setSpecialAllocation] = useState<number>(0);
   const [customHallCost, setCustomHallCost] = useState<number | null>(null);
   const [customPerPlateCost, setCustomPerPlateCost] = useState<number | null>(null);
@@ -278,14 +279,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   };
 
-  // Autonomous Vendor Allocation Algorithm based on client event budget tier
-  const autoAllocateVendorForCategory = (catKey: string, budget: number) => {
+  // Autonomous Vendor Allocation Algorithm based on client event budget tier or category allowance
+  const autoAllocateVendorForCategory = (catKey: string, budget: number, categoryAllowance?: number) => {
     const matching = getVerifiedVendorsForCategory(catKey);
     if (!matching || matching.length === 0) return null;
     
     // Sort by packagePrice ascending (Budget to Luxury)
     const sorted = [...matching].sort((a, b) => (Number(a.packagePrice) || 0) - (Number(b.packagePrice) || 0));
     
+    // If a specific category allowance is provided, pick the highest tier that fits within allowance
+    if (categoryAllowance !== undefined && categoryAllowance > 0) {
+      const affordable = sorted.filter(v => (Number(v.packagePrice) || 0) <= categoryAllowance * 1.15);
+      if (affordable.length > 0) return affordable[affordable.length - 1];
+      return sorted[0]; // Lowest tier fallback
+    }
+
     let targetIndex = 0;
     if (budget >= 2000000) {
       targetIndex = sorted.length - 1; // Luxury tier
@@ -402,9 +410,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
 
       // 2. Autonomous Verified Vendor Auto-Allocation
-      // Matches real verified vendors in the DB based on client budget tier
+      // Matches real verified vendors in the DB based on client budget tier and category allowances
       const budget = Number(selectedEvent.budgetLimit) || 1000000;
       const services = selectedEvent.selectedServices || [];
+      const guestCnt = selectedEvent.guestCount || 100;
+      const isPrivate = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0 || (
+        (selectedEvent.venueName?.toLowerCase().includes('private') ?? false) ||
+        (selectedEvent.preferredLocation?.toLowerCase().includes('private') ?? false)
+      );
+      const hallRentalEst = isPrivate ? 0 : (selectedEvent.hallRentalPrice || 350000);
+      const plateRate = selectedEvent.perPlatePrice || 5000;
+      const cateringEst = guestCnt * plateRate;
+      const tentEst = selectedEvent.isOutdoor ? (budget >= 2000000 ? 100000 : 60000) : 0;
+      const coreFixedEst = hallRentalEst + cateringEst + tentEst;
+      const vendorPool = Math.max(50000, budget - coreFixedEst);
 
       // Catering
       const isHotelInHouse = Boolean(selectedEvent.banquetHallId || (selectedEvent.banquetHallName && !selectedEvent.banquetHallName.toLowerCase().includes('private')));
@@ -432,7 +451,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Sound & Lighting
       const needsSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio'));
       if (needsSounds && !currentMap['SoundLighting']) {
-        const snd = autoAllocateVendorForCategory('SoundLighting', budget);
+        const snd = autoAllocateVendorForCategory('SoundLighting', budget, vendorPool * 0.20);
         if (snd) {
           currentMap['SoundLighting'] = {
             vendorId: snd.vendorId || (snd as any).id,
@@ -447,7 +466,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Theme Decor
       const needsDeco = services.some(s => s.toLowerCase().includes('deco') || s.toLowerCase().includes('floral') || s.toLowerCase().includes('flower'));
       if (needsDeco && !currentMap['Decor']) {
-        const dec = autoAllocateVendorForCategory('Decor', budget);
+        const dec = autoAllocateVendorForCategory('Decor', budget, vendorPool * 0.25);
         if (dec) {
           currentMap['Decor'] = {
             vendorId: dec.vendorId || (dec as any).id,
@@ -462,7 +481,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Photography & Cinematography (Unseeded for viva demo)
       const needsPhoto = services.some(s => s.toLowerCase().includes('photo') || s.toLowerCase().includes('media'));
       if (needsPhoto && (!currentMap['Photography'] || currentMap['Photography'].isPending)) {
-        const pht = autoAllocateVendorForCategory('Photography', budget);
+        const pht = autoAllocateVendorForCategory('Photography', budget, vendorPool * 0.35);
         if (pht) {
           currentMap['Photography'] = {
             vendorId: pht.vendorId || (pht as any).id,
@@ -484,7 +503,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Celebration Cakes
       const needsCake = services.some(s => s.toLowerCase().includes('cake'));
       if (needsCake && !currentMap['Cake']) {
-        const ck = autoAllocateVendorForCategory('Cake', budget);
+        const ck = autoAllocateVendorForCategory('Cake', budget, vendorPool * 0.10);
         if (ck) {
           currentMap['Cake'] = {
             vendorId: ck.vendorId || (ck as any).id,
@@ -499,7 +518,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // VIP Transport
       const needsTransport = services.some(s => s.toLowerCase().includes('transport') || s.toLowerCase().includes('car') || s.toLowerCase().includes('bridal'));
       if (needsTransport && !currentMap['Transport']) {
-        const trn = autoAllocateVendorForCategory('Transport', budget);
+        const trn = autoAllocateVendorForCategory('Transport', budget, vendorPool * 0.10);
         if (trn) {
           currentMap['Transport'] = {
             vendorId: trn.vendorId || (trn as any).id,
@@ -543,6 +562,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   useEffect(() => {
     if (selectedEvent?.eventId) {
       setIsBudgetAutoFitted(false);
+      setIsManualReset(false);
       setClientApprovalRequested(false);
       setSpecialDiscount(0);
       setSpecialAllocation(0);
@@ -601,6 +621,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               selectedServices: p.selectedServices || prev.selectedServices,
               tableRefreshments: p.tableRefreshments || prev.tableRefreshments,
               inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
+              assignedVendors: (p as any).assignedVendors || prev.assignedVendors,
+              assignedVendorsJson: (p as any).assignedVendorsJson || prev.assignedVendorsJson,
             } : prev);
           }
         })
@@ -1280,6 +1302,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // View Event Proposal Details in Popup Modal Action
   const handleViewEvent = (e: React.MouseEvent, ev: EventItem) => {
     e.stopPropagation();
+    setIsManualReset(false);
     setSelectedEvent(ev);
     setViewModalEvent(ev);
   };
@@ -1297,6 +1320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setSpecialDiscount(preFitSnapshot.specialDiscount);
     }
     setIsBudgetAutoFitted(false);
+    setIsManualReset(true);
   };
 
   // Smart Budget-Tier Vendor Switching Auto-Fit Logic
@@ -1313,15 +1337,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     setIsBudgetAutoFitted(true);
     setClientApprovalRequested(false);
+    setIsManualReset(false);
 
     const budget = Number(selectedEvent.budgetLimit) || 800000;
     const guestCnt = selectedEvent.guestCount || 100;
     const isPrivateVenue = !selectedEvent.banquetHallId || selectedEvent.hallRentalPrice === 0;
     const hallRentalCost = isPrivateVenue ? 0 : (selectedEvent.hallRentalPrice || 0);
 
-    // Calculate current fixed costs
-    const cateringCostVal = guestCnt * customPerPlateCost;
-    const autoTentCost = selectedEvent.isOutdoor ? customTentCost : 0;
+    // Calculate current fixed costs accurately (handle null overrides properly)
+    const basePlateRate = selectedEvent.perPlatePrice || 5000;
+    const currentPlateRate = customPerPlateCost !== null ? customPerPlateCost : basePlateRate;
+    const cateringCostVal = guestCnt * currentPlateRate;
+    const currentTentRate = customTentCost !== null ? customTentCost : weatherTentCost;
+    const autoTentCost = selectedEvent.isOutdoor ? currentTentRate : 0;
 
     let autoRefreshmentsCost = 0;
     let clientSelectedItems: string[] = [];
@@ -1622,6 +1650,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const clientBudgetLimit = Number(selectedEvent?.budgetLimit) || 1500000;
   const overrunAmount = Math.max(0, currentSubtotal - clientBudgetLimit);
   const displayedFinalTotal = Math.max(0, currentSubtotal - specialDiscount);
+
+  // Auto-fit unfinalized proposals on initial load if cost exceeds client budget limit
+  useEffect(() => {
+    if (selectedEvent && !isApproved && !clientApprovalRequested && !isManualReset && !isBudgetAutoFitted) {
+      if (currentSubtotal > clientBudgetLimit) {
+        handleExecuteAutoFit();
+      }
+    }
+  }, [selectedEvent?.eventId, currentSubtotal, clientBudgetLimit, isApproved, clientApprovalRequested, isManualReset, isBudgetAutoFitted]);
 
   // Live-sync working proposal draft (including Marquee Tent & vendor tier selections) to backend so Mobile App stays 100% in sync
   useEffect(() => {

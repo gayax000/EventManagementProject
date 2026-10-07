@@ -476,8 +476,13 @@ public class EventsController : ControllerBase
             preferredLocation = ev.PreferredLocation,
             selectedServices = selectedServices,
             inspirationImages = inspirationImages,
-            inspirationImageUrl = (string?)null,
-            estimatedTotalCost = aiState?.EstimatedTotalCost ?? ev.BudgetLimit,
+            assignedVendorsJson = ev.AssignedVendorsJson,
+            assignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
+                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                : new List<AssignedVendorDto>(),
+            estimatedTotalCost = (aiState?.EstimatedTotalCost != null && aiState.EstimatedTotalCost > 0 && aiState.EstimatedTotalCost <= ev.BudgetLimit)
+                ? aiState.EstimatedTotalCost
+                : (ev.BudgetLimit > 0 ? ev.BudgetLimit : (aiState?.EstimatedTotalCost ?? 0m)),
             weatherAssessment = aiState?.WeatherAssessmentJson,
             generatedPlan = aiState?.GeneratedPlanJson,
             bookingId = booking?.BookingId,
