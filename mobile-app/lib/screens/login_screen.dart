@@ -653,12 +653,14 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Image.asset(
               'assets/images/luxury_event_hero_bg.png',
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
+              alignment: Alignment.center,
               errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Text(
-                    'ASSET_ERROR: $error',
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                return Image.asset(
+                  'assets/images/luxury_event_hero_bg.jpg',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF090D16),
                   ),
                 );
               },
@@ -675,12 +677,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Color(0x8A000000), // Top navbar subtle shade
-                    Color(0x00000000), // Highly transparent middle letting sparklers & couple shine
+                    Color(0x8A000000), // Top navbar shade
+                    Color(0x10000000), // Clear middle for sparklers and couple
                     Color(0x2E000000), // Gentle tone behind glass card
-                    Color(0x66000000), // Bottom fade for badges and links
+                    Color(0x55000000), // Soft bottom fade without harsh black cutoff
                   ],
-                  stops: [0.0, 0.20, 0.65, 1.0],
+                  stops: [0.0, 0.25, 0.70, 1.0],
                 ),
               ),
             ),
@@ -768,7 +770,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 95, 20, 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
