@@ -621,13 +621,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Auth Handlers
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) {
+    const cleanEmail = loginEmail.trim();
+    const cleanPassword = loginPassword.trim();
+    if (!cleanEmail || !cleanPassword) {
       setAuthError('Please provide both email and password.');
       return;
     }
     setAuthLoading(true);
     setAuthError(null);
-    const success = await authService.login(loginEmail, loginPassword);
+    const success = await authService.login(cleanEmail, cleanPassword);
     setAuthLoading(false);
     if (success) {
       const role = authService.getUserRole();
