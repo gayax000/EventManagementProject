@@ -21,6 +21,7 @@ class AuthService {
   static const String _userNameKey = 'user_name';
   static const String _userIdKey = 'user_id';
   static const String _userEmailKey = 'user_email';
+  static const String _userPhoneKey = 'user_phone';
 
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -167,6 +168,33 @@ class AuthService {
     return prefs.getString(_userRoleKey);
   }
 
+  static Future<String?> getUserPhone() async {
+    try {
+      final val = await _secureStorage.read(key: _userPhoneKey);
+      if (val != null && val.isNotEmpty) return val;
+    } catch (_) {}
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userPhoneKey);
+  }
+
+  static Future<void> updateProfile({required String name, required String email, String? phone}) async {
+    try {
+      await _secureStorage.write(key: _userNameKey, value: name);
+      await _secureStorage.write(key: _userEmailKey, value: email);
+      if (phone != null && phone.isNotEmpty) {
+        await _secureStorage.write(key: _userPhoneKey, value: phone);
+      }
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_userNameKey, name);
+      await prefs.setString(_userEmailKey, email);
+      if (phone != null && phone.isNotEmpty) {
+        await prefs.setString(_userPhoneKey, phone);
+      }
+    } catch (_) {}
+  }
+
   static Future<void> logout() async {
     try {
       await _secureStorage.delete(key: _tokenKey);
@@ -174,6 +202,7 @@ class AuthService {
       await _secureStorage.delete(key: _userNameKey);
       await _secureStorage.delete(key: _userIdKey);
       await _secureStorage.delete(key: _userEmailKey);
+      await _secureStorage.delete(key: _userPhoneKey);
     } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
@@ -181,6 +210,7 @@ class AuthService {
     await prefs.remove(_userNameKey);
     await prefs.remove(_userIdKey);
     await prefs.remove(_userEmailKey);
+    await prefs.remove(_userPhoneKey);
   }
 
   static Future<bool> isLoggedIn() async {
