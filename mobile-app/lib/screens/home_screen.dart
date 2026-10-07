@@ -21,6 +21,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<EventSummary> _events = [];
   String _userName = 'Client';
+  String _userEmail = 'client@eventcraft.lk';
+  String _userRole = 'CLIENT';
   int _currentNavIndex = 0;
 
   @override
@@ -40,10 +42,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     setState(() => _isLoading = true);
     final name = await AuthService.getUserName();
+    final email = await AuthService.getUserEmail();
+    final role = await AuthService.getUserRole();
     final data = await ApiService.getMyEvents();
     if (mounted) {
       setState(() {
         _userName = (name != null && name.isNotEmpty) ? name : 'Client';
+        _userEmail = (email != null && email.isNotEmpty) ? email : 'client@eventcraft.lk';
+        _userRole = (role != null && role.isNotEmpty) ? role.toUpperCase() : 'CLIENT';
         _events = data;
         _isLoading = false;
       });
@@ -206,8 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- EXECUTIVE APP BAR ---
   Widget _buildExecutiveAppBar() {
-    final initials = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'C';
-
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -215,13 +219,13 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
           colors: [
             Color(0xFF090D1A), // Deep Midnight
-            Color(0xFF161533), // Cosmic Violet / Deep Indigo (Matches EventCraft Banner glow)
+            Color(0xFF161533), // Cosmic Violet / Deep Indigo
             Color(0xFF0F172A), // Slate Navy
           ],
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
         boxShadow: [
           BoxShadow(
@@ -234,68 +238,63 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // User Avatar with EventCraft Gradient Ring
+              // EventCraft Brand Logo & Title
               Container(
-                width: 44,
-                height: 44,
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF38BDF8), // Neon Cyan
-                      Color(0xFF818CF8), // Violet
-                      Color(0xFFC084FC), // Electric Purple / Fuchsia
-                    ],
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0x1F38BDF8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0x3338BDF8)),
                 ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF0F172A),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-
-              // User Info & Status
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(Icons.auto_awesome, color: Color(0xFF38BDF8), size: 16),
+                    SizedBox(width: 6),
                     Text(
-                      "Welcome, $_userName",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      "EventCraft.AI",
+                      style: TextStyle(
                         color: Colors.white,
-                        letterSpacing: 0.2,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Row(
+                  ],
+                ),
+              ),
+
+              // Executive Profile Pill (Web-consistent Pill with Status Dot, Name, Role & Chevron)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showExecutiveProfileSheet(context),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFF334155)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Green Online Indicator Dot
                         Container(
-                          width: 7,
-                          height: 7,
+                          width: 8,
+                          height: 8,
                           decoration: const BoxDecoration(
                             color: Color(0xFF10B981),
                             shape: BoxShape.circle,
@@ -308,94 +307,53 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        const Text(
-                          "Client Dashboard",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF94A3B8),
-                            fontWeight: FontWeight.w500,
+                        const SizedBox(width: 8),
+
+                        // Truncated User Name
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 85),
+                          child: Text(
+                            _userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
+                        ),
+                        const SizedBox(width: 6),
+
+                        // Role Badge (CLIENT or MANAGER)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0C4A6E),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF0284C7)),
+                          ),
+                          child: Text(
+                            _userRole,
+                            style: const TextStyle(
+                              color: Color(0xFF38BDF8),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+
+                        // Dropdown Arrow
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Color(0xFF94A3B8),
+                          size: 16,
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-
-              // Legal, Policies & App Tour Button
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xB31E293B),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xCC334155)),
-                ),
-                child: PopupMenuButton<String>(
-                  icon: const Icon(Icons.shield_outlined, color: Color(0xFF38BDF8), size: 20),
-                  tooltip: 'Legal, Policies & App Tour',
-                  color: const Color(0xFF0F172A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: const BorderSide(color: Color(0xFF1E293B)),
                   ),
-                  onSelected: (val) {
-                    if (val == 'policies') {
-                      PoliciesScreen.show(context);
-                    } else if (val == 'tour') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
-                      );
-                    } else if (val == 'about') {
-                      _showAboutDialog();
-                    }
-                  },
-                  itemBuilder: (ctx) => [
-                    const PopupMenuItem(
-                      value: 'tour',
-                      child: Row(
-                        children: [
-                          Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 18),
-                          SizedBox(width: 10),
-                          Text('App Tour & Overview', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'policies',
-                      child: Row(
-                        children: [
-                          Icon(Icons.gavel_rounded, color: Color(0xFF38BDF8), size: 18),
-                          SizedBox(width: 10),
-                          Text('Legal & Policies', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(height: 1),
-                    const PopupMenuItem(
-                      value: 'about',
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline_rounded, color: Color(0xFF94A3B8), size: 18),
-                          SizedBox(width: 10),
-                          Text('About EventCraft AI', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0x1FEF4444),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0x59EF4444)),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
-                  tooltip: 'Sign Out',
-                  onPressed: _handleLogout,
                 ),
               ),
             ],
@@ -403,6 +361,494 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  // --- EXECUTIVE PROFILE BOTTOM SHEET (MATCHING WEB POPUP UX) ---
+  void _showExecutiveProfileSheet(BuildContext context) {
+    final initials = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'C';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF0B132B),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+            border: Border(
+              top: BorderSide(color: Color(0xFF1E293B), width: 1.5),
+              left: BorderSide(color: Color(0xFF1E293B), width: 1),
+              right: BorderSide(color: Color(0xFF1E293B), width: 1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x66000000),
+                blurRadius: 30,
+                offset: Offset(0, -10),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Grab Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF334155),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Header Profile Card with Gradient Avatar, Name, Email and Badge
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF1E293B)),
+                    ),
+                    child: Row(
+                      children: [
+                        // Avatar Circle with Neon Blue / Indigo Gradient
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFF4F46E5), // Indigo
+                                Color(0xFF0284C7), // Sky Blue
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x4D0284C7),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+
+                        // Name, Email and Role Badge
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _userName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0C4A6E),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFF0284C7)),
+                                    ),
+                                    child: Text(
+                                      _userRole,
+                                      style: const TextStyle(
+                                        color: Color(0xFF38BDF8),
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.mail_outline_rounded,
+                                    size: 13,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      _userEmail,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Color(0xFF94A3B8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFF1E293B), height: 1),
+                  const SizedBox(height: 8),
+
+                  // Menu Option 1: Edit Profile Details
+                  _buildProfileMenuItem(
+                    icon: Icons.edit_outlined,
+                    iconColor: const Color(0xFF818CF8),
+                    title: "Edit Profile Details",
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _showEditProfileModal();
+                    },
+                  ),
+
+                  // Menu Option 2: App Tour & Overview
+                  _buildProfileMenuItem(
+                    icon: Icons.explore_outlined,
+                    iconColor: const Color(0xFF38BDF8),
+                    title: "App Tour & Overview",
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const OnboardingScreen(isReviewMode: true)),
+                      );
+                    },
+                  ),
+
+                  // Menu Option 3: Legal & Policies
+                  _buildProfileMenuItem(
+                    icon: Icons.shield_outlined,
+                    iconColor: const Color(0xFF38BDF8),
+                    title: "Legal & Policies",
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      PoliciesScreen.show(context);
+                    },
+                  ),
+
+                  const SizedBox(height: 8),
+                  const Divider(color: Color(0xFF1E293B), height: 1),
+                  const SizedBox(height: 8),
+
+                  // Menu Option 4: Sign Out (Red highlight)
+                  _buildProfileMenuItem(
+                    icon: Icons.logout_rounded,
+                    iconColor: const Color(0xFFEF4444),
+                    title: "Sign Out",
+                    textColor: const Color(0xFFEF4444),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _handleLogout();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- REUSABLE PROFILE MENU ITEM ---
+  Widget _buildProfileMenuItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required VoidCallback onTap,
+    Color textColor = Colors.white,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 20),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFF475569),
+              size: 18,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- EDIT PROFILE MODAL ---
+  void _showEditProfileModal() {
+    final nameController = TextEditingController(text: _userName);
+    final emailController = TextEditingController(text: _userEmail);
+    final phoneController = TextEditingController();
+
+    AuthService.getUserPhone().then((p) {
+      if (p != null && p.isNotEmpty) {
+        phoneController.text = p;
+      }
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F172A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+              border: Border(
+                top: BorderSide(color: Color(0xFF1E293B), width: 1.5),
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF334155),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0x1F818CF8),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0x33818CF8)),
+                          ),
+                          child: const Icon(Icons.edit_note_rounded, color: Color(0xFF818CF8), size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Edit Profile Details",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "Update your personal account information",
+                              style: TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Full Name Input
+                    const Text(
+                      "FULL NAME",
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF1E293B),
+                        prefixIcon: const Icon(Icons.person_outline_rounded, color: Color(0xFF64748B), size: 18),
+                        hintText: "Enter full name",
+                        hintStyle: const TextStyle(color: Color(0xFF475569)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Email Input
+                    const Text(
+                      "EMAIL ADDRESS",
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: emailController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF1E293B),
+                        prefixIcon: const Icon(Icons.mail_outline_rounded, color: Color(0xFF64748B), size: 18),
+                        hintText: "Enter email",
+                        hintStyle: const TextStyle(color: Color(0xFF475569)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Phone Input
+                    const Text(
+                      "CONTACT NUMBER",
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: phoneController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF1E293B),
+                        prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF64748B), size: 18),
+                        hintText: "e.g. +94 77 123 4567",
+                        hintStyle: const TextStyle(color: Color(0xFF475569)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                        label: const Text(
+                          "Save Profile Changes",
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () async {
+                          final newName = nameController.text.trim();
+                          final newEmail = emailController.text.trim();
+                          final newPhone = phoneController.text.trim();
+
+                          if (newName.isNotEmpty) {
+                            await AuthService.updateProfile(
+                              name: newName,
+                              email: newEmail.isNotEmpty ? newEmail : _userEmail,
+                              phone: newPhone,
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _userName = newName;
+                                if (newEmail.isNotEmpty) _userEmail = newEmail;
+                              });
+                            }
+                            Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Color(0xFF10B981), size: 18),
+                                      SizedBox(width: 8),
+                                      Text("Profile details updated successfully!"),
+                                    ],
+                                  ),
+                                  backgroundColor: Color(0xFF0F172A),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
   }
 
   // --- HERO ACTION CARD WITH UPLOADED ARTWORK BACKGROUND & SMOOTH FADE ---
