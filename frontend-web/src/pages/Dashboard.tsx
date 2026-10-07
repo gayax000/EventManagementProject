@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
   Users, 
@@ -127,6 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateLogin,
   onNavigateRegister 
 }) => {
+  const navigate = useNavigate();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [viewModalEvent, setViewModalEvent] = useState<EventItem | null>(null);
@@ -210,6 +212,41 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     } catch (err) {
       console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const handleNotificationClick = async (notification: ManagerNotificationItem) => {
+    try {
+      await handleMarkAsRead(notification.notificationId);
+      setShowNotificationMenu(false);
+
+      if (notification.type === 'PaymentSlipUploaded') {
+        navigate('/payments');
+        return;
+      }
+
+      if (notification.type === 'VendorResponse') {
+        navigate('/vendors');
+        return;
+      }
+
+      if (notification.eventId) {
+        let targetEvent = events.find(e => e.eventId === notification.eventId);
+        if (!targetEvent) {
+          try {
+            const freshEvents = await eventService.getMyEvents();
+            setEvents(freshEvents);
+            targetEvent = freshEvents.find(e => e.eventId === notification.eventId);
+          } catch (_) {}
+        }
+        if (targetEvent) {
+          setSelectedEvent(targetEvent);
+          setViewModalEvent(targetEvent);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to handle notification click", err);
+      setShowNotificationMenu(false);
     }
   };
 
@@ -1828,19 +1865,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* ========================================================================= */}
       <div>
         {/* Operational Hero Workspace Banner (3x Enlarged with Luxury Ballroom Image Background) */}
-        <div className="relative overflow-hidden rounded-3xl shadow-2xl border border-slate-800/80 mb-6 bg-slate-950 text-white min-h-[300px] md:min-h-[340px] flex flex-col justify-between">
-          {/* Background Ballroom Photo */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
-            style={{ backgroundImage: `url('/workspace-hero-bg.jpg')` }}
-          />
+        <div className="relative rounded-3xl shadow-2xl border border-slate-800/80 mb-6 bg-slate-950 text-white min-h-[300px] md:min-h-[340px] flex flex-col justify-between">
+          {/* Background Ballroom Photo & Vignette (isolated overflow-hidden to prevent clipping dropdown) */}
+          <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 hover:scale-105"
+              style={{ backgroundImage: `url('/workspace-hero-bg.jpg')` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/20" />
+          </div>
 
-          {/* Luxury Subtle Gradient Vignette Overlay - reduced darkness so the ballroom photo is vibrant & clearly visible */}
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/30 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-black/20" />
-
-          {/* Top Bar inside Banner: Tag and Action Controls (Notification Bell & Reload) */}
-          <div className="relative z-10 p-6 md:p-8 flex flex-wrap justify-between items-center gap-4">
+          {/* Top Bar inside Banner: Tag and Action Controls (Notification Bell & Reload) - elevated to z-30 */}
+          <div className="relative z-30 p-6 md:p-8 flex flex-wrap justify-between items-center gap-4">
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-slate-900/80 text-sky-300 border border-sky-500/40 backdrop-blur-md shadow-lg flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-sky-400" />
@@ -1853,7 +1890,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <div className="relative">
                 <button 
                   onClick={() => setShowNotificationMenu(!showNotificationMenu)}
-                  className="relative flex items-center justify-center p-3 bg-slate-900/85 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl shadow-lg backdrop-blur-md transition hover:scale-105"
+                  className="relative flex items-center justify-center p-3 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-xl shadow-lg backdrop-blur-md transition hover:scale-105"
                   title="Manager Live Notifications"
                 >
                   <Bell className="w-4 h-4 text-sky-400" />
@@ -1866,70 +1903,78 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Floating Notification Menu Panel */}
                 {showNotificationMenu && (
-                  <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 text-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-                      <div className="flex items-center space-x-2">
-                        <Bell className="w-4 h-4 text-sky-400" />
-                        <span className="font-bold text-sm">Manager Notifications</span>
+                  <>
+                    {/* Click Outside Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowNotificationMenu(false)} 
+                    />
+
+                    <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 text-slate-800 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                        <div className="flex items-center space-x-2">
+                          <Bell className="w-4 h-4 text-sky-400" />
+                          <span className="font-bold text-sm">Manager Notifications</span>
+                          {unreadCount > 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white">
+                              {unreadCount} New
+                            </span>
+                          )}
+                        </div>
                         {unreadCount > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white">
-                            {unreadCount} New
-                          </span>
+                          <button 
+                            onClick={handleMarkAllAsRead}
+                            className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition"
+                          >
+                            Mark all read
+                          </button>
                         )}
                       </div>
-                      {unreadCount > 0 && (
-                        <button 
-                          onClick={handleMarkAllAsRead}
-                          className="text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition"
-                        >
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
 
-                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                      {managerNotifications.length === 0 ? (
-                        <div className="p-6 text-center text-slate-400 text-xs">
-                          <CheckCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-60" />
-                          No notifications yet. You're all caught up!
-                        </div>
-                      ) : (
-                        managerNotifications.map((n) => (
-                          <div 
-                            key={n.notificationId}
-                            onClick={() => handleMarkAsRead(n.notificationId, n.eventId)}
-                            className={`p-3.5 hover:bg-sky-50/60 cursor-pointer transition flex items-start space-x-3 ${!n.isRead ? 'bg-sky-50/30' : ''}`}
-                          >
-                            <div className="text-base flex-shrink-0 mt-0.5">
-                              {n.type === 'NewEvent' && '🆕'}
-                              {n.type === 'RevisionRequest' && '📝'}
-                              {n.type === 'PaymentSlipUploaded' && '💳'}
-                              {n.type === 'ProposalAccepted' && '✅'}
-                              {n.type === 'WeatherAlert' && '🌦️'}
-                              {n.type === 'VendorResponse' && '🏬'}
-                              {!['NewEvent', 'RevisionRequest', 'PaymentSlipUploaded', 'ProposalAccepted', 'WeatherAlert', 'VendorResponse'].includes(n.type) && '🛎️'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-1">
-                                <h4 className={`text-xs font-bold truncate ${!n.isRead ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
-                                  {n.title}
-                                </h4>
-                                {!n.isRead && (
-                                  <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                                {n.message}
-                              </p>
-                              <span className="text-[10px] text-slate-400 mt-1 block">
-                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
+                      <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 bg-white">
+                        {managerNotifications.length === 0 ? (
+                          <div className="p-6 text-center text-slate-400 text-xs">
+                            <CheckCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-60" />
+                            No notifications yet. You're all caught up!
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          managerNotifications.map((n) => (
+                            <div 
+                              key={n.notificationId}
+                              onClick={() => handleNotificationClick(n)}
+                              className={`p-3.5 hover:bg-sky-50/80 cursor-pointer transition flex items-start space-x-3 ${!n.isRead ? 'bg-sky-50/40' : 'bg-white'}`}
+                            >
+                              <div className="text-base flex-shrink-0 mt-0.5">
+                                {n.type === 'NewEvent' && '🆕'}
+                                {n.type === 'RevisionRequest' && '📝'}
+                                {n.type === 'PaymentSlipUploaded' && '💳'}
+                                {n.type === 'ProposalAccepted' && '✅'}
+                                {n.type === 'WeatherAlert' && '🌦️'}
+                                {n.type === 'VendorResponse' && '🏬'}
+                                {!['NewEvent', 'RevisionRequest', 'PaymentSlipUploaded', 'ProposalAccepted', 'WeatherAlert', 'VendorResponse'].includes(n.type) && '🛎️'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <h4 className={`text-xs font-bold truncate ${!n.isRead ? 'text-slate-900 font-extrabold' : 'text-slate-700'}`}>
+                                    {n.title}
+                                  </h4>
+                                  {!n.isRead && (
+                                    <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                  {n.message}
+                                </p>
+                                <span className="text-[10px] text-slate-400 mt-1 block">
+                                  {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
