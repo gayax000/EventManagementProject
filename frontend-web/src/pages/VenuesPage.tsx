@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Users, DollarSign, Loader2, Building2, X, Sparkles, ChevronRight, Search } from 'lucide-react';
 import { venueService, banquetHallService, type BanquetHallItem } from '../services/api';
 import { LoadingSpinner, EmptyState, ErrorAlert } from '../components/UIStateComponents';
@@ -26,6 +27,16 @@ const QUICK_CITY_FILTERS = [
   'Tangalle'
 ];
 
+const cityToSlug = (c: string) => c.toLowerCase().replace(/\s+/g, '-');
+const slugToCity = (slug?: string) => {
+  if (!slug || slug.toLowerCase() === 'all') return 'All';
+  const cleanSlug = slug.toLowerCase().replace(/[^a-z]/g, '');
+  const match = QUICK_CITY_FILTERS.find(
+    c => c.toLowerCase().replace(/[^a-z]/g, '') === cleanSlug
+  );
+  return match || 'All';
+};
+
 const CITY_IMAGES: Record<string, string> = {
   'All': allCitiesImg,
   'Colombo': colomboImg,
@@ -40,10 +51,30 @@ const CITY_IMAGES: Record<string, string> = {
 };
 
 export const VenuesPage: React.FC = () => {
+  const { city } = useParams<{ city?: string }>();
+  const navigate = useNavigate();
   const [venues, setVenues] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCity, setSelectedCity] = useState('All');
+  const [selectedCity, setSelectedCity] = useState(() => slugToCity(city));
   const [loading, setLoading] = useState(false);
+
+  // Sync selectedCity whenever URL parameter changes (e.g. back/forward navigation)
+  useEffect(() => {
+    if (city) {
+      setSelectedCity(slugToCity(city));
+    } else {
+      setSelectedCity('All');
+    }
+  }, [city]);
+
+  const handleCitySelect = (cityName: string) => {
+    setSelectedCity(cityName);
+    if (cityName === 'All') {
+      navigate('/venues');
+    } else {
+      navigate(`/venues/${cityToSlug(cityName)}`);
+    }
+  };
 
   // Modal State
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
@@ -224,7 +255,7 @@ export const VenuesPage: React.FC = () => {
         {QUICK_CITY_FILTERS.map((city) => (
           <button
             key={city}
-            onClick={() => setSelectedCity(city)}
+            onClick={() => handleCitySelect(city)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition border ${
               selectedCity === city
                 ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
