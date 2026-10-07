@@ -268,35 +268,40 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0F172A),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: IconButton(
-            icon: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+        leadingWidth: 56,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 12.0),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  } else {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    );
+                  }
+                },
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: const Center(
-                child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  ),
+                ),
               ),
             ),
-            tooltip: 'Back to Home',
-            onPressed: () {
-              if (Navigator.of(context).canPop()) {
-                Navigator.of(context).pop();
-              } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
-              }
-            },
           ),
         ),
-        titleSpacing: 4,
+        titleSpacing: 8,
         title: const Row(
           children: [
             Icon(Icons.payment_rounded, color: Color(0xFF38BDF8), size: 20),
