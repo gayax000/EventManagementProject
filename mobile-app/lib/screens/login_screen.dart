@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 import 'policies_screen.dart';
@@ -174,6 +175,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     if (phone.isEmpty) {
       phoneErr = 'Please enter your phone number';
+    } else {
+      final phoneRegex = RegExp(r'^(?:\+94|0)[0-9]{9}$');
+      if (!phoneRegex.hasMatch(phone.replaceAll(RegExp(r'\s+'), ''))) {
+        phoneErr = 'Enter a valid mobile (e.g. 0771234567 or +94771234567)';
+      }
     }
     if (password.isEmpty) {
       passwordErr = 'Please enter your password';
@@ -481,12 +487,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _regPhoneController,
                         style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                          LengthLimitingTextInputFormatter(12),
+                        ],
                         decoration: _buildInputDecoration(
-                          "Phone (+94)", 
+                          "Phone (07XXXXXXXX or +947...)", 
                           Icons.phone_outlined,
                           errorText: _regPhoneError,
                         ),
-                        keyboardType: TextInputType.phone,
                         onChanged: (val) {
                           if (_regPhoneError != null) {
                             setModalState(() => _regPhoneError = null);

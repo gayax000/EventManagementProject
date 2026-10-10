@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import 'policies_screen.dart';
 
@@ -37,6 +38,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    final phoneRegex = RegExp(r'^(?:\+94|0)[0-9]{9}$');
+    if (!phoneRegex.hasMatch(phone.replaceAll(RegExp(r'\s+'), ''))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid mobile number (e.g. 0771234567 or +94771234567)', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
+
     if (!_agreedToPolicies) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -69,13 +81,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, bool obscureText = false, TextInputType? keyboardType, ValueChanged<String>? onSubmitted}) {
+  Widget _buildTextField({
+    required TextEditingController controller, 
+    required String label, 
+    required IconData icon, 
+    bool obscureText = false, 
+    TextInputType? keyboardType, 
+    List<TextInputFormatter>? inputFormatters,
+    ValueChanged<String>? onSubmitted,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         onSubmitted: onSubmitted,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
@@ -145,7 +166,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 
                 _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_outline),
                 _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-                _buildTextField(controller: _phoneController, label: "Phone Number", icon: Icons.phone_outlined, keyboardType: TextInputType.phone),
+                _buildTextField(
+                  controller: _phoneController, 
+                  label: "Phone Number (07XXXXXXXX or +947...)", 
+                  icon: Icons.phone_outlined, 
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                    LengthLimitingTextInputFormatter(12),
+                  ],
+                ),
                 _buildTextField(
                   controller: _passwordController, 
                   label: "Password (Min. 6 characters)", 
