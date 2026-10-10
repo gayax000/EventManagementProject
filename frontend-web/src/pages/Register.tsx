@@ -21,6 +21,12 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
       return;
     }
 
+    const phoneRegex = /^(?:\+94|0)[0-9]{9}$/;
+    if (!phoneRegex.test(phone.replace(/\s+/g, ''))) {
+      setError('Please enter a valid mobile number (e.g. 0771234567 or +94771234567)');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     
