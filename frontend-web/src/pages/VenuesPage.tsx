@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Users, DollarSign, Loader2, Building2, X, Sparkles, ChevronRight, Search } from 'lucide-react';
 import { venueService, banquetHallService, type BanquetHallItem } from '../services/api';
+import { FALLBACK_VENUES } from '../data/fallbackVenues';
 import { LoadingSpinner, EmptyState, ErrorAlert } from '../components/UIStateComponents';
 import allCitiesImg from '../assets/cities/all.png';
 import nuwaraEliyaImg from '../assets/cities/nuwara-eliya.png';
@@ -50,15 +51,36 @@ export const VenuesPage: React.FC = () => {
   const [venueHalls, setVenueHalls] = useState<BanquetHallItem[]>([]);
   const [loadingHalls, setLoadingHalls] = useState(false);
 
-  // Load Real Venues from our Backend API
+  // Load Real Venues from Backend API with Curated Fail-Safe Fallback
   useEffect(() => {
     const fetchVenues = async () => {
       try {
         setLoading(true);
         const data = await venueService.getVenues(searchTerm);
-        setVenues(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setVenues(data);
+        } else if (!searchTerm) {
+          setVenues(FALLBACK_VENUES);
+        } else {
+          const lower = searchTerm.toLowerCase();
+          const filtered = FALLBACK_VENUES.filter(v => 
+            v.name.toLowerCase().includes(lower) || 
+            v.locationAddress.toLowerCase().includes(lower)
+          );
+          setVenues(filtered);
+        }
       } catch (err) {
-        console.error("Failed to fetch venues from backend", err);
+        console.warn("Backend API unavailable, using curated Sri Lankan venues catalog:", err);
+        if (!searchTerm) {
+          setVenues(FALLBACK_VENUES);
+        } else {
+          const lower = searchTerm.toLowerCase();
+          const filtered = FALLBACK_VENUES.filter(v => 
+            v.name.toLowerCase().includes(lower) || 
+            v.locationAddress.toLowerCase().includes(lower)
+          );
+          setVenues(filtered);
+        }
       } finally {
         setLoading(false);
       }
@@ -70,10 +92,13 @@ export const VenuesPage: React.FC = () => {
     setSelectedVenueId(venueId);
     setLoadingHalls(true);
     const matchedVenue = venues.find(v => v.venueId === venueId);
+    const fallbackMatch = FALLBACK_VENUES.find(v => v.venueId === venueId || v.name === matchedVenue?.name);
     try {
       const halls = await banquetHallService.getHalls(venueId);
       if (halls && halls.length > 0) {
         setVenueHalls(halls);
+      } else if (fallbackMatch && fallbackMatch.halls && fallbackMatch.halls.length > 0) {
+        setVenueHalls(fallbackMatch.halls);
       } else if (matchedVenue) {
         // Balanced fallback mix: 1 Indoor Grand Ballroom + 1 Outdoor Scenic Lawn
         const baseName = (matchedVenue.name || 'Luxury Venue').replace(/hotel|resort/gi, '').trim();
@@ -106,8 +131,10 @@ export const VenuesPage: React.FC = () => {
         setVenueHalls([]);
       }
     } catch (err) {
-      console.error("Failed to fetch halls", err);
-      if (matchedVenue) {
+      console.warn("Failed to fetch halls from API, using fallback:", err);
+      if (fallbackMatch && fallbackMatch.halls && fallbackMatch.halls.length > 0) {
+        setVenueHalls(fallbackMatch.halls);
+      } else if (matchedVenue) {
         const baseName = (matchedVenue.name || 'Luxury Venue').replace(/hotel|resort/gi, '').trim();
         const basePrice = Number(matchedVenue.baseRentalPrice) || 350000;
         setVenueHalls([
