@@ -13,6 +13,8 @@ public class RegisterRequestDto
     [Required, MinLength(6)]
     public string Password { get; set; } = string.Empty;
 
+    [Required]
+    [RegularExpression(@"^(?:\+94|0)[0-9]{9}$", ErrorMessage = "Please enter a valid phone number (e.g. 0771234567 or +94771234567).")]
     public string PhoneNumber { get; set; } = string.Empty;
 
     public string? Role { get; set; } = "Vendor";
@@ -70,6 +72,7 @@ public class RegisterVendorDto
     public string Category { get; set; } = "Catering";
 
     [Required]
+    [RegularExpression(@"^(?:\+94|0)[0-9]{9}$", ErrorMessage = "Please enter a valid contact number (e.g. 0771234567 or +94771234567).")]
     public string ContactNumber { get; set; } = string.Empty;
 
     public string? Description { get; set; }
