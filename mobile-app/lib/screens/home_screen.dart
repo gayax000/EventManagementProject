@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
@@ -776,12 +777,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     TextField(
                       controller: phoneController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                        LengthLimitingTextInputFormatter(12),
+                      ],
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: const Color(0xFF1E293B),
                         prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF64748B), size: 18),
-                        hintText: "e.g. +94 77 123 4567",
+                        hintText: "e.g. 0771234567 or +94 77 123 4567",
                         hintStyle: const TextStyle(color: Color(0xFF475569)),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -809,6 +814,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           final newName = nameController.text.trim();
                           final newEmail = emailController.text.trim();
                           final newPhone = phoneController.text.trim();
+
+                          if (newPhone.isNotEmpty) {
+                            final phoneRegex = RegExp(r'^(?:\+94|0)[0-9]{9}$');
+                            if (!phoneRegex.hasMatch(newPhone.replaceAll(RegExp(r'\s+'), ''))) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Please enter a valid mobile number (e.g. 0771234567 or +94771234567)"),
+                                  backgroundColor: Colors.amber,
+                                ),
+                              );
+                              return;
+                            }
+                          }
 
                           if (newName.isNotEmpty) {
                             await AuthService.updateProfile(
