@@ -713,7 +713,8 @@ public class EventsController : ControllerBase
         [FromQuery] int? pageNumber,
         [FromQuery] int? pageSize,
         [FromQuery] string? search,
-        [FromQuery] string? status)
+        [FromQuery] string? status,
+        [FromQuery] bool? all = false)
     {
         try
         {
@@ -723,21 +724,34 @@ public class EventsController : ControllerBase
                 return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
             }
 
-            Guid targetCustomerId;
+            Guid? targetCustomerId;
             if (IsManagerOrAdmin())
             {
-                targetCustomerId = (customerId.HasValue && customerId.Value != Guid.Empty) ? customerId.Value : Guid.Empty;
+                if (customerId.HasValue && customerId.Value != Guid.Empty)
+                {
+                    targetCustomerId = customerId.Value;
+                }
+                else if (all == true)
+                {
+                    // Manager/Admin explicitly requesting all client events across the system
+                    targetCustomerId = null;
+                }
+                else
+                {
+                    // Even Managers viewing personal "my-events" default to their own events
+                    targetCustomerId = currentUserId.Value;
+                }
             }
             else
             {
-                // Customer ALWAYS gets only their own events derived strictly from JWT
+                // Customer ALWAYS gets only their own events derived strictly from authenticated JWT token
                 targetCustomerId = currentUserId.Value;
             }
 
             var query = _context.Events.AsNoTracking().AsQueryable();
-            if (targetCustomerId != Guid.Empty)
+            if (targetCustomerId.HasValue)
             {
-                query = query.Where(e => e.CustomerId == targetCustomerId);
+                query = query.Where(e => e.CustomerId == targetCustomerId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search))

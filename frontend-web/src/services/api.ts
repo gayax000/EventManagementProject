@@ -92,9 +92,10 @@ export const banquetHallService = {
 };
 
 export const eventService = {
-  // Fetch events list
-  getMyEvents: async (): Promise<EventItem[]> => {
-    const response = await apiClient.get<EventItem[]>('/events/my-events');
+  // Fetch events list (supports all=true for Manager Dashboard)
+  getMyEvents: async (all: boolean = true): Promise<EventItem[]> => {
+    const url = all ? '/events/my-events?all=true' : '/events/my-events';
+    const response = await apiClient.get<EventItem[]>(url);
     return response.data;
   },
 
