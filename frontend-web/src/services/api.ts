@@ -1,15 +1,21 @@
 import axios from 'axios';
 
-let rawUrl = import.meta.env.VITE_API_URL || 'https://eventmanagementproject-production-94fe.up.railway.app/api';
+let rawUrl = import.meta.env.VITE_API_URL;
+let API_BASE_URL: string;
 
-rawUrl = rawUrl.trim().replace(/\/+$/, '');
-if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
-  rawUrl = `https://${rawUrl}`;
+if (!rawUrl) {
+  // In local Vite dev, proxy /api to Railway to prevent any CORS errors
+  API_BASE_URL = '/api';
+} else {
+  rawUrl = rawUrl.trim().replace(/\/+$/, '');
+  if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+    rawUrl = `https://${rawUrl}`;
+  }
+  if (!rawUrl.endsWith('/api')) {
+    rawUrl = `${rawUrl}/api`;
+  }
+  API_BASE_URL = rawUrl;
 }
-if (!rawUrl.endsWith('/api')) {
-  rawUrl = `${rawUrl}/api`;
-}
-const API_BASE_URL = rawUrl;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

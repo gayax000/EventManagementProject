@@ -300,20 +300,6 @@ public static class DbInitializer
         }
 
         // 6. Realistic Multi-Category Event Vendors Seeding
-        // NOTE: Photography category is intentionally kept clean (unseeded) so the user can live-register and demonstrate Photography vendors at the viva!
-        try
-        {
-            var legacyPhotoVendors = await context.Vendors
-                .Where(v => v.Category == "Photography" && (v.BusinessName.Contains("EventCraft") || v.BusinessName.Contains("Seeded") || v.BusinessName.Contains("Studio Lumiere")))
-                .ToListAsync();
-            if (legacyPhotoVendors.Any())
-            {
-                context.Vendors.RemoveRange(legacyPhotoVendors);
-                await context.SaveChangesAsync();
-            }
-        }
-        catch { }
-
         var systemCatalogVendorId = Guid.Parse("00000000-0000-0000-0000-000000000001");
         if (!await context.Users.AnyAsync(u => u.UserId == systemCatalogVendorId))
         {
@@ -333,6 +319,12 @@ public static class DbInitializer
 
         var predefinedVendors = new List<Vendor>
         {
+            // 0. Photography & Cinematography (Tiers 1 - 4 matching CATEGORY_TIERS_MAP)
+            new() { BusinessName = "Studio LensCraft - Solo Coverage & Soft Copies", Category = "Photography", ContactNumber = "+94 77 111 4455", VerificationStatus = "Verified", PackageName = "Single Photographer, Soft Copies & Color Graded", PackagePrice = 45000, AdminRemarks = "Tier 1: Solo professional photographer covering ceremony & unlimited color-graded soft copies", UserId = userId },
+            new() { BusinessName = "Studio Lumiere - 2 Photographers & Storybook Album", Category = "Photography", ContactNumber = "+94 77 222 5566", VerificationStatus = "Verified", PackageName = "2 Photographers, Full Day Coverage & Storybook Highlights", PackagePrice = 95000, AdminRemarks = "Tier 2: 2 Senior Photographers with full-day coverage & 30-page magazine storybook album", UserId = userId },
+            new() { BusinessName = "Master Visuals 4K Video + 2 Photographers & Album", Category = "Photography", ContactNumber = "+94 77 333 6677", VerificationStatus = "Verified", PackageName = "Master 4K Video, 2 Photographers & Storybook Wedding Album", PackagePrice = 160000, AdminRemarks = "Tier 3: Master wedding coverage with 2 Photographers, 4K Cinematographer & acrylic album", UserId = userId },
+            new() { BusinessName = "Royal CinemaCraft - Cinema Rig, Drone & 3 Photographers", Category = "Photography", ContactNumber = "+94 77 444 7788", VerificationStatus = "Verified", PackageName = "Royal Cinematic Rig, 4K Drone & 3 Senior Photographers", PackagePrice = 250000, AdminRemarks = "Tier 4: Elite coverage with cinema rigs, licensed drone, 3 Photographers & 2 luxury albums", UserId = userId },
+
             // 1. Sound & Stage Lighting (Tiers 1 - 9)
             new() { BusinessName = "QuickSound Acoustic & Speech Kit - Homagama", Category = "SoundLighting", ContactNumber = "+94 77 100 2233", VerificationStatus = "Verified", PackageName = "Compact Speech PA & Bluetooth Unit", PackagePrice = 15000, AdminRemarks = "Budget speech & acoustic PA system for micro events", UserId = userId },
             new() { BusinessName = "CityBeat Community Audio - Maharagama", Category = "SoundLighting", ContactNumber = "+94 77 105 4567", VerificationStatus = "Verified", PackageName = "Dual Powered PA Speaker Kit with Mic", PackagePrice = 20000, AdminRemarks = "Basic dual powered speakers & wired mic", UserId = userId },
