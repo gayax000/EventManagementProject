@@ -104,6 +104,15 @@ agent_graph = workflow.compile()
 # ---------------------------------------------------------------------------
 # 4. REST API Endpoints (Exposed to ASP.NET Core Web API)
 # ---------------------------------------------------------------------------
+@app.get("/")
+def root():
+    return {
+        "status": "Online",
+        "service": "EventCraft Multi-Agent AI Subsystem (LangGraph)",
+        "docs": "/docs",
+        "health": "/health"
+    }
+
 @app.get("/health")
 def health_check():
     return {
@@ -137,6 +146,19 @@ def execute_multi_agent_workflow(event_req: EventObjectiveInput):
         # Invoke the LangGraph State Machine
         final_state = agent_graph.invoke(initial_state)
 
+        cost_items = final_state.get("cost_breakdown", [])
+        assigned_vendors = [
+            {
+                "category": it.category,
+                "vendorName": it.partner or it.name,
+                "packageName": it.name,
+                "packagePrice": it.cost,
+                "agreedPayout": it.cost
+            }
+            for it in cost_items
+            if it.category in ["Catering", "SoundLighting", "Decor", "Photography", "Cake", "Transport", "WeatherSafeguard", "MarqueeTent"]
+        ]
+
         return AgentWorkflowResult(
             workflowId=workflow_id,
             eventId=event_req.eventId,
@@ -145,14 +167,15 @@ def execute_multi_agent_workflow(event_req: EventObjectiveInput):
             multiStepPlan=final_state.get("multi_step_plan", []),
             weatherRiskAssessment=final_state.get("weather_assessment", {}),
             selectedVenue=final_state.get("selected_venue", ""),
-            costBreakdown=final_state.get("cost_breakdown", []),
+            costBreakdown=cost_items,
             subtotal=final_state.get("subtotal", 0.0),
             isUnderBudget=final_state.get("is_under_budget", False),
             budgetRemaining=final_state.get("budget_remaining", 0.0),
             validationPassed=final_state.get("validation_passed", False),
             requiresHumanApproval=final_state.get("requires_human_approval", True),
             approvalStatus=final_state.get("approval_status", "PendingManagerApproval"),
-            auditTraceLogs=final_state.get("audit_trace_logs", [])
+            auditTraceLogs=final_state.get("audit_trace_logs", []),
+            assignedVendors=assigned_vendors
         )
 
     except Exception as e:

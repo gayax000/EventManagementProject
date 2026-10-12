@@ -25,14 +25,36 @@ class WeatherRiskAgent:
 
         safeguard = None
         if objective.isOutdoor and rain_pct >= 60:
+            budget = objective.budgetLimit
+            if budget > 2000000.0:
+                tent_name = "Air-Conditioned Transparent German Hangar Marquee (40x80 ft)"
+                tent_cost = 350000.0
+                tent_partner = "Grand Royal German Hangar Marquees"
+            elif budget >= 1200000.0:
+                tent_name = "Heavy-Duty Waterproof Marquee Tent (20x40 ft)"
+                tent_cost = 150000.0
+                tent_partner = "Ceylon WeatherShield Marquee Tents"
+            elif budget >= 700000.0:
+                tent_name = "High-Peak Waterproof Stretch Canopy (20x30 ft)"
+                tent_cost = 80000.0
+                tent_partner = "SunShade Canopies & Pergolas Colombo"
+            else:
+                tent_name = "Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)"
+                tent_cost = 45000.0
+                tent_partner = "Apex Canopies & Tents - Ragama"
+
             safeguard = ProposedItem(
-                name="Heavy-Duty Waterproof Marquee Tent (20x40 ft)",
+                name=tent_name,
                 category="WeatherSafeguard",
-                cost=150000.0,
+                cost=tent_cost,
                 isSafeguard=True,
-                reason=f"{rain_pct}% Rain Probability detected for outdoor grounds in {city} via {data_source}."
+                reason=f"{rain_pct}% Rain Probability detected for outdoor grounds in {city} via {data_source}.",
+                partner=tent_partner
             )
-            trace_log.append(f"WeatherRiskAgent (Member 3): ALERT - Rain risk {rain_pct}% exceeds safety threshold (60%). Auto-injected Marquee Tent safeguard (Rs. 150,000).")
+            trace_log.append(
+                f"WeatherRiskAgent (Member 3): ALERT - Rain risk {rain_pct}% exceeds safety threshold (60%). "
+                f"Auto-injected tiered safeguard: {tent_name} (Rs. {tent_cost:,.0f}) [Partner: {tent_partner}]."
+            )
         else:
             if not objective.isOutdoor:
                 trace_log.append("WeatherRiskAgent (Member 3): Event is indoors. 0% weather exposure; no shelter contingency required.")

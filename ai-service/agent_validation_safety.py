@@ -22,10 +22,10 @@ class ValidationSafetyAgent:
         passed = is_under_budget and has_items
 
         if passed:
-            trace_log.append("ValidationSafetyAgent (Member 4): All deterministic safety rules PASSED.")
-            trace_log.append("ValidationSafetyAgent (Member 4): Halting workflow. Setting state to PendingManagerApproval.")
+            trace_log.append(f"ValidationSafetyAgent (Member 4): All deterministic safety rules PASSED. Subtotal: Rs. {subtotal:,.2f} <= Ceiling: Rs. {objective.budgetLimit:,.2f} (Remaining: Rs. {remaining:,.2f}).")
+            trace_log.append("ValidationSafetyAgent (Member 4): Human-in-the-Loop Interceptor active. Routing proposal to Manager for review & sign-off.")
         else:
-            trace_log.append(f"ValidationSafetyAgent (Member 4): VIOLATION - Proposal exceeds budget by Rs. {abs(remaining):,.2f}")
+            trace_log.append(f"ValidationSafetyAgent (Member 4): VIOLATION - Proposal exceeds budget ceiling by Rs. {abs(remaining):,.2f}.")
 
         return {
             "agent": self.role_name,

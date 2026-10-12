@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 from typing_extensions import TypedDict
 import uuid
 
 # 1. User Event Request Input Contract
 class EventObjectiveInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     eventId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     targetDate: str
@@ -14,6 +16,15 @@ class EventObjectiveInput(BaseModel):
     isOutdoor: bool = True
     inspirationImageUrl: Optional[str] = None
     customPrompt: Optional[str] = Field(default=None, description="Natural language event vision prompt")
+    selectedServices: Optional[List[str]] = Field(default_factory=list, description="Client selected vendor service categories")
+    tableRefreshments: Optional[List[str]] = Field(default_factory=list, description="Client selected table refreshments & food add-ons")
+    eventSession: Optional[str] = Field(default="DayLunch", description="Event session time slot (DayLunch, NightDinner, EveningHighTea)")
+    cateringStyle: Optional[str] = Field(default="InternationalBuffet", description="Buffet style (InternationalBuffet, OutdoorBBQ, HighTeaCanape, SriLankanHeritage)")
+    preferredLocation: Optional[str] = None
+    additionalDetails: Optional[str] = None
+    banquetHallName: Optional[str] = None
+    hallRentalPrice: Optional[float] = 0.0
+    perPlatePrice: Optional[float] = None
 
 # 2. Individual Resource Item in Proposal
 class ProposedItem(BaseModel):
@@ -22,6 +33,8 @@ class ProposedItem(BaseModel):
     cost: float
     isSafeguard: bool = False
     reason: Optional[str] = None
+    partner: Optional[str] = None
+    vendorId: Optional[str] = None
 
 # 3. LangGraph Shared State Schema (SE3090 Section 9 & 10 Compliance)
 class AgentGraphState(TypedDict, total=False):
@@ -58,3 +71,4 @@ class AgentWorkflowResult(BaseModel):
     requiresHumanApproval: bool
     approvalStatus: str = "PendingManagerApproval"
     auditTraceLogs: List[str]
+    assignedVendors: Optional[List[Dict[str, Any]]] = Field(default_factory=list)

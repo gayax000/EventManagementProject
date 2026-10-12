@@ -36,7 +36,7 @@ public class AiWorkflowService : IAiWorkflowService
         _httpClient = httpClient;
         _context = context;
         _logger = logger;
-        _aiServiceUrl = configuration["AiServiceUrl"] ?? "http://localhost:8000/api/ai/plan";
+        _aiServiceUrl = configuration["AiServiceUrl"] ?? "https://event-management-project-peach.vercel.app/api/ai/plan";
     }
 
     public static WeatherEvaluation EvaluateWeatherRisk(DateTime targetDate, string location, bool isOutdoor, decimal budgetLimit = 0m)
@@ -203,7 +203,177 @@ public class AiWorkflowService : IAiWorkflowService
             ? $"{ev.BanquetHallVenueName ?? "Selected Hotel"} ({ev.BanquetHallName})" 
             : (ev.VenueName != null ? $"{ev.VenueName}, {ev.VenueAddress}" : (!string.IsNullOrWhiteSpace(ev.PreferredLocation) ? ev.PreferredLocation : "Colombo"));
 
-        // 1. Evaluate Dynamic Date-Aware & Location-Aware Weather
+        List<string> selectedServicesList = new();
+        if (!string.IsNullOrEmpty(ev.SelectedServicesJson))
+        {
+            try { selectedServicesList = JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson) ?? new(); }
+            catch { }
+        }
+
+        List<string> refreshmentsList = new();
+        if (!string.IsNullOrEmpty(ev.TableRefreshmentsJson))
+        {
+            try { refreshmentsList = JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson) ?? new(); }
+            catch { }
+        }
+
+        // 1. Primary: Execute Live Python LangGraph Multi-Agent AI Subsystem (Vercel Cloud Microservice)
+        if (!string.IsNullOrWhiteSpace(_aiServiceUrl))
+        {
+            try
+            {
+                var payload = new
+                {
+                    eventId = ev.EventId.ToString(),
+                    title = ev.Title,
+                    targetDate = ev.TargetDate.ToString("yyyy-MM-dd"),
+                    guestCount = ev.GuestCount,
+                    budgetLimit = ev.BudgetLimit,
+                    location = eventLocation,
+                    isOutdoor = ev.IsOutdoor,
+                    customPrompt = ev.CustomPrompt,
+                    selectedServices = selectedServicesList,
+                    tableRefreshments = refreshmentsList,
+                    eventSession = ev.EventSession ?? "DayLunch",
+                    cateringStyle = ev.CateringStyle ?? "InternationalBuffet",
+                    preferredLocation = ev.PreferredLocation,
+                    additionalDetails = ev.AdditionalDetails,
+                    banquetHallName = ev.BanquetHallName,
+                    hallRentalPrice = ev.HallRentalPrice,
+                    perPlatePrice = ev.PerPlatePrice
+                };
+
+                using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var response = await _httpClient.PostAsync(_aiServiceUrl, content, cts.Token);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseJson = await response.Content.ReadAsStringAsync(cts.Token);
+                    using var doc = JsonDocument.Parse(responseJson);
+                    var root = doc.RootElement;
+
+                    decimal subtotal = root.TryGetProperty("subtotal", out var subProp) ? subProp.GetDecimal() : ev.BudgetLimit;
+                    string approvalStatus = root.TryGetProperty("approvalStatus", out var appProp) ? appProp.GetString() ?? "PendingManagerApproval" : "PendingManagerApproval";
+                    string objectiveSummary = root.TryGetProperty("objectiveSummary", out var objProp) ? objProp.GetString() ?? $"Autonomous proposal for {ev.Title} ({ev.GuestCount} guests)" : $"Autonomous proposal for {ev.Title} ({ev.GuestCount} guests)";
+
+                    var pyPlanItems = new List<string>();
+                    var assignedVendorsList = new List<object>();
+
+                    string weatherJsonResult = string.Empty;
+                    if (root.TryGetProperty("weatherRiskAssessment", out var weatherObj))
+                    {
+                        weatherJsonResult = weatherObj.GetRawText();
+                        var rainPct = weatherObj.TryGetProperty("rainProbabilityPercent", out var rPct) ? rPct.GetInt32() : 0;
+                        var cond = weatherObj.TryGetProperty("condition", out var cStr) ? cStr.GetString() ?? "" : "";
+                        if (!ev.IsOutdoor)
+                        {
+                            pyPlanItems.Add("Weather Assessment: 0% Risk (Indoor Air-Conditioned Venue - Fully Weather-Sheltered)");
+                            pyPlanItems.Add("No Marquee Tent Required (Rs. 150,000 saved for client)");
+                        }
+                        else
+                        {
+                            pyPlanItems.Add($"Weather Forecast: {rainPct}% ({cond})");
+                        }
+                    }
+
+                    var pySessionTitle = ev.EventSession == "NightDinner" ? "Night Dinner Session (6:00 PM - 11:30 PM)" : (ev.EventSession == "EveningHighTea" ? "Evening High Tea (3:30 PM - 7:00 PM)" : "Day Lunch Session (10:00 AM - 3:30 PM)");
+                    pyPlanItems.Add($"Event Session: {pySessionTitle}");
+
+                    if (root.TryGetProperty("costBreakdown", out var costArray) && costArray.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in costArray.EnumerateArray())
+                        {
+                            var itemName = item.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                            var itemCost = item.TryGetProperty("cost", out var c) ? c.GetDecimal() : 0m;
+                            var itemCategory = item.TryGetProperty("category", out var cat) ? cat.GetString() ?? "" : "";
+                            var itemPartner = item.TryGetProperty("partner", out var part) ? part.GetString() : null;
+
+                            if (!string.IsNullOrWhiteSpace(itemName))
+                            {
+                                pyPlanItems.Add($"{itemName}{(itemPartner != null ? $" [Partner: {itemPartner}]" : "")} (Rs. {itemCost:N0})");
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(itemCategory) && itemCategory != "Venue" && itemCategory != "Refreshment")
+                            {
+                                assignedVendorsList.Add(new
+                                {
+                                    category = itemCategory == "WeatherSafeguard" ? "MarqueeTent" : itemCategory,
+                                    vendorName = itemPartner ?? itemName,
+                                    packageName = itemName,
+                                    packagePrice = itemCost,
+                                    agreedPayout = itemCost
+                                });
+                            }
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(ev.AdditionalDetails))
+                    {
+                        pyPlanItems.Add($"Special Client Request: {ev.AdditionalDetails} (Priced by Manager upon Review)");
+                    }
+
+                    var auditTraceList = new List<string>();
+                    if (root.TryGetProperty("auditTraceLogs", out var traceArray) && traceArray.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var t in traceArray.EnumerateArray())
+                        {
+                            auditTraceList.Add(t.GetString() ?? "");
+                        }
+                    }
+
+                    string generatedPlanResult = JsonSerializer.Serialize(pyPlanItems);
+                    string toolLogsResult = JsonSerializer.Serialize(auditTraceList);
+                    string autoAssignedJson = JsonSerializer.Serialize(assignedVendorsList);
+
+                    var pyExistingState = await _context.AIWorkflowStates.FirstOrDefaultAsync(a => a.EventId == ev.EventId);
+                    if (pyExistingState != null)
+                    {
+                        pyExistingState.ObjectiveText = objectiveSummary;
+                        pyExistingState.GeneratedPlanJson = generatedPlanResult;
+                        if (!string.IsNullOrWhiteSpace(weatherJsonResult)) pyExistingState.WeatherAssessmentJson = weatherJsonResult;
+                        pyExistingState.ToolExecutionLogsJson = toolLogsResult;
+                        pyExistingState.EstimatedTotalCost = subtotal;
+                        await _context.SaveChangesAsync();
+                        await _context.Events.Where(e => e.EventId == eventId && string.IsNullOrEmpty(e.AssignedVendorsJson))
+                            .ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, autoAssignedJson));
+                        _logger.LogInformation("Python LangGraph AI Workflow executed successfully for Event {EventId}. Total: {Total}", eventId, subtotal);
+                        return pyExistingState;
+                    }
+
+                    var pyFinalState = new AIWorkflowState
+                    {
+                        EventId = ev.EventId,
+                        ObjectiveText = objectiveSummary,
+                        GeneratedPlanJson = generatedPlanResult,
+                        WeatherAssessmentJson = !string.IsNullOrWhiteSpace(weatherJsonResult) ? weatherJsonResult : "{}",
+                        ToolExecutionLogsJson = toolLogsResult,
+                        EstimatedTotalCost = subtotal,
+                        ApprovalStatus = approvalStatus
+                    };
+
+                    _context.AIWorkflowStates.Add(pyFinalState);
+                    await _context.SaveChangesAsync();
+                    await _context.Events.Where(e => e.EventId == eventId)
+                        .ExecuteUpdateAsync(s => s
+                            .SetProperty(e => e.Status, approvalStatus)
+                            .SetProperty(e => e.AssignedVendorsJson, autoAssignedJson));
+
+                    _logger.LogInformation("Persisted Python LangGraph AI Workflow for Event {EventId}. Total: {Total}", eventId, subtotal);
+                    return pyFinalState;
+                }
+                else
+                {
+                    _logger.LogWarning("Python AI service returned status code {StatusCode}. Falling back to native evaluator.", response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to call external Python AI service at {Url}. Falling back to native evaluator.", _aiServiceUrl);
+            }
+        }
+
+        // 2. Secondary Safe Fallback: Intelligent Proposal Engine (Native in .NET for High Availability & Zero Failure)
         var weather = EvaluateWeatherRisk(ev.TargetDate, eventLocation, ev.IsOutdoor, ev.BudgetLimit);
         string weatherJson = JsonSerializer.Serialize(weather);
 
