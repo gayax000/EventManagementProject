@@ -385,8 +385,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       (Match m) => '${m[1]},',
     );
 
+    final hasPass = proposal.qrCodeData != null && proposal.qrCodeData!.isNotEmpty;
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
+    final isFullyConfirmed = isConfirmed && hasPass;
+    final isPaymentVerified = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';
     final isChoiceSubmitted = proposal.status == 'ClientChoiceSubmitted';
     final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval';
 
@@ -396,10 +399,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Status Header
-          if (isConfirmed)
+          if (isFullyConfirmed)
             _buildBadge("STATUS: BOOKING CONFIRMED & PASS ISSUED", const Color(0xFFDCFCE7), const Color(0xFF059669))
-          else if (isApproved) ...[
-            if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
+          else if (isApproved || isConfirmed) ...[
+            if (isPaymentVerified)
               _buildBadge("PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", const Color(0xFFDCFCE7), const Color(0xFF059669))
             else if (proposal.paymentStatus == 'PendingVerification')
               _buildBadge("PAYMENT SLIP UNDER MANAGER VERIFICATION", const Color(0xFFFEF3C7), const Color(0xFFD97706))
@@ -451,20 +454,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 _buildTimelineStep(
                   stepNumber: "3",
                   title: "3. Deposit",
-                  isActive: isApproved && !isConfirmed,
-                  isDone: isConfirmed,
+                  isActive: (isApproved || isConfirmed) && !hasPass,
+                  isDone: isPaymentVerified || hasPass,
                   hasLineBefore: true,
                   isLineBeforeActive: isApproved || isConfirmed,
                   hasLineAfter: true,
-                  isLineAfterActive: isConfirmed,
+                  isLineAfterActive: isPaymentVerified || hasPass,
                 ),
                 _buildTimelineStep(
                   stepNumber: "4",
                   title: "4. Pass Issued",
-                  isActive: isConfirmed,
-                  isDone: isConfirmed,
+                  isActive: hasPass || (isPaymentVerified && !hasPass),
+                  isDone: hasPass,
                   hasLineBefore: true,
-                  isLineBeforeActive: isConfirmed,
+                  isLineBeforeActive: isPaymentVerified || hasPass,
                   hasLineAfter: false,
                   isLineAfterActive: false,
                 ),
@@ -1481,7 +1484,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ],
 
           // 5. Action / Signature / QR Pass based on State
-          if (isConfirmed && proposal.qrCodeData != null) ...[
+          if (hasPass) ...[
             // QR Entry Pass View
             Center(
               child: Container(
@@ -1515,11 +1518,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
               ),
             ),
-          ] else if (isApproved) ...[
+          ] else if (isApproved || isConfirmed) ...[
             Builder(
               builder: (context) {
-                final isPaymentVerified = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';
-
                 if (isPaymentVerified) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1588,7 +1589,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
                               onPressed: () => _signatureController.clear(),
-                              child: const Text("Clear Signature", style: TextStyle(color: Colors.white70)),
+                              child: const Text("Clear Signature", style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w600)),
                             ),
                           ),
                           const SizedBox(width: 12),
