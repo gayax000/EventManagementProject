@@ -5,8 +5,8 @@ import '../models/event_model.dart';
 import 'auth_service.dart';
 
 class ApiService {
-  // Toggle between Localhost and Railway Cloud
-  static const bool useLocalhost = true;
+  // Toggle between Localhost backend and Railway Cloud backend
+  static const bool useLocalhost = false;
 
   static String get baseUrl {
     if (useLocalhost) {
