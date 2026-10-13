@@ -1,0 +1,21 @@
+# -----------------------------------------------------------------------------
+# GitHub Linguist Overrides - EventCraft Repository
+# Prevents compiled build artifacts & native boilerplate from skewing language stats
+# -----------------------------------------------------------------------------
+
+# 1. Compiled Flutter Web Build (excludes 43MB of generated JS from GitHub language bar)
+mobile-web/** linguist-vendored=true
+mobile-web/** linguist-generated=true
+
+# 2. Flutter Native Runner Boilerplate (excludes Windows/Linux C++ template files)
+mobile-app/windows/** linguist-vendored=true
+mobile-app/linux/** linguist-vendored=true
+mobile-app/macos/** linguist-vendored=true
+mobile-app/ios/** linguist-vendored=true
+mobile-app/android/** linguist-vendored=true
+
+# 3. Performance Testing Scripts (k6 load test scripts)
+performance/** linguist-vendored=true
+
+# 4. Entity Framework Core Generated Migrations
+backend/EventManagement.Infrastructure/Migrations/** linguist-generated=true
