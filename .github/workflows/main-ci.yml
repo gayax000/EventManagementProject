@@ -5,6 +5,7 @@ on:
     branches: [ main, fix/* ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   backend-test:
@@ -86,3 +87,47 @@ jobs:
           flutter pub get
           flutter analyze --no-fatal-warnings --no-fatal-infos
           flutter test
+
+  flutter-apk-build:
+    name: Build Android Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+          cache: true
+      - name: Build Android Release APK
+        run: |
+          cd mobile-app
+          flutter pub get
+          flutter build apk --release
+      - name: Upload Release APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: mobile-app/build/app/outputs/flutter-apk/app-release.apk
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: mobile-latest
+          name: EventCraft Mobile App Latest Release
+          body: |
+            ### EventCraft Mobile Application - Latest Release APK
+            - **Feature Fix:** Unlocked Signature Pad & Entry Pass minting when payment is verified by manager.
+            - **Download:** Download `app-release.apk` directly to your Android device and install.
+          files: mobile-app/build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
