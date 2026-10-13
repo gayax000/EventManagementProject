@@ -401,7 +401,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           // 1. Status Header
           if (isFullyConfirmed)
             _buildBadge("STATUS: BOOKING CONFIRMED & PASS ISSUED", const Color(0xFFDCFCE7), const Color(0xFF059669))
-          else if (isApproved || isConfirmed) ...[
+          else if (isApproved || isConfirmed || isPaymentVerified) ...[
             if (isPaymentVerified)
               _buildBadge("PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", const Color(0xFFDCFCE7), const Color(0xFF059669))
             else if (proposal.paymentStatus == 'PendingVerification')
@@ -1478,7 +1478,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ],
 
           // 4. Bank Transfer & Payment Slip Section
-          if (isApproved || isConfirmed) ...[
+          if (isApproved || isConfirmed || isPaymentVerified) ...[
             _buildPaymentSlipSection(proposal, formattedCost),
             const SizedBox(height: 16),
           ],
@@ -1518,7 +1518,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
               ),
             ),
-          ] else if (isApproved || isConfirmed) ...[
+          ] else if (isApproved || isConfirmed || isPaymentVerified) ...[
             Builder(
               builder: (context) {
                 if (isPaymentVerified) {
