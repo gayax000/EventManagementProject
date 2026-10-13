@@ -65,31 +65,8 @@ jobs:
           npm test
           npm run build
 
-  flutter-app-test:
-    name: Flutter Mobile Application Tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.5'
-          channel: 'stable'
-          cache: true
-      - name: Install, Analyze & Test
-        run: |
-          cd mobile-app
-          flutter pub get
-          flutter analyze --no-fatal-warnings --no-fatal-infos
-          flutter test
-
-  flutter-apk-build:
-    name: Build Android Release APK
+  flutter-app:
+    name: Flutter Mobile Application Tests & APK Build
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -110,14 +87,18 @@ jobs:
         run: |
           yes "y" | flutter doctor --android-licenses || true
           flutter doctor -v
+      - name: Install, Analyze & Test
+        run: |
           cd mobile-app
           flutter pub get
-          mkdir -p android
-          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
-          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
+          flutter analyze --no-fatal-warnings --no-fatal-infos
+          flutter test
       - name: Build Android Release APK
         run: |
           cd mobile-app
+          mkdir -p android
+          echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+          echo "sdk.dir=$ANDROID_HOME" >> android/local.properties
           flutter build apk --release --verbose
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
