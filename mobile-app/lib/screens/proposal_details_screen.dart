@@ -1008,7 +1008,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                     final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Clear Skies' : 'Climate Controlled');
                     final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
                     final String rawSafeguardName = wMap != null ? (wMap['Safeguard'] ?? wMap['safeguard'] ?? 'Waterproof Marquee Tent') : 'Waterproof Marquee Tent';
-                    final bool needsWeatherTent = isOut && (rawSafeguardCost > 0 || rainPct >= 60);
+                    final bool needsWeatherTent = isOut && rainPct >= 60;
                     final int cloudCover = wMap != null ? (wMap['CloudCoverPercent'] ?? wMap['cloudCoverPercent'] ?? (rainPct >= 60 ? 85 : 20)) : (rainPct >= 60 ? 85 : 20);
                     final double tempVal = wMap != null ? ((wMap['Temperature'] ?? wMap['temperature'] ?? 28.0) as num).toDouble() : 28.0;
                     final int humidityVal = wMap != null ? (wMap['Humidity'] ?? wMap['humidity'] ?? 75) : 75;
@@ -1074,7 +1074,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           resolvedTentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
                         }
                       }
-                    } else if (!foundTentInPlan) {
+                    } else {
                       resolvedTentCost = 0;
                       resolvedTentLabel = 'Safeguard Not Required (Clear Weather)';
                     }
@@ -2486,17 +2486,23 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       } catch (_) {}
     }
 
-    if (items.isEmpty) {
-      Map<String, dynamic>? wMap;
-      if (proposal.weatherAssessment != null && proposal.weatherAssessment!.startsWith('{')) {
-        try {
-          wMap = jsonDecode(proposal.weatherAssessment!) as Map<String, dynamic>;
-        } catch (_) {}
-      }
-      final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : 0;
-      final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
-      final bool needsWeatherTent = proposal.isOutdoor && (rawSafeguardCost > 0 || rainPct >= 60);
+    Map<String, dynamic>? wMap;
+    if (proposal.weatherAssessment != null && proposal.weatherAssessment!.startsWith('{')) {
+      try {
+        wMap = jsonDecode(proposal.weatherAssessment!) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : 0;
+    final bool needsWeatherTent = proposal.isOutdoor && rainPct >= 60;
 
+    if (!needsWeatherTent) {
+      items.removeWhere((it) {
+        final l = it['label'].toString().toLowerCase();
+        return l.contains('marquee') || l.contains('canopy') || l.contains('hangar') || l.contains('tent safeguard') || l.contains('weather tent');
+      });
+    }
+
+    if (items.isEmpty) {
       if (needsWeatherTent) {
         double tentCost = 45000.0;
         String tentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
