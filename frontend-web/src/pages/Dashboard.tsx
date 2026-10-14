@@ -226,7 +226,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     fetchManagerNotifications();
-    const interval = setInterval(fetchManagerNotifications, 10000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchManagerNotifications();
+      }
+    }, 60000); // 60s gentle sync only when active
     return () => clearInterval(interval);
   }, []);
 
@@ -345,8 +349,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     refreshAuthStatus();
     loadEvents();
     loadVendors();
-    const interval = setInterval(loadVendors, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

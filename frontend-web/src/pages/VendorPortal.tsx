@@ -462,14 +462,10 @@ export const VendorPortal: React.FC = () => {
 
   useEffect(() => {
     syncMyVendors();
-    const interval = setInterval(syncMyVendors, 4000); // Check every 4 seconds
-    return () => clearInterval(interval);
   }, [userKey, selectedVendorId]);
 
   useEffect(() => {
     fetchAssignedEvents(false);
-    const interval = setInterval(() => fetchAssignedEvents(true), 5000);
-    return () => clearInterval(interval);
   }, [currentVendor?.vendorId, currentVendor?.id]);
 
   const handleCategoryChange = (newCat: string) => {
