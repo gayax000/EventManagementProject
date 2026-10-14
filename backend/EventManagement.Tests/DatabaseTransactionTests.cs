@@ -161,11 +161,25 @@ public class DatabaseTransactionTests
             };
             context.AIWorkflowStates.Add(aiState);
 
+            var notification = new Notification
+            {
+                NotificationId = Guid.NewGuid(),
+                UserId = Guid.NewGuid(),
+                EventId = eventId,
+                Title = "New Proposal Submitted",
+                Message = "Wedding celebration inquiry received",
+                Type = "NewEvent"
+            };
+            context.Notifications.Add(notification);
+
             await context.SaveChangesAsync();
         }
 
         using (var context = new AppDbContext(options))
         {
+            var notifications = await context.Notifications.Where(n => n.EventId == eventId).ToListAsync();
+            context.Notifications.RemoveRange(notifications);
+
             var evToDelete = await context.Events
                 .Include(e => e.Booking)
                 .Include(e => e.AIWorkflowState)
@@ -181,10 +195,12 @@ public class DatabaseTransactionTests
             var ev = await context.Events.FindAsync(eventId);
             var booking = await context.Bookings.FindAsync(bookingId);
             var aiStates = await context.AIWorkflowStates.Where(a => a.EventId == eventId).ToListAsync();
+            var notifications = await context.Notifications.Where(n => n.EventId == eventId).ToListAsync();
 
             Assert.Null(ev);
             Assert.Null(booking);
             Assert.Empty(aiStates);
+            Assert.Empty(notifications);
         }
     }
 

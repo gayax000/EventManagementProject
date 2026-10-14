@@ -1369,25 +1369,52 @@ public class EventsController : ControllerBase
         if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
             return Forbid();
 
-        // Delete associated AI Workflow States
+        // 1. Delete associated Notifications (prevents FK_Notifications_Events_EventId constraint violation)
+        var notifications = await _context.Notifications.Where(n => n.EventId == id).ToListAsync();
+        if (notifications.Any())
+        {
+            _context.Notifications.RemoveRange(notifications);
+        }
+
+        // 2. Delete associated AI Workflow States
         var workflowStates = await _context.AIWorkflowStates.Where(w => w.EventId == id).ToListAsync();
         if (workflowStates.Any())
         {
             _context.AIWorkflowStates.RemoveRange(workflowStates);
         }
 
-        // Delete associated Event Resources
+        // 3. Delete associated Event Resources
         var eventResources = await _context.EventResources.Where(er => er.EventId == id).ToListAsync();
         if (eventResources.Any())
         {
             _context.EventResources.RemoveRange(eventResources);
         }
 
-        // Delete associated booking if present
-        var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.EventId == id);
-        if (booking != null)
+        // 4. Delete associated Bookings and related child entities (EntryPasses, Payments, Invoices)
+        var bookings = await _context.Bookings.Where(b => b.EventId == id).ToListAsync();
+        foreach (var b in bookings)
         {
-            _context.Bookings.Remove(booking);
+            var entryPasses = await _context.EntryPasses.Where(ep => ep.BookingId == b.BookingId).ToListAsync();
+            if (entryPasses.Any())
+            {
+                _context.EntryPasses.RemoveRange(entryPasses);
+            }
+
+            var payments = await _context.Payments.Where(p => p.BookingId == b.BookingId).ToListAsync();
+            if (payments.Any())
+            {
+                _context.Payments.RemoveRange(payments);
+            }
+
+            var invoices = await _context.Invoices.Where(inv => inv.BookingId == b.BookingId).ToListAsync();
+            if (invoices.Any())
+            {
+                _context.Invoices.RemoveRange(invoices);
+            }
+        }
+        if (bookings.Any())
+        {
+            _context.Bookings.RemoveRange(bookings);
         }
 
         _context.Events.Remove(ev);

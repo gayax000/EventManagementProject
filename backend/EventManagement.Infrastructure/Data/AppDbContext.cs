@@ -98,5 +98,11 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(e => e.BanquetHallId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.Event)
+            .WithMany()
+            .HasForeignKey(n => n.EventId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

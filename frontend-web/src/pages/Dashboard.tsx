@@ -1440,21 +1440,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Confirmed Delete Event from Custom Modal
   const confirmDeleteEvent = async () => {
     if (!deleteModal) return;
+    const targetId = deleteModal.eventId;
+    const targetTitle = deleteModal.eventTitle;
     setDeleteModal(prev => prev ? { ...prev, isDeleting: true } : null);
     try {
-      await eventService.deleteEvent(deleteModal.eventId);
-      setActionSuccess(`Event "${deleteModal.eventTitle}" deleted successfully!`);
-      if (selectedEvent?.eventId === deleteModal.eventId) {
-        setSelectedEvent(null);
-      }
-      if (viewModalEvent?.eventId === deleteModal.eventId) {
-        setViewModalEvent(null);
-      }
+      await eventService.deleteEvent(targetId);
+      setActionSuccess(`Event "${targetTitle}" deleted successfully!`);
+
+      // Optimistically remove event from list immediately
+      setEvents(prev => prev.filter(e => e.eventId !== targetId));
+
+      // Reset selectedEvent and viewModalEvent if they match the deleted event
+      setSelectedEvent(prev => {
+        if (prev?.eventId === targetId) {
+          const remaining = events.filter(e => e.eventId !== targetId);
+          return remaining.length > 0 ? remaining[0] : null;
+        }
+        return prev;
+      });
+      setViewModalEvent(prev => (prev?.eventId === targetId ? null : prev));
+
       setDeleteModal(null);
-      loadEvents();
-    } catch (err) {
+      await loadEvents();
+    } catch (err: any) {
       console.error("Failed to delete event proposal", err);
-      setActionError("Failed to delete event proposal. Please try again.");
+      const errMsg = err?.response?.data?.message || "Failed to delete event proposal. Please try again.";
+      setActionError(errMsg);
       setDeleteModal(null);
     }
   };
@@ -4343,12 +4354,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* Modal Footer */}
             <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between flex-shrink-0">
               <span className="text-[11px] text-slate-500 font-medium">EventCraft AI Management Workspace</span>
-              <button
-                onClick={() => setViewModalEvent(null)}
-                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
-              >
-                Close Window
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={(e) => handleDeleteEvent(e, viewModalEvent.eventId, viewModalEvent.title)}
+                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center"
+                  title="Delete this event proposal"
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  <span>Delete Event</span>
+                </button>
+                <button
+                  onClick={() => setViewModalEvent(null)}
+                  className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
+                >
+                  Close Window
+                </button>
+              </div>
             </div>
           </div>
         </div>
