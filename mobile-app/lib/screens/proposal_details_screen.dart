@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:signature/signature.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
+import '../widgets/app_feedback.dart';
 
 class ProposalDetailsScreen extends StatefulWidget {
   final String eventId;
@@ -59,8 +60,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick slip: $e')),
+        AppFeedback.showToast(
+          context,
+          title: 'Image Selection',
+          message: 'Failed to pick slip image: $e',
+          type: ToastType.warning,
         );
       }
     }
@@ -82,23 +86,25 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Bank slip submitted! Manager has been notified for verification."),
-          backgroundColor: Colors.green,
-        ),
+      AppFeedback.showPaymentSlipSubmittedSheet(
+        context,
+        bookingRef: _proposal!.bookingRef.isNotEmpty ? _proposal!.bookingRef : 'EV-2026-REF',
+        amount: _proposal!.estimatedTotalCost,
+        eventTitle: _proposal!.title,
+        onDone: () {
+          setState(() {
+            _selectedSlipBytes = null;
+          });
+          _loadProposal();
+        },
       );
-      setState(() {
-        _selectedSlipBytes = null;
-      });
-      _loadProposal();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error uploading slip: $e"),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Upload Error',
+        message: 'Could not upload payment slip: $e',
+        type: ToastType.error,
       );
     } finally {
       if (mounted) setState(() => _isUploadingSlip = false);
@@ -237,13 +243,20 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                   revisionNotes: notes,
                 );
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok ? '⚠️ Revision request submitted to Manager!' : 'Failed to submit revision request.'),
-                      backgroundColor: ok ? const Color(0xFFF43F5E) : Colors.redAccent,
-                    ),
-                  );
-                  _loadProposal();
+                  if (ok) {
+                    AppFeedback.showRevisionSubmittedSheet(
+                      context,
+                      eventTitle: proposal.title,
+                      onDone: () => _loadProposal(),
+                    );
+                  } else {
+                    AppFeedback.showToast(
+                      context,
+                      title: 'Revision Request',
+                      message: 'Failed to submit revision request. Please retry.',
+                      type: ToastType.error,
+                    );
+                  }
                 }
               },
               child: const Text('Submit Revision Request', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -256,11 +269,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
   Future<void> _confirmAndSign() async {
     if (_signatureController.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please provide your digital signature first."),
-          backgroundColor: Colors.orangeAccent,
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Signature Required',
+        message: 'Please draw your digital signature in the box before proceeding.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -282,21 +295,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (!mounted) return;
 
       if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Contract Signed & QR Pass Issued!"),
-            backgroundColor: Colors.green,
-          ),
+        AppFeedback.showContractSignedSheet(
+          context,
+          bookingRef: _proposal?.bookingRef.isNotEmpty == true ? _proposal!.bookingRef : 'EV-2026-REF',
+          eventTitle: _proposal?.title ?? 'Event Contract',
+          onViewPass: () {
+            _loadProposal();
+          },
         );
-        _loadProposal(); // Reload to display newly minted QR Pass
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error signing contract: $e"),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Contract Signing Error',
+        message: 'Could not sign contract: $e',
+        type: ToastType.error,
       );
     } finally {
       if (mounted) {
@@ -733,15 +747,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           setState(() => _isLoading = true);
                           final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'AcceptedPremium', proposal.estimatedTotalCost);
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ok 
-                                    ? "✓ Choice submitted! Waiting for Manager's final confirmation on Web Dashboard." 
-                                    : "✓ Request submitted to manager."),
-                                backgroundColor: Colors.indigo,
-                              ),
-                            );
-                            _loadProposal();
+                            if (ok) {
+                              AppFeedback.showProposalAgreedSheet(
+                                context,
+                                choiceLabel: 'Accepted Premium Package',
+                                totalCost: proposal.estimatedTotalCost,
+                                onDone: () => _loadProposal(),
+                              );
+                            } else {
+                              AppFeedback.showToast(
+                                context,
+                                title: 'Submission Error',
+                                message: 'Could not submit budget choice. Please retry.',
+                                type: ToastType.error,
+                              );
+                              _loadProposal();
+                            }
                           }
                         },
                         icon: const Icon(Icons.verified, size: 16, color: Colors.white),
@@ -763,15 +784,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           setState(() => _isLoading = true);
                           final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'RequestedBudgetFit', proposal.budgetLimit);
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(ok
-                                    ? "Request submitted! Waiting for Manager's final confirmation on Web Dashboard."
-                                    : "Request submitted to manager."),
-                                backgroundColor: Colors.teal,
-                              ),
-                            );
-                            _loadProposal();
+                            if (ok) {
+                              AppFeedback.showProposalAgreedSheet(
+                                context,
+                                choiceLabel: 'Requested Auto-Fit to Budget',
+                                totalCost: proposal.budgetLimit,
+                                onDone: () => _loadProposal(),
+                              );
+                            } else {
+                              AppFeedback.showToast(
+                                context,
+                                title: 'Submission Error',
+                                message: 'Could not submit request. Please retry.',
+                                type: ToastType.error,
+                              );
+                              _loadProposal();
+                            }
                           }
                         },
                         icon: const Icon(Icons.bolt, size: 16, color: Colors.amberAccent),
@@ -1431,15 +1459,22 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                               setState(() => _isLoading = true);
                               final ok = await ApiService.submitClientBudgetChoice(widget.eventId, 'ClientChoiceSubmitted', effectiveTotalCost);
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(ok 
-                                        ? "✓ Agreement submitted! Manager has been notified to finalize your proposal." 
-                                        : "✓ Agreement submitted to manager."),
-                                    backgroundColor: const Color(0xFF059669),
-                                  ),
-                                );
-                                _loadProposal();
+                                if (ok) {
+                                  AppFeedback.showProposalAgreedSheet(
+                                    context,
+                                    choiceLabel: 'Agreed Proposal Parameters',
+                                    totalCost: effectiveTotalCost,
+                                    onDone: () => _loadProposal(),
+                                  );
+                                } else {
+                                  AppFeedback.showToast(
+                                    context,
+                                    title: 'Agreement Error',
+                                    message: 'Could not submit agreement. Please retry.',
+                                    type: ToastType.error,
+                                  );
+                                  _loadProposal();
+                                }
                               }
                             },
                             icon: const Icon(Icons.check_circle_outline, size: 16, color: Colors.white),
