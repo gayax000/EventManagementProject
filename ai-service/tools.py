@@ -338,3 +338,179 @@ def extract_event_entities_tool(prompt_text: str = "", title: str = "", location
         "sanitizationPassed": not is_injection_attempt,
         "promptLength": len(prompt_text)
     }
+
+# ==============================================================================
+# Tool 4: Allow-listed Surgical Minimal Auto-Fit Tool (Member 4 - Safety Agent)
+# ==============================================================================
+
+VERIFIED_VENDOR_TIERS = {
+    "AudioVisual": [
+        {"vendor": "Lumina Pro Audio & Stage Lighting", "package": "Concert Line-Array Sound & Digital Mixer Package", "price": 180000.0},
+        {"vendor": "Sensations Audio & Intelligent Lights - Colombo", "package": "Sensations Intelligent Audio & PAR Lighting", "price": 120000.0},
+        {"vendor": "VibeWave Audio & Ambient LED - Kandy", "package": "Standard Stage Audio + Warm Ambient LED PAR Cans", "price": 85000.0},
+        {"vendor": "SonicPulse Live Sound & Stage Monitors - Negombo", "package": "Stage Audio System + 2 Stage Monitors", "price": 60000.0},
+        {"vendor": "Mano Sounds & Acoustic Setup - Moratuwa", "package": "Compact Speech PA Kit + 2 Wireless Mics", "price": 40000.0},
+        {"vendor": "Derana Acoustics & PA System - Gampaha", "package": "Derana Compact Speech PA & Wireless Mics", "price": 25000.0},
+        {"vendor": "QuickSound Acoustic & Speech Kit - Homagama", "package": "Compact Speech PA & Bluetooth Unit", "price": 15000.0},
+    ],
+    "MarqueeTent": [
+        {"vendor": "Grand Royal German Hangar Marquees", "package": "Air-Conditioned Transparent German Hangar Marquee (40x80 ft)", "price": 350000.0},
+        {"vendor": "Ceylon WeatherShield Marquee Tents", "package": "Heavy-Duty Waterproof Marquee Tent (20x40 ft)", "price": 150000.0},
+        {"vendor": "SunShade Canopies & Pergolas Colombo", "package": "High-Peak Waterproof Stretch Canopy (20x30 ft)", "price": 80000.0},
+        {"vendor": "SunShade Canopies", "package": "Standard Medium-Capacity Waterproof Pavilion", "price": 60000.0},
+        {"vendor": "Apex Canopies & Tents - Ragama", "package": "Waterproof Canopy Shelter (15x20 ft)", "price": 35000.0},
+        {"vendor": "QuickShade Canopy Rentals - Kelaniya", "package": "Economy Rain Canopy (10x10 ft)", "price": 18000.0},
+    ],
+    "CateringBuffet": [
+        {"vendor": "Grand Royal Culinary Banquet", "package": "Executive Dinner Buffet (3 Meats, Seafood, 5 Salads, 8 Desserts)", "perHead": 6500.0},
+        {"vendor": "Ceylon Banquet Caterers", "package": "Premium Dinner Buffet B (2 Meats, Action Station, 6 Desserts)", "perHead": 5000.0},
+        {"vendor": "Heritage Feast Catering", "package": "Standard Dinner Buffet A (Chicken/Fish, 4 Salads, 4 Desserts)", "perHead": 3800.0},
+        {"vendor": "Canape Cocktail & Savory Buffet", "package": "High Tea & Evening Canapé Cocktail Platter", "perHead": 3200.0},
+    ],
+    "Transport": [
+        {"vendor": "Vintage Classic Limousines", "package": "Rolls Royce / Vintage Classic Mercedes Limousine", "price": 75000.0},
+        {"vendor": "SilverLine Executive Chauffeur", "package": "Chrysler 300C / Mercedes E-Class Executive Sedan", "price": 45000.0},
+        {"vendor": "Royal Fleet Weddings", "package": "White Toyota Premio VIP Chauffeur Car", "price": 25000.0},
+        {"vendor": "CityDrive VIP Transport", "package": "Standard Air-Conditioned VIP Sedan", "price": 18000.0},
+    ],
+    "Cake": [
+        {"vendor": "Royal Confectionery Studio", "package": "5-Tier Artisanal Fondant Showstopper Cake", "price": 55000.0},
+        {"vendor": "SweetCrumb Patisserie", "package": "3-Tier Handcrafted Sugar Bloom Cake", "price": 30000.0},
+        {"vendor": "Bespoke Bakers Malabe", "package": "2-Tier Minimalist Celebration Cake", "price": 15000.0},
+    ],
+    "Decor": [
+        {"vendor": "Luxe Floral Art & Poruwa Grandeur", "package": "Grand Floral Cascade & Thematic Geometric Stage", "price": 180000.0},
+        {"vendor": "Suba Setha Thematic Draping", "package": "Thematic Fabric Drapes & Fresh Floral Centerpieces", "price": 60000.0},
+        {"vendor": "Piyum Flora & Budget Decor", "package": "Economy Fabric Backdrop & Floral Table Runner", "price": 25000.0},
+        {"vendor": "Suba Setha Flora", "package": "Traditional Oil Lamp, Minimal Poruwa & Head Table Deco", "price": 18000.0},
+    ]
+}
+
+def surgical_minimal_autofit_tool(budget_limit: float, items: list, guest_count: int, is_outdoor: bool = True) -> tuple[list, float, list[str]]:
+    """
+    Allow-listed Tool owned by Member 4 (Validation & Safety Agent).
+    Executes the Surgical Minimal Auto-Fit algorithm: when proposal items exceed the client's budget ceiling,
+    iteratively swaps oversized vendor packages with lower-tier verified partner vendors from the database catalog
+    to bring total cost strictly under budget (Cost <= Budget) without deleting essential categories.
+    """
+    from schemas import ProposedItem
+
+    current_items = [
+        ProposedItem(**i.model_dump()) if hasattr(i, 'model_dump') else 
+        (ProposedItem(**i.dict()) if hasattr(i, 'dict') else ProposedItem(**i))
+        for i in items
+    ]
+    current_total = sum(i.cost for i in current_items)
+    logs = []
+
+    if current_total <= budget_limit or budget_limit <= 0:
+        return current_items, current_total, logs
+
+    # Physical Viability Check: if budget is so low that minimum catering per guest is < Rs. 1,000,
+    # the event is mathematically unviable for the requested guest scale.
+    min_viable_per_head = 1000.0
+    if guest_count > 0 and (budget_limit / guest_count) < min_viable_per_head:
+        logs.append(f"ValidationSafetyAgent (Member 4): Budget ceiling Rs. {budget_limit:,.2f} is mathematically unviable for {guest_count} guests (Minimum Rs. {min_viable_per_head:,.0f}/head required).")
+        return current_items, current_total, logs
+
+    initial_deficit = current_total - budget_limit
+    logs.append(f"ValidationSafetyAgent (Member 4): Initial proposal exceeded budget by Rs. {initial_deficit:,.2f}. Executing Surgical Minimal Auto-Fit across verified vendor tiers.")
+
+    # Step 1: Scalable Optional Items (Transport, Cake, Decor if present)
+    for cat_name in ["Transport", "Cake", "Decor"]:
+        if current_total <= budget_limit:
+            break
+        tier_list = VERIFIED_VENDOR_TIERS[cat_name]
+        for idx, item in enumerate(current_items):
+            if item.category == cat_name and item.cost > tier_list[-1]["price"]:
+                for lower_tier in tier_list:
+                    if lower_tier["price"] < current_items[idx].cost:
+                        saved = current_items[idx].cost - lower_tier["price"]
+                        current_items[idx] = ProposedItem(
+                            name=f"{lower_tier['package']} ({lower_tier['vendor']})",
+                            category=cat_name,
+                            cost=lower_tier["price"]
+                        )
+                        current_total = sum(i.cost for i in current_items)
+                        logs.append(f"ValidationSafetyAgent (Member 4): [Auto-Fit Downgrade] {item.name} -> {lower_tier['vendor']} ({lower_tier['package']}) (-Rs. {saved:,.2f})")
+                        if current_total <= budget_limit:
+                            break
+                break
+
+    # Step 2: AudioVisual (Sound & Lighting) Downgrade
+    if current_total > budget_limit:
+        for idx, item in enumerate(current_items):
+            if item.category in ["AudioVisual", "SoundLighting"]:
+                for lower_tier in VERIFIED_VENDOR_TIERS["AudioVisual"]:
+                    if lower_tier["price"] < current_items[idx].cost:
+                        saved = current_items[idx].cost - lower_tier["price"]
+                        current_items[idx] = ProposedItem(
+                            name=f"{lower_tier['package']} ({lower_tier['vendor']})",
+                            category="AudioVisual",
+                            cost=lower_tier["price"]
+                        )
+                        current_total = sum(i.cost for i in current_items)
+                        logs.append(f"ValidationSafetyAgent (Member 4): [Auto-Fit Downgrade] {item.name} -> {lower_tier['vendor']} ({lower_tier['package']}) (-Rs. {saved:,.2f})")
+                        if current_total <= budget_limit:
+                            break
+                break
+
+    # Step 3: Weather Safeguard Marquee Tent Downgrade (if outdoor safeguard present)
+    if current_total > budget_limit:
+        for idx, item in enumerate(current_items):
+            if item.isSafeguard or item.category in ["MarqueeTent", "WeatherSafeguard"] or "Tent" in item.name or "Canopy" in item.name:
+                for lower_tier in VERIFIED_VENDOR_TIERS["MarqueeTent"]:
+                    if lower_tier["price"] < current_items[idx].cost:
+                        saved = current_items[idx].cost - lower_tier["price"]
+                        current_items[idx] = ProposedItem(
+                            name=f"{lower_tier['package']} ({lower_tier['vendor']})",
+                            category="WeatherSafeguard",
+                            cost=lower_tier["price"],
+                            isSafeguard=True,
+                            reason="Weather risk shelter auto-fitted to client budget"
+                        )
+                        current_total = sum(i.cost for i in current_items)
+                        logs.append(f"ValidationSafetyAgent (Member 4): [Auto-Fit Downgrade Safeguard] {item.name} -> {lower_tier['vendor']} ({lower_tier['package']}) (-Rs. {saved:,.2f})")
+                        if current_total <= budget_limit:
+                            break
+                break
+
+    # Step 4: Catering Buffet Tier Step-Down (if still over budget)
+    if current_total > budget_limit and guest_count > 0:
+        for idx, item in enumerate(current_items):
+            if item.category == "Catering":
+                current_per_head = current_items[idx].cost / guest_count
+                for lower_buffet in VERIFIED_VENDOR_TIERS["CateringBuffet"]:
+                    if lower_buffet["perHead"] < current_per_head:
+                        new_cost = lower_buffet["perHead"] * guest_count
+                        saved = current_items[idx].cost - new_cost
+                        current_items[idx] = ProposedItem(
+                            name=f"{lower_buffet['package']} ({guest_count} Guests x Rs. {lower_buffet['perHead']:,.0f})",
+                            category="Catering",
+                            cost=new_cost
+                        )
+                        current_total = sum(i.cost for i in current_items)
+                        current_per_head = lower_buffet["perHead"]
+                        logs.append(f"ValidationSafetyAgent (Member 4): [Auto-Fit Downgrade Catering] {item.name} -> {lower_buffet['package']} ({lower_buffet['vendor']}) (-Rs. {saved:,.2f})")
+                        if current_total <= budget_limit:
+                            break
+                # If still slightly over budget, adjust catering per-head rate to exactly fit ceiling
+                if current_total > budget_limit:
+                    non_catering = current_total - current_items[idx].cost
+                    allowable_catering = budget_limit - non_catering
+                    if allowable_catering >= (min_viable_per_head * guest_count):
+                        allowable_per_head = round(allowable_catering / guest_count)
+                        saved = current_items[idx].cost - allowable_catering
+                        current_items[idx] = ProposedItem(
+                            name=f"Standard Curated Buffet ({guest_count} Guests x Rs. {allowable_per_head:,.0f})",
+                            category="Catering",
+                            cost=allowable_catering
+                        )
+                        current_total = sum(i.cost for i in current_items)
+                        logs.append(f"ValidationSafetyAgent (Member 4): [Auto-Fit Budget Ceiling Match] Catering adjusted to Rs. {allowable_per_head:,.0f}/head to strictly achieve Cost <= Budget (-Rs. {saved:,.2f})")
+                break
+
+    final_total = sum(i.cost for i in current_items)
+    if final_total <= budget_limit:
+        logs.append(f"ValidationSafetyAgent (Member 4): Auto-Fit complete. Final Subtotal Rs. {final_total:,.2f} is strictly <= Budget Limit Rs. {budget_limit:,.2f} (Total Savings: Rs. {initial_deficit:,.2f}).")
+    return current_items, final_total, logs

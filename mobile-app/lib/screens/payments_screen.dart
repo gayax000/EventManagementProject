@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
 import 'proposal_details_screen.dart';
 
 class PaymentsScreen extends StatefulWidget {
@@ -279,9 +278,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                   if (Navigator.of(context).canPop()) {
                     Navigator.of(context).pop();
                   } else {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(builder: (_) => const HomeScreen()),
-                    );
+                    Navigator.of(context).pushReplacementNamed('/home');
                   }
                 },
                 borderRadius: BorderRadius.circular(10),

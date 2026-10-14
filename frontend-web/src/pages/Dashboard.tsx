@@ -133,6 +133,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [viewModalEvent, setViewModalEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [specialDiscount, setSpecialDiscount] = useState<number>(0);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -163,6 +164,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Budget Guardrails & Human-in-the-Loop Management State
   const [isBudgetAutoFitted, setIsBudgetAutoFitted] = useState<boolean>(false);
+  const [hasUserManuallyReset, setHasUserManuallyReset] = useState<boolean>(false);
   const [preFitSnapshot, setPreFitSnapshot] = useState<{
     vendorAssignments: Record<string, any>;
     perPlateCost: number | null;
@@ -263,7 +265,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     fetchManagerNotifications();
-    const interval = setInterval(fetchManagerNotifications, 10000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchManagerNotifications();
+      }
+    }, 60000); // 60s gentle sync only when active
     return () => clearInterval(interval);
   }, []);
 
@@ -373,6 +379,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const loadEvents = async () => {
     try {
       setLoading(true);
+      setEventsError(null);
       const data = await eventService.getMyEvents();
       setEvents(data);
       if (data.length > 0 && !selectedEvent) {
@@ -380,6 +387,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     } catch (err) {
       console.error("Failed to load events from backend", err);
+      setEventsError("Could not load event requests. Please retry. If this continues, sign in again or check the API server.");
     } finally {
       setLoading(false);
     }
@@ -389,8 +397,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     refreshAuthStatus();
     loadEvents();
     loadVendors();
-    const interval = setInterval(loadVendors, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -476,11 +482,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       // Catering
       const isHotelInHouse = Boolean(selectedEvent.banquetHallId || (selectedEvent.banquetHallName && !selectedEvent.banquetHallName.toLowerCase().includes('private')));
       if (isHotelInHouse) {
+        const existingCat = currentMap['Catering'];
         currentMap['Catering'] = {
           vendorId: 'hotel-in-house',
           vendorName: `${selectedEvent.banquetHallName || selectedEvent.venueName || 'Hotel'} Culinary & Banquet Team`,
-          packageName: `${selectedEvent.cateringStyle || 'Hotel Banquet Buffet'} (Contracted Hotel Catering)`,
-          agreedPayout: (selectedEvent.perPlatePrice || 5000) * (selectedEvent.guestCount || 100)
+          packageName: existingCat?.packageName || `${selectedEvent.cateringStyle || 'Hotel Banquet Buffet'} (Contracted Hotel Catering)`,
+          agreedPayout: existingCat?.agreedPayout ?? ((selectedEvent.perPlatePrice || 5000) * (selectedEvent.guestCount || 100))
         };
       } else if (!currentMap['Catering']) {
         const cat = autoAllocateVendorForCategory('Catering', budget);
@@ -603,8 +610,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Fetch proposal details to synchronize real database pricing and inspiration photos
   useEffect(() => {
     if (selectedEvent?.eventId) {
-      setIsBudgetAutoFitted(false);
+      const isAlreadyWithinBudget = Boolean(
+        selectedEvent.estimatedTotalCost &&
+        selectedEvent.budgetLimit &&
+        Number(selectedEvent.estimatedTotalCost) <= Number(selectedEvent.budgetLimit)
+      );
+      setIsBudgetAutoFitted(isAlreadyWithinBudget);
       setIsManualReset(false);
+      setHasUserManuallyReset(false);
       setClientApprovalRequested(false);
       setSpecialDiscount(0);
       setSpecialAllocation(0);
@@ -662,9 +675,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               weatherAssessment: weatherObj || prev.weatherAssessment,
               selectedServices: p.selectedServices || prev.selectedServices,
               tableRefreshments: p.tableRefreshments || prev.tableRefreshments,
-              inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
               assignedVendors: (p as any).assignedVendors || prev.assignedVendors,
               assignedVendorsJson: (p as any).assignedVendorsJson || prev.assignedVendorsJson,
+              inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
               generatedPlan: p.generatedPlan || (prev as any)?.generatedPlan,
             } : prev);
           }
@@ -676,13 +689,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Auth Handlers
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) {
+    const cleanEmail = loginEmail.trim();
+    const cleanPassword = loginPassword.trim();
+    if (!cleanEmail || !cleanPassword) {
       setAuthError('Please provide both email and password.');
       return;
     }
     setAuthLoading(true);
     setAuthError(null);
-    const success = await authService.login(loginEmail, loginPassword);
+    const success = await authService.login(cleanEmail, cleanPassword);
     setAuthLoading(false);
     if (success) {
       const role = authService.getUserRole();
@@ -1484,6 +1499,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Undo / Reset Auto-Fit Logic - Restores exact pre-fit snapshot
   const handleResetAutoFit = () => {
+    setHasUserManuallyReset(true);
     if (preFitSnapshot) {
       setSelectedVendorAssignments(JSON.parse(JSON.stringify(preFitSnapshot.vendorAssignments)));
       setCustomPerPlateCost(preFitSnapshot.perPlateCost);
@@ -1497,6 +1513,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Smart Budget-Tier Vendor Switching Auto-Fit Logic
   const handleExecuteAutoFit = () => {
     if (!selectedEvent) return;
+    setHasUserManuallyReset(false);
 
     // 1. Save Pre-fit snapshot for Undo / Reset
     setPreFitSnapshot({
@@ -2004,16 +2021,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
 
       const draftAssignedVendorsJson = JSON.stringify(draftAssignedVendors);
+      const safeDraftFinalTotal = Math.min(displayedFinalTotal, evBudget);
 
       eventService.syncProposalDraft(selectedEvent.eventId, {
-        finalTotal: displayedFinalTotal,
+        finalTotal: safeDraftFinalTotal,
         weatherTentCost: isEventOutdoor ? weatherTentCost : 0,
         weatherTentName,
         assignedVendorsJson: draftAssignedVendorsJson,
         planItems: draftPlanItems
       }).catch(() => {});
 
-      setEvents(prev => prev.map(ev => ev.eventId === selectedEvent.eventId ? { ...ev, estimatedTotalCost: displayedFinalTotal, assignedVendors: draftAssignedVendors, assignedVendorsJson: draftAssignedVendorsJson } : ev));
+      setEvents(prev => prev.map(ev => ev.eventId === selectedEvent.eventId ? { ...ev, estimatedTotalCost: safeDraftFinalTotal, assignedVendors: draftAssignedVendors, assignedVendorsJson: draftAssignedVendorsJson } : ev));
     }, 350);
 
     return () => clearTimeout(timer);
@@ -2029,6 +2047,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     specialDiscount,
     isBudgetAutoFitted
   ]);
+
+  // Enforce Deterministic Auto-Fit Budget Guardrail on proposal view: If proposal subtotal exceeds client budget, auto-fit immediately!
+  useEffect(() => {
+    if (selectedEvent && !isApproved && currentSubtotal > clientBudgetLimit && !isBudgetAutoFitted && !hasUserManuallyReset) {
+      handleExecuteAutoFit();
+    }
+  }, [selectedEvent?.eventId, currentSubtotal, clientBudgetLimit, isBudgetAutoFitted, isApproved, hasUserManuallyReset]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
@@ -2277,7 +2302,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Cards Grid */}
-          {filteredEvents.length === 0 ? (
+          {eventsError ? (
+            <div role="alert" className="text-center py-12 text-red-700 bg-red-50 rounded-xl">
+              <p>{eventsError}</p>
+              <button onClick={loadEvents} className="mt-3 font-bold underline">Retry loading events</button>
+            </div>
+          ) : loading ? (
+            <p role="status" className="text-center py-12 text-slate-500">Loading event requests...</p>
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <Calendar className="w-8 h-8 mx-auto text-slate-400 mb-2" />
               <p className="font-semibold text-slate-700">No event proposals matching this filter.</p>
@@ -4189,30 +4221,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         );
                       }
 
-                      if (isBudgetAutoFitted && !isApproved) {
+                      if ((isBudgetAutoFitted || currentSubtotal <= clientBudgetLimit) && !isApproved) {
                         return (
                           <div className="mb-6 p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 space-y-3 shadow-xs">
                             <div className="flex items-start space-x-2.5">
                               <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                               <div>
                                 <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                                  ✅ PACKAGES AUTO-ADJUSTED TO FIT BUDGET
+                                  ✅ PACKAGES FITTED WITHIN BUDGET (Cost &le; Budget)
                                 </h5>
                                 <p className="text-xs text-emerald-900 mt-1">
-                                  Optional services scaled down to fit client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget.
+                                  All proposal services and vendor tiers strictly satisfy client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget ceiling.
                                 </p>
                               </div>
                             </div>
 
                             <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
                               <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
-                              <button
-                                type="button"
-                                onClick={handleResetAutoFit}
-                                className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold flex items-center gap-1 bg-emerald-100/80 px-2.5 py-1 rounded transition"
-                              >
-                                ↩️ Reset Packages (Undo)
-                              </button>
+                              {preFitSnapshot && (
+                                <button
+                                  type="button"
+                                  onClick={handleResetAutoFit}
+                                  className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold flex items-center gap-1 bg-emerald-100/80 px-2.5 py-1 rounded transition"
+                                >
+                                  ↩️ Reset Packages (Undo)
+                                </button>
+                              )}
                             </div>
                           </div>
                         );

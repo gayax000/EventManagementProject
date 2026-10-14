@@ -7,22 +7,19 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(AppDbContext context)
     {
-        // Migrate any existing users with plaintext passwords to secure BCrypt hashes safely
-        var existingUsers = await context.Users.ToListAsync();
-        bool usersUpdated = false;
-        foreach (var user in existingUsers)
+        // Migrate only users with plaintext passwords — avoid full table transfer
+        var usersWithPlaintextPw = await context.Users
+            .Where(u => u.PasswordHash != null &&
+                        !u.PasswordHash.StartsWith("$2a$") &&
+                        !u.PasswordHash.StartsWith("$2b$") &&
+                        !u.PasswordHash.StartsWith("$2y$"))
+            .ToListAsync();
+        if (usersWithPlaintextPw.Count > 0)
         {
-            if (!string.IsNullOrEmpty(user.PasswordHash) &&
-                !user.PasswordHash.StartsWith("$2a$") &&
-                !user.PasswordHash.StartsWith("$2b$") &&
-                !user.PasswordHash.StartsWith("$2y$"))
+            foreach (var user in usersWithPlaintextPw)
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
-                usersUpdated = true;
             }
-        }
-        if (usersUpdated)
-        {
             await context.SaveChangesAsync();
         }
 

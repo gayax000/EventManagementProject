@@ -205,8 +205,6 @@ export const VendorsPage: React.FC = () => {
 
   useEffect(() => {
     fetchVendors();
-    const interval = setInterval(fetchVendors, 5000); // Live sync every 5 seconds
-    return () => clearInterval(interval);
   }, []);
 
   const handleVerifyVendor = async (id: string, newStatus: 'Verified' | 'Rejected') => {

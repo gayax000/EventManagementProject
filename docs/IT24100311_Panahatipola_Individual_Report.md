@@ -94,13 +94,14 @@ All my individual deliverables were committed and merged on feature branches in 
 
 | Commit / PR | Description |
 | :--- | :--- |
-| `PR #9–10` | Built `PaymentsController.cs`, deposit slip uploader, and EF Core `Payments` table |
-| `PR #11–12` | Implemented `VerifyController.cs` and digital QR pass generation with `qr_flutter` |
-| `PR #23` | Engineered Surgical Minimal Auto-Fit algorithm and budget safety guardrail tool |
-| `PR #24` | Integrated HIL Manager Approval Gate and transaction rollback handling |
-| `Commit 014a2d8` | Implemented Real Vendor Switching and strict budget compliance in Auto-Fit button |
+| `PR #18` | Created Validation & Safety Agent (`agent_validation.py`) and Surgical Minimal Auto-Fit tool |
+| `PR #23` | Implemented manager dashboard vendor category icon badges, soft gray badge styling, and live status tags |
+| `PR #24` | Added itemized package partner vendor blue tags and mobile verification indicators |
+| `Commit 844e287` | Implemented category-wise color badges for vendor icons in manager review dashboard |
+| `Commit 0948811` | Updated Tents & Safeguards category badge to royal blue for clear contrast against Catering |
+| `Commit 21d2e81` | Displayed itemized package partner vendors in distinct blue tags in mobile proposal breakdown |
 
-*(Screenshot Placeholder: Add a screenshot of your GitHub Pull Requests #9–12, #23–24 from github.com/gayax000/EventManagementProject)*
+*(Screenshot Placeholder: Add a screenshot of your GitHub Pull Requests #18, #23, #24 and Commit History from github.com/gayax000/EventManagementProject)*
 
 ---
 

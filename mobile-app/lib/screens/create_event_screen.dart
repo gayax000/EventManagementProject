@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../services/api_service.dart';
-import 'home_screen.dart';
+import '../widgets/app_feedback.dart';
 import 'proposal_details_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
@@ -378,11 +378,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     final text = _customPromptController.text.trim();
     final lowerText = text.toLowerCase();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter an event vision prompt first to auto-fill details.'),
-          backgroundColor: Color(0xFFF59E0B),
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Vision Prompt Required',
+        message: 'Please enter an event vision prompt first to auto-fill details.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -590,12 +590,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
 
     final formattedBudgetStr = NumberFormat("#,##0").format(double.tryParse(_budgetController.text) ?? 0);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✨ AI extracted 100% details! (Guests: ${_guestController.text}, Budget: Rs. $formattedBudgetStr, Location: ${_selectedDistrict}, Session: ${_selectedSession == "NightDinner" ? "Night" : "Day"}, Date: ${DateFormat("MMM dd, yyyy").format(_selectedDate)})'),
-        backgroundColor: const Color(0xFF059669),
-        duration: const Duration(seconds: 4),
-      ),
+    AppFeedback.showToast(
+      context,
+      title: 'AI Vision Extracted ✨',
+      message: 'Guests: ${_guestController.text} • Budget: Rs. $formattedBudgetStr • ${_selectedDistrict} • ${_selectedSession == "NightDinner" ? "Night" : "Day"}',
+      type: ToastType.success,
+      duration: const Duration(seconds: 4),
     );
   }
 
@@ -651,11 +651,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   Future<void> _pickImages() async {
     if (_selectedImageBytes.length >= 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maximum 5 inspiration moodboard photos allowed.'),
-          backgroundColor: Color(0xFFD97706),
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Photo Limit Reached',
+        message: 'Maximum 5 inspiration moodboard photos allowed.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -715,11 +715,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       _syncSelectedHall();
     }
     if (_currentStep == 1 && _locationMode == 'hotel' && _selectedHall == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select an available banquet hall for your hotel venue.'),
-          backgroundColor: Color(0xFFEF4444),
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Banquet Hall Required',
+        message: 'Please select an available banquet hall for your hotel venue.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -744,8 +744,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     final int guests = int.tryParse(_guestController.text) ?? 100;
 
     if (budget <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid target budget'), backgroundColor: Color(0xFFEF4444)),
+      AppFeedback.showToast(
+        context,
+        title: 'Budget Required',
+        message: 'Please enter a valid target budget for your celebration.',
+        type: ToastType.warning,
       );
       setState(() => _currentStep = 0);
       return;
@@ -808,11 +811,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         if (createdEvent != null) {
           _showEventCreatedSuccessDialog(context, createdEvent);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to create event inquiry. Please check details and retry.'),
-              backgroundColor: Color(0xFFEF4444),
-            ),
+          AppFeedback.showToast(
+            context,
+            title: 'Submission Error',
+            message: 'Failed to create event inquiry. Please check details and retry.',
+            type: ToastType.error,
           );
         }
       }
@@ -823,12 +826,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         if (cleanMsg.contains('ClientException') || cleanMsg.contains('Failed to fetch') || cleanMsg.contains('SocketException')) {
           cleanMsg = "Cloud server connection timed out or is warming up. Please tap 'Submit Request' again in a few seconds.";
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Submission error: $cleanMsg'),
-            backgroundColor: const Color(0xFFEF4444),
-            duration: const Duration(seconds: 6),
-          ),
+        AppFeedback.showToast(
+          context,
+          title: 'Submission Notice',
+          message: cleanMsg,
+          type: ToastType.error,
+          duration: const Duration(seconds: 5),
         );
       }
     }
@@ -1065,9 +1068,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               } else if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
+                Navigator.of(context).pushReplacementNamed('/home');
               }
             },
           ),
@@ -1931,11 +1932,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             onTap: isAvail
                                 ? () => setState(() => _selectedHall = hall)
                                 : () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('${hall.hallName} is already booked on this date!'),
-                                        backgroundColor: const Color(0xFFEF4444),
-                                      ),
+                                    AppFeedback.showToast(
+                                      context,
+                                      title: 'Hall Unavailable',
+                                      message: '${hall.hallName} is already booked on this date/session. Please choose another hall or session.',
+                                      type: ToastType.warning,
                                     );
                                   },
                             borderRadius: BorderRadius.circular(14),

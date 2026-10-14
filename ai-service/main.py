@@ -72,6 +72,8 @@ def validation_safety_node(state: AgentGraphState) -> dict:
     res = safety_agent.execute(state["objective"], state.get("subtotal", 0.0), state.get("cost_breakdown", []))
     logs = list(state.get("audit_trace_logs", [])) + res["trace"]
     return {
+        "cost_breakdown": res.get("items", state.get("cost_breakdown", [])),
+        "subtotal": res.get("subtotal", state.get("subtotal", 0.0)),
         "is_under_budget": res["isUnderBudget"],
         "budget_remaining": res["budgetRemaining"],
         "validation_passed": res["validationPassed"],

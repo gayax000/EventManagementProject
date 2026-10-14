@@ -9,15 +9,7 @@ class ApiService {
   static const bool useLocalhost = false;
 
   static String get baseUrl {
-    if (useLocalhost) {
-      if (kIsWeb) {
-        return 'http://localhost:5147/api';
-      }
-      return defaultTargetPlatform == TargetPlatform.android
-          ? 'http://10.0.2.2:5147/api'
-          : 'http://localhost:5147/api';
-    }
-    return 'https://eventmanagementproject-production-94fe.up.railway.app/api';
+    return AuthService.baseUrl;
   }
 
   static http.Client _client = http.Client();

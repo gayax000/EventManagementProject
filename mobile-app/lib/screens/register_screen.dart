@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_feedback.dart';
 import 'policies_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -25,15 +26,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = _passwordController.text.trim();
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields', style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+      AppFeedback.showToast(
+        context,
+        title: 'Missing Fields',
+        message: 'Please fill in all fields to register.',
+        type: ToastType.warning,
       );
       return;
     }
 
     if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password must be at least 6 characters', style: TextStyle(color: Colors.white)), backgroundColor: Colors.amber),
+      AppFeedback.showToast(
+        context,
+        title: 'Weak Password',
+        message: 'Password must be at least 6 characters long.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -50,11 +57,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (!_agreedToPolicies) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please agree to the Terms of Service & Privacy Policy', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.redAccent,
-        ),
+      AppFeedback.showToast(
+        context,
+        title: 'Policy Agreement Required',
+        message: 'Please review and agree to Terms of Service & Privacy Policy.',
+        type: ToastType.warning,
       );
       return;
     }
@@ -67,15 +74,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (result.success) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.message ?? 'Registration successful! Please login.', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+        AppFeedback.showRegistrationSuccessSheet(
+          context,
+          email: email,
+          onProceedToLogin: () => Navigator.pop(context),
         );
-        Navigator.pop(context); // Go back to login screen
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result.message ?? 'Registration failed. Try again.', style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+        AppFeedback.showToast(
+          context,
+          title: 'Registration Failed',
+          message: result.message ?? 'Registration failed. Please check your connection and retry.',
+          type: ToastType.error,
         );
       }
     }

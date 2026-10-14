@@ -3,13 +3,15 @@ import { apiClient } from './api';
 export const authService = {
   login: async (email: string, password: string) => {
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
+      const cleanEmail = (email || '').trim();
+      const cleanPassword = (password || '').trim();
+      const response = await apiClient.post('/auth/login', { email: cleanEmail, password: cleanPassword });
       if (response.data && response.data.token) {
         localStorage.setItem('jwt_token', response.data.token);
         localStorage.setItem('user_role', response.data.role || 'Manager');
-        const name = response.data.fullName || email.split('@')[0];
+        const name = response.data.fullName || cleanEmail.split('@')[0];
         localStorage.setItem('user_name', name);
-        localStorage.setItem('user_email', email);
+        localStorage.setItem('user_email', cleanEmail);
         if (response.data.userId) {
           localStorage.setItem('user_id', response.data.userId);
         }

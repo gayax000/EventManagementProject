@@ -1,13 +1,27 @@
 using System.Text;
+using System.IO.Compression;
 using EventManagement.Core.Interfaces;
 using EventManagement.Infrastructure.Data;
 using EventManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 0. Enable Gzip/Brotli Response Compression (reduces Neon network transfer)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/json", "text/plain", "text/json" });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(opts => opts.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(opts => opts.Level = CompressionLevel.Fastest);
 
 // 1. Configure ProblemDetails & CORS
 builder.Services.AddProblemDetails();
@@ -50,6 +64,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 3. Register Services in DI Container
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddHttpClient<IAiWorkflowService, AiWorkflowService>();
+builder.Services.AddMemoryCache(); // In-memory cache to cut repeat Neon round-trips
 
 // 4. Configure Real JWT Bearer Authentication
 var secretKey = builder.Configuration["JwtSettings:SecretKey"];
@@ -120,6 +135,7 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 var app = builder.Build();
 
 // 6. Configure HTTP pipeline (CORS & Global Exception Handler)
+app.UseResponseCompression();
 app.UseCors("AllowAll");
 app.UseMiddleware<EventManagement.Api.Middleware.GlobalExceptionHandlerMiddleware>();
 

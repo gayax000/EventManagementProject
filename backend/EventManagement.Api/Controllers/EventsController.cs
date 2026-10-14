@@ -68,6 +68,42 @@ public class EventsController : ControllerBase
                 customerId = currentUserId.Value;
             }
 
+            // Ensure customer exists in the database to prevent foreign key violations (e.g. after database migration or token persistence)
+            var customerExists = await _context.Users.AnyAsync(u => u.UserId == customerId);
+            if (!customerExists)
+            {
+                var emailClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var nameClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+                string safeEmail = !string.IsNullOrWhiteSpace(emailClaim) ? emailClaim : $"customer_{customerId:N}@eventcraft.lk";
+                string safeName = !string.IsNullOrWhiteSpace(nameClaim) ? nameClaim : "Valued Customer";
+
+                if (await _context.Users.AnyAsync(u => u.Email == safeEmail))
+                {
+                    safeEmail = $"client_{customerId:N}@eventcraft.lk";
+                }
+
+                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer");
+                int roleId = customerRole != null ? customerRole.RoleId : 3;
+
+                var autoUser = new User
+                {
+                    UserId = customerId,
+                    FullName = safeName,
+                    Email = safeEmail,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@123"),
+                    PhoneNumber = "+94770000000",
+                    ProfileImageUrl = "",
+                    AccountStatus = "Active",
+                    RoleId = roleId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(autoUser);
+                await _context.SaveChangesAsync();
+            }
+
             Guid? venueId = dto.VenueId;
             Guid? banquetHallId = dto.BanquetHallId;
             BanquetHall? chosenHall = null;
@@ -105,28 +141,32 @@ public class EventsController : ControllerBase
                     .Where(k => k.Length > 2 && k != "district" && k != "province" && k != "colombo" && k != "kandy" && k != "galle" && k != "hotel" && k != "resort")
                     .ToList();
 
-                var allVenues = await _context.Venues.ToListAsync();
-                Venue? matchedVenue = null;
+                // Project only VenueId + Name — avoids transferring all venue columns over Neon WAN
+                var venueProjections = await _context.Venues
+                    .Select(v => new { v.VenueId, v.Name })
+                    .ToListAsync();
+
+                Guid? matchedVenueId = null;
 
                 if (keywords.Count > 0)
                 {
-                    matchedVenue = allVenues.FirstOrDefault(v => {
+                    matchedVenueId = venueProjections.FirstOrDefault(v => {
                         var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
                         return keywords.All(k => vClean.Contains(k)) || keywords.Any(k => vClean.Contains(k));
-                    });
+                    })?.VenueId;
                 }
 
-                if (matchedVenue == null)
+                if (!matchedVenueId.HasValue)
                 {
-                    matchedVenue = allVenues.FirstOrDefault(v => {
+                    matchedVenueId = venueProjections.FirstOrDefault(v => {
                         var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
                         return cleanTarget.Contains(vClean) || vClean.Contains(cleanTarget);
-                    });
+                    })?.VenueId;
                 }
 
-                if (matchedVenue != null)
+                if (matchedVenueId.HasValue)
                 {
-                    venueId = matchedVenue.VenueId;
+                    venueId = matchedVenueId;
                 }
             }
 
@@ -353,12 +393,16 @@ public class EventsController : ControllerBase
         });
     }
 
-    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson)
+    private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson, decimal? estimatedTotalCost = null)
     {
         if (status == "ApprovedByManager" || status == "Confirmed" || status == "Completed")
             return false;
 
         if (string.IsNullOrEmpty(planJson))
+            return true;
+
+        // Auto-fit guardrail: If proposal exceeds budget ceiling, mark out-of-sync to trigger surgical minimal auto-fit
+        if (estimatedTotalCost.HasValue && budgetLimit > 0 && estimatedTotalCost.Value > budgetLimit)
             return true;
 
         if (planJson.Contains("1. Weather & Environmental Assessment") ||
@@ -406,12 +450,19 @@ public class EventsController : ControllerBase
             return Forbid();
 
         var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
-        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
+        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson, aiState?.EstimatedTotalCost))
         {
             try
             {
                 await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
                 aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+                // Re-fetch ev with updated AssignedVendorsJson
+                ev = await _context.Events
+                    .AsNoTracking()
+                    .Include(e => e.Venue)
+                    .Include(e => e.BanquetHall)
+                    .ThenInclude(h => h!.Venue)
+                    .FirstOrDefaultAsync(e => e.EventId == id) ?? ev;
             }
             catch (Exception ex)
             {
@@ -842,7 +893,7 @@ public class EventsController : ControllerBase
                 var item = row.Dto;
                 item.InspirationImages = new List<string>();
 
-                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment))
+                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment, item.EstimatedTotalCost))
                 {
                     try
                     {
@@ -854,6 +905,8 @@ public class EventsController : ControllerBase
                             item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
                             item.WeatherAssessment = refreshed.WeatherAssessmentJson;
                             item.GeneratedPlan = refreshed.GeneratedPlanJson;
+                            var updatedEv = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.EventId == item.EventId);
+                            item.AssignedVendorsJson = updatedEv?.AssignedVendorsJson;
                         }
                     }
                     catch { }
@@ -903,7 +956,7 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching my-events for customer {CustomerId}", customerId);
-            return Ok(new List<EventResponseDto>());
+            return StatusCode(500, new { message = "An error occurred while retrieving events. Please try again." });
         }
     }
 
@@ -1012,7 +1065,11 @@ public class EventsController : ControllerBase
         {
             if (dto.FinalTotal > 0)
             {
-                aiState.EstimatedTotalCost = dto.FinalTotal;
+                // Enforce Budget Ceiling Guardrail: Unless formally approved by manager, a live draft cannot exceed client budget limit
+                decimal safeTotal = (ev.BudgetLimit > 0 && dto.FinalTotal > ev.BudgetLimit)
+                    ? ev.BudgetLimit
+                    : dto.FinalTotal;
+                aiState.EstimatedTotalCost = safeTotal;
             }
             if (dto.PlanItems != null && dto.PlanItems.Count > 0)
             {

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
 
 class PoliciesScreen extends StatefulWidget {
   final int initialTabIndex;
@@ -70,9 +69,7 @@ class _PoliciesScreenState extends State<PoliciesScreen> with SingleTickerProvid
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();
               } else {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
-                );
+                Navigator.of(context).pushReplacementNamed('/home');
               }
             },
           ),

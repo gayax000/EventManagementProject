@@ -155,8 +155,6 @@ export const ResourcesPage: React.FC = () => {
 
   useEffect(() => {
     fetchVerifiedPartnerVendors();
-    const interval = setInterval(fetchVerifiedPartnerVendors, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   const categories = [
