@@ -323,14 +323,14 @@ public class VenuesController : ControllerBase
                     var assignedList = System.Text.Json.JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson!, jsonOptions) ?? new();
                     foreach (var av in assignedList)
                     {
-                        bool isMatch = (av.VendorId.HasValue && vendorIds.Contains(av.VendorId.Value.ToString().ToLower())) ||
+                        bool isMatch = (!string.IsNullOrEmpty(av.VendorId) && vendorIds.Contains(av.VendorId.ToLower())) ||
                                        (!string.IsNullOrWhiteSpace(av.VendorName) && vendorNames.Contains(av.VendorName.ToLower().Trim()));
 
                         if (isMatch)
                         {
                             matchedForEvent = true;
                             var matchedVendor = vendors.FirstOrDefault(v =>
-                                (av.VendorId.HasValue && v.VendorId == av.VendorId.Value) ||
+                                (!string.IsNullOrEmpty(av.VendorId) && string.Equals(v.VendorId.ToString(), av.VendorId, StringComparison.OrdinalIgnoreCase)) ||
                                 (!string.IsNullOrWhiteSpace(av.VendorName) && string.Equals(v.BusinessName.Trim(), av.VendorName.Trim(), StringComparison.OrdinalIgnoreCase))) ?? vendors.First();
 
                             string pkgName = !string.IsNullOrWhiteSpace(av.PackageName) ? av.PackageName : (matchedVendor.PackageName ?? "Standard Event Package");

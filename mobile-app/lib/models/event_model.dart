@@ -258,6 +258,24 @@ class EventProposalDetail {
       specialRequestAllocation: parsedSpecialAlloc,
     );
   }
+
+  factory EventProposalDetail.fromEventSummary(EventSummary summary) {
+    return EventProposalDetail(
+      eventId: summary.eventId,
+      title: summary.title,
+      eventType: summary.eventType ?? 'Wedding',
+      targetDate: summary.targetDate,
+      guestCount: summary.guestCount,
+      budgetLimit: summary.budgetLimit,
+      isOutdoor: summary.isOutdoor,
+      additionalDetails: summary.additionalDetails,
+      status: summary.status,
+      venueName: summary.venueName ?? 'Selected Luxury Resort',
+      banquetHallName: summary.banquetHallName,
+      estimatedTotalCost: summary.estimatedTotalCost ?? (summary.budgetLimit > 0 ? summary.budgetLimit : 0.0),
+      isConfirmed: summary.status == 'Confirmed',
+    );
+  }
 }
 
 class BanquetHallItem {

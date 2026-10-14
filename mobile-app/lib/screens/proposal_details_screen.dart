@@ -11,8 +11,9 @@ import 'home_screen.dart';
 
 class ProposalDetailsScreen extends StatefulWidget {
   final String eventId;
+  final EventSummary? initialEvent;
 
-  const ProposalDetailsScreen({super.key, required this.eventId});
+  const ProposalDetailsScreen({super.key, required this.eventId, this.initialEvent});
 
   @override
   State<ProposalDetailsScreen> createState() => _ProposalDetailsScreenState();
@@ -35,6 +36,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialEvent != null) {
+      _proposal = EventProposalDetail.fromEventSummary(widget.initialEvent!);
+      _isLoading = false;
+    }
     _loadProposal();
   }
 
@@ -107,11 +112,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
   }
 
   Future<void> _loadProposal() async {
-    setState(() => _isLoading = true);
+    if (_proposal == null) {
+      setState(() => _isLoading = true);
+    }
     final data = await ApiService.getProposalDetails(widget.eventId);
     if (mounted) {
       setState(() {
-        _proposal = data;
+        if (data != null) {
+          _proposal = data;
+        }
         _isLoading = false;
       });
     }

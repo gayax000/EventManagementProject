@@ -343,13 +343,26 @@ public class EventsController : ControllerBase
                 : new List<string>(),
             RevisionNotes = ev.RevisionNotes,
             AssignedVendorsJson = ev.AssignedVendorsJson,
-            AssignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
-                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                : new List<AssignedVendorDto>(),
+            AssignedVendors = SafeDeserializeAssignedVendors(ev.AssignedVendorsJson),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
             CreatedAt = ev.CreatedAt
         });
+    }
+
+    private static List<AssignedVendorDto> SafeDeserializeAssignedVendors(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<AssignedVendorDto>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<AssignedVendorDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<AssignedVendorDto>();
+        }
+        catch
+        {
+            return new List<AssignedVendorDto>();
+        }
     }
 
     private static bool IsLegacyOrOutOfSyncPlan(string? status, decimal budgetLimit, bool isOutdoor, string? planJson, string? weatherJson)
@@ -382,118 +395,159 @@ public class EventsController : ControllerBase
         return false;
     }
 
+    private static List<string> SafeDeserializeStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<string>();
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>();
+        }
+    }
+
     // 2.1 GET: api/events/{id}/proposal (Detailed Proposal & Booking Pass for Mobile)
     [Authorize]
     [HttpGet("{id}/proposal")]
     public async Task<ActionResult> GetEventProposal(Guid id)
     {
-        var ev = await _context.Events
-            .AsNoTracking()
-            .Include(e => e.Venue)
-            .Include(e => e.BanquetHall)
-            .ThenInclude(h => h!.Venue)
-            .FirstOrDefaultAsync(e => e.EventId == id);
-
-        if (ev == null)
-            return NotFound(new { message = "Event not found." });
-
-        var currentUserId = GetCurrentUserId();
-        if (!currentUserId.HasValue)
-            return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
-
-        if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
-            return Forbid();
-
-        var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
-        if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
+        try
         {
+            var ev = await _context.Events
+                .AsNoTracking()
+                .Include(e => e.Venue)
+                .Include(e => e.BanquetHall)
+                .ThenInclude(h => h!.Venue)
+                .FirstOrDefaultAsync(e => e.EventId == id);
+
+            if (ev == null)
+                return NotFound(new { message = "Event not found." });
+
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
+
+            if (!IsManagerOrAdmin() && ev.CustomerId != currentUserId.Value)
+                return Forbid();
+
+            var aiState = await _context.AIWorkflowStates.AsNoTracking().FirstOrDefaultAsync(a => a.EventId == id);
+            if (IsLegacyOrOutOfSyncPlan(ev.Status, ev.BudgetLimit, ev.IsOutdoor, aiState?.GeneratedPlanJson, aiState?.WeatherAssessmentJson))
+            {
+                try
+                {
+                    await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                    aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
+                }
+            }
+            var booking = await _context.Bookings
+                .Include(b => b.EntryPass)
+                .FirstOrDefaultAsync(b => b.EventId == id);
+
+            var payment = booking != null
+                ? await _context.Payments
+                    .Where(p => p.BookingId == booking.BookingId)
+                    .OrderByDescending(p => p.Status == "Approved" || p.Status == "Completed")
+                    .ThenByDescending(p => p.PaidAt)
+                    .FirstOrDefaultAsync()
+                : null;
+
+            var invoice = booking != null
+                ? await _context.Invoices.FirstOrDefaultAsync(i => i.BookingId == booking.BookingId)
+                : null;
+
+            var selectedServices = SafeDeserializeStringList(ev.SelectedServicesJson);
+            var tableRefreshments = SafeDeserializeStringList(ev.TableRefreshmentsJson);
+
+            var inspirationImages = ParseInspirationImages(ev.InspirationImageUrl);
+
+            decimal? specialRequestAlloc = null;
+            if (aiState != null && !string.IsNullOrEmpty(aiState.GeneratedPlanJson))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(aiState.GeneratedPlanJson, @"Manager Allocated:\s*Rs\.\s*([\d,]+)");
+                if (match.Success && decimal.TryParse(match.Groups[1].Value.Replace(",", ""), out var parsedAlloc))
+                {
+                    specialRequestAlloc = parsedAlloc;
+                }
+            }
+
+            return Ok(new
+            {
+                eventId = ev.EventId,
+                title = ev.Title,
+                eventType = ev.EventType,
+                targetDate = ev.TargetDate,
+                guestCount = ev.GuestCount,
+                budgetLimit = ev.BudgetLimit,
+                isOutdoor = ev.IsOutdoor,
+                additionalDetails = ev.AdditionalDetails,
+                eventSession = ev.EventSession,
+                cateringStyle = ev.CateringStyle,
+                tableRefreshments = tableRefreshments,
+                revisionNotes = ev.RevisionNotes,
+                specialRequestAllocation = specialRequestAlloc,
+                status = ev.Status,
+                venueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation ?? "Selected Luxury Resort",
+                banquetHallName = ev.BanquetHall?.HallName,
+                hallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
+                perPlatePrice = ev.BanquetHall?.PerPlatePrice,
+                preferredLocation = ev.PreferredLocation,
+                selectedServices = selectedServices,
+                inspirationImages = inspirationImages,
+                assignedVendorsJson = ev.AssignedVendorsJson,
+                assignedVendors = SafeDeserializeAssignedVendors(ev.AssignedVendorsJson),
+                estimatedTotalCost = (aiState?.EstimatedTotalCost != null && aiState.EstimatedTotalCost > 0 && aiState.EstimatedTotalCost <= ev.BudgetLimit)
+                    ? aiState.EstimatedTotalCost
+                    : (ev.BudgetLimit > 0 ? ev.BudgetLimit : (aiState?.EstimatedTotalCost ?? 0m)),
+                weatherAssessment = aiState?.WeatherAssessmentJson,
+                generatedPlan = aiState?.GeneratedPlanJson,
+                bookingId = booking?.BookingId,
+                bookingRef = booking?.BookingReferenceCode,
+                qrCodeData = booking?.EntryPass?.QrCodeData,
+                isConfirmed = (ev.Status == "Confirmed" || (booking != null && booking.Status == "Confirmed")) && booking?.EntryPass != null,
+                isPaymentUnlocked = ev.Status == "ApprovedByManager" || ev.Status == "Confirmed",
+                paymentStatus = payment?.Status,
+                slipImageUrl = payment?.SlipImageUrl,
+                invoiceNumber = invoice?.InvoiceNumber
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error retrieving proposal for Event {EventId}", id);
             try
             {
-                await _context.Events.Where(e => e.EventId == ev.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
-                aiState = await _aiWorkflowService.TriggerAgenticPlanAsync(ev.EventId) ?? aiState;
+                var fallbackEv = await _context.Events.AsNoTracking().FirstOrDefaultAsync(e => e.EventId == id);
+                if (fallbackEv != null)
+                {
+                    return Ok(new
+                    {
+                        eventId = fallbackEv.EventId,
+                        title = fallbackEv.Title,
+                        eventType = fallbackEv.EventType,
+                        targetDate = fallbackEv.TargetDate,
+                        guestCount = fallbackEv.GuestCount,
+                        budgetLimit = fallbackEv.BudgetLimit,
+                        isOutdoor = fallbackEv.IsOutdoor,
+                        additionalDetails = fallbackEv.AdditionalDetails,
+                        status = fallbackEv.Status,
+                        venueName = fallbackEv.PreferredLocation ?? "Selected Luxury Resort",
+                        estimatedTotalCost = fallbackEv.BudgetLimit,
+                        isConfirmed = fallbackEv.Status == "Confirmed",
+                        isPaymentUnlocked = fallbackEv.Status == "ApprovedByManager" || fallbackEv.Status == "Confirmed"
+                    });
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Non-fatal warning refreshing AI plan for Event {EventId}", ev.EventId);
-            }
+            catch { }
+
+            return StatusCode(500, new { message = "Error loading proposal details. Please retry." });
         }
-        var booking = await _context.Bookings
-            .Include(b => b.EntryPass)
-            .FirstOrDefaultAsync(b => b.EventId == id);
-
-        var payment = booking != null
-            ? await _context.Payments
-                .Where(p => p.BookingId == booking.BookingId)
-                .OrderByDescending(p => p.Status == "Approved" || p.Status == "Completed")
-                .ThenByDescending(p => p.PaidAt)
-                .FirstOrDefaultAsync()
-            : null;
-
-        var invoice = booking != null
-            ? await _context.Invoices.FirstOrDefaultAsync(i => i.BookingId == booking.BookingId)
-            : null;
-
-        var selectedServices = !string.IsNullOrEmpty(ev.SelectedServicesJson)
-            ? JsonSerializer.Deserialize<List<string>>(ev.SelectedServicesJson)
-            : new List<string>();
-
-        var tableRefreshments = !string.IsNullOrEmpty(ev.TableRefreshmentsJson)
-            ? JsonSerializer.Deserialize<List<string>>(ev.TableRefreshmentsJson)
-            : new List<string>();
-
-        var inspirationImages = ParseInspirationImages(ev.InspirationImageUrl);
-
-        decimal? specialRequestAlloc = null;
-        if (aiState != null && !string.IsNullOrEmpty(aiState.GeneratedPlanJson))
-        {
-            var match = System.Text.RegularExpressions.Regex.Match(aiState.GeneratedPlanJson, @"Manager Allocated:\s*Rs\.\s*([\d,]+)");
-            if (match.Success && decimal.TryParse(match.Groups[1].Value.Replace(",", ""), out var parsedAlloc))
-            {
-                specialRequestAlloc = parsedAlloc;
-            }
-        }
-
-        return Ok(new
-        {
-            eventId = ev.EventId,
-            title = ev.Title,
-            eventType = ev.EventType,
-            targetDate = ev.TargetDate,
-            guestCount = ev.GuestCount,
-            budgetLimit = ev.BudgetLimit,
-            isOutdoor = ev.IsOutdoor,
-            additionalDetails = ev.AdditionalDetails,
-            eventSession = ev.EventSession,
-            cateringStyle = ev.CateringStyle,
-            tableRefreshments = tableRefreshments,
-            revisionNotes = ev.RevisionNotes,
-            specialRequestAllocation = specialRequestAlloc,
-            status = ev.Status,
-            venueName = ev.BanquetHall?.Venue?.Name ?? ev.Venue?.Name ?? ev.PreferredLocation ?? "Selected Luxury Resort",
-            banquetHallName = ev.BanquetHall?.HallName,
-            hallRentalPrice = ev.BanquetHall != null ? ev.BanquetHall.HallRentalPrice : 0m,
-            perPlatePrice = ev.BanquetHall?.PerPlatePrice,
-            preferredLocation = ev.PreferredLocation,
-            selectedServices = selectedServices,
-            inspirationImages = inspirationImages,
-            assignedVendorsJson = ev.AssignedVendorsJson,
-            assignedVendors = !string.IsNullOrEmpty(ev.AssignedVendorsJson)
-                ? JsonSerializer.Deserialize<List<AssignedVendorDto>>(ev.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
-                : new List<AssignedVendorDto>(),
-            estimatedTotalCost = (aiState?.EstimatedTotalCost != null && aiState.EstimatedTotalCost > 0 && aiState.EstimatedTotalCost <= ev.BudgetLimit)
-                ? aiState.EstimatedTotalCost
-                : (ev.BudgetLimit > 0 ? ev.BudgetLimit : (aiState?.EstimatedTotalCost ?? 0m)),
-            weatherAssessment = aiState?.WeatherAssessmentJson,
-            generatedPlan = aiState?.GeneratedPlanJson,
-            bookingId = booking?.BookingId,
-            bookingRef = booking?.BookingReferenceCode,
-            qrCodeData = booking?.EntryPass?.QrCodeData,
-            isConfirmed = (ev.Status == "Confirmed" || (booking != null && booking.Status == "Confirmed")) && booking?.EntryPass != null,
-            isPaymentUnlocked = ev.Status == "ApprovedByManager" || ev.Status == "Confirmed",
-            paymentStatus = payment?.Status,
-            slipImageUrl = payment?.SlipImageUrl,
-            invoiceNumber = invoice?.InvoiceNumber
-        });
     }
 
     // 2.2 POST: api/events/{id}/submit-client-budget-choice (Client Budget Response from Mobile)
@@ -686,11 +740,7 @@ public class EventsController : ControllerBase
                     try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(row.SelectedServicesJson); }
                     catch { }
                 }
-                if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
-                {
-                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
-                    catch { }
-                }
+                item.AssignedVendors = SafeDeserializeAssignedVendors(item.AssignedVendorsJson);
 
                 events.Add(item);
             }
@@ -844,11 +894,7 @@ public class EventsController : ControllerBase
                     try { item.SelectedServices = JsonSerializer.Deserialize<List<string>>(row.SelectedServicesJson); }
                     catch { }
                 }
-                if (!string.IsNullOrEmpty(item.AssignedVendorsJson))
-                {
-                    try { item.AssignedVendors = JsonSerializer.Deserialize<List<AssignedVendorDto>>(item.AssignedVendorsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
-                    catch { }
-                }
+                item.AssignedVendors = SafeDeserializeAssignedVendors(item.AssignedVendorsJson);
 
                 events.Add(item);
             }

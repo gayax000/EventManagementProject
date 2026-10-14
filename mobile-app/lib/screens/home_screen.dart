@@ -1352,7 +1352,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () async {
                   final refresh = await Navigator.push<bool>(
                     context,
-                    MaterialPageRoute(builder: (_) => ProposalDetailsScreen(eventId: event.eventId)),
+                    MaterialPageRoute(
+                      builder: (_) => ProposalDetailsScreen(
+                        eventId: event.eventId,
+                        initialEvent: event,
+                      ),
+                    ),
                   );
                   if (refresh == true) {
                     _loadUserAndEvents();
