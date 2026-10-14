@@ -4239,7 +4239,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                               <div>
                                 <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                                  ✅ PACKAGES FITTED WITHIN BUDGET (Cost &le; Budget)
+                                  ✅ PACKAGES FITTED WITHIN BUDGET (COST &le; BUDGET)
                                 </h5>
                                 <p className="text-xs text-emerald-900 mt-1">
                                   All proposal services and vendor tiers strictly satisfy client's <strong>Rs. {clientBudgetLimit.toLocaleString()}</strong> budget ceiling.
@@ -4249,15 +4249,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                             <div className="pt-2 border-t border-emerald-200/80 flex justify-between items-center">
                               <span className="text-[11px] font-bold text-emerald-900">Final Fitted Total: Rs. {displayedFinalTotal.toLocaleString()}</span>
-                              {preFitSnapshot && (
-                                <button
-                                  type="button"
-                                  onClick={handleResetAutoFit}
-                                  className="text-xs text-emerald-800 hover:text-emerald-950 underline font-semibold flex items-center gap-1 bg-emerald-100/80 px-2.5 py-1 rounded transition"
-                                >
-                                  ↩️ Reset Packages (Undo)
-                                </button>
-                              )}
                             </div>
                           </div>
                         );
