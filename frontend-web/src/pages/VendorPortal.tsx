@@ -511,7 +511,19 @@ export const VendorPortal: React.FC = () => {
   // Handle New Vendor Registration
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName.trim() || !contactNumber.trim()) return;
+    const cleanName = businessName.trim();
+    if (!cleanName || !contactNumber.trim()) return;
+
+    if (cleanName.length < 2) {
+      alert("Business Name must be at least 2 characters long.");
+      return;
+    }
+
+    const priceNum = Number(packagePrice);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      alert("Starting Unit Price must be a valid amount greater than zero.");
+      return;
+    }
 
     // Validate Sri Lankan Phone Number format (e.g. 0771234567 or +94771234567)
     const cleanPhone = contactNumber.trim().replace(/[\s-]/g, '');

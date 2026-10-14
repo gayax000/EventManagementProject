@@ -208,11 +208,21 @@ export const VendorsPage: React.FC = () => {
   }, []);
 
   const handleVerifyVendor = async (id: string, newStatus: 'Verified' | 'Rejected') => {
-    const updated = vendors.map(v => v.id === id ? { ...v, status: newStatus } : v);
+    let remarks: string | undefined = undefined;
+    if (newStatus === 'Rejected') {
+      const input = window.prompt("Please provide an audit remark for rejecting this vendor application (e.g. Incomplete documentation, Unverified phone number, or Catalog mismatch):");
+      if (!input || !input.trim()) {
+        alert("Action cancelled: Specific audit remarks are required when declining a vendor partnership.");
+        return;
+      }
+      remarks = input.trim();
+    }
+
+    const updated = vendors.map(v => v.id === id ? { ...v, status: newStatus, adminRemarks: remarks || v.adminRemarks } : v);
     setVendors(updated);
     try {
       localStorage.setItem('eventcraft_system_vendors_v2', JSON.stringify(updated));
-      await vendorService.verifyVendor(id, newStatus);
+      await vendorService.verifyVendor(id, newStatus, remarks);
       await fetchVendors();
     } catch (e) {
       console.warn("Backend verifyVendor call warning", e);

@@ -80,9 +80,19 @@ export const PaymentsPage: React.FC = () => {
   }, []);
 
   const handleVerify = async (id: string, newStatus: 'Approved' | 'Rejected') => {
+    let rejectReason: string | undefined = undefined;
+    if (newStatus === 'Rejected') {
+      const reason = window.prompt("Please provide an audit reason for rejecting this customer payment slip (e.g. Unclear slip image, Mismatched deposit amount, or Invalid reference):");
+      if (!reason || !reason.trim()) {
+        alert("Action cancelled: A specific rejection reason is mandatory for financial audit compliance.");
+        return;
+      }
+      rejectReason = reason.trim();
+    }
+
     setActionLoading(id);
     try {
-      await paymentService.verifyPayment(id, newStatus);
+      await paymentService.verifyPayment(id, newStatus, rejectReason);
       await loadData();
       if (selectedSlip && selectedSlip.id === id) {
         setSelectedSlip(null);

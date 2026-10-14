@@ -10,20 +10,47 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'Vendor' | 'Manager'>('Vendor');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !password || !phone) {
-      setError('Please fill in all fields');
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim();
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const cleanPassword = password.trim();
+
+    if (!cleanName || !cleanEmail || !cleanPassword || !cleanPhone || !confirmPassword.trim()) {
+      setError('Please fill in all registration fields.');
+      return;
+    }
+
+    if (cleanName.length < 2) {
+      setError('Full Name must be at least 2 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address (e.g. vendor@example.com).');
       return;
     }
 
     const phoneRegex = /^(?:\+94|0)[0-9]{9}$/;
-    if (!phoneRegex.test(phone.replace(/\s+/g, ''))) {
-      setError('Please enter a valid mobile number (e.g. 0771234567 or +94771234567)');
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Sri Lankan phone number (e.g. 0771234567 or +94771234567).');
+      return;
+    }
+
+    if (cleanPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (cleanPassword !== confirmPassword.trim()) {
+      setError('Passwords do not match. Please re-enter your password.');
       return;
     }
 
@@ -31,7 +58,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
     setError('');
     
     // Public registrations are strictly Vendors / Suppliers
-    const success = await authService.register(fullName, email, password, phone, 'Vendor');
+    const success = await authService.register(cleanName, cleanEmail, cleanPassword, cleanPhone, 'Vendor');
     
     setIsLoading(false);
 
@@ -39,7 +66,7 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
       alert(`Vendor account created successfully! Please sign in with your email and password.`);
       onNavigateLogin();
     } else {
-      setError('Registration failed. Please try again.');
+      setError('Registration failed. The email address may already be in use.');
     }
   };
 
@@ -101,7 +128,18 @@ export const Register: React.FC<RegisterProps> = ({ onNavigateLogin }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
-              placeholder="••••••••"
+              placeholder="•••••••• (Min 6 characters)"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 text-white"
+              placeholder="•••••••• (Re-enter password)"
             />
           </div>
 

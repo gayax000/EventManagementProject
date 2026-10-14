@@ -57,6 +57,11 @@ public class EventsController : ControllerBase
                 return Unauthorized(new { message = "User identity could not be verified from JWT token claims." });
             }
 
+            if (dto.TargetDate.Date < DateTime.UtcNow.Date)
+            {
+                return BadRequest(new { message = "Event target date cannot be in the past. Please select an upcoming date." });
+            }
+
             Guid customerId;
             if (IsManagerOrAdmin() && dto.CustomerId.HasValue && dto.CustomerId.Value != Guid.Empty)
             {
@@ -114,6 +119,11 @@ public class EventsController : ControllerBase
                 chosenHall = await _context.BanquetHalls.Include(h => h.Venue).FirstOrDefaultAsync(h => h.BanquetHallId == banquetHallId.Value);
                 if (chosenHall != null)
                 {
+                    if (chosenHall.MaxCapacity > 0 && dto.GuestCount > chosenHall.MaxCapacity)
+                    {
+                        return BadRequest(new { message = $"The selected banquet hall '{chosenHall.HallName}' has a maximum capacity of {chosenHall.MaxCapacity} guests. Your request is for {dto.GuestCount} guests." });
+                    }
+
                     venueId = chosenHall.VenueId;
 
                     var targetUtcDate = DateTime.SpecifyKind(dto.TargetDate.Date, DateTimeKind.Utc);

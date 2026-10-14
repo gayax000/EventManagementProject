@@ -1034,17 +1034,50 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
 
     final double budget = double.tryParse(_budgetController.text) ?? 0;
-    final int guests = int.tryParse(_guestController.text) ?? 100;
+    final int guests = int.tryParse(_guestController.text) ?? 0;
 
-    if (budget <= 0) {
+    if (guests < 10 || guests > 10000) {
       AppFeedback.showToast(
         context,
-        title: 'Budget Required',
-        message: 'Please enter a valid target budget for your celebration.',
+        title: 'Guest Count Invalid',
+        message: 'Please enter a realistic guest count between 10 and 10,000 guests.',
         type: ToastType.warning,
       );
       setState(() => _currentStep = 0);
       return;
+    }
+
+    if (budget < 25000) {
+      AppFeedback.showToast(
+        context,
+        title: 'Budget Required',
+        message: 'Please enter a realistic celebration budget of at least LKR 25,000.',
+        type: ToastType.warning,
+      );
+      setState(() => _currentStep = 0);
+      return;
+    }
+
+    if (_locationMode == 'hotel' && _selectedHall != null && _selectedHall!.maxCapacity > 0 && guests > _selectedHall!.maxCapacity) {
+      AppFeedback.showToast(
+        context,
+        title: 'Capacity Exceeded',
+        message: '${_selectedHall!.hallName} accommodates up to ${_selectedHall!.maxCapacity} guests. Your request has $guests guests.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
+    for (final bytes in _selectedImageBytes) {
+      if (bytes.length > 5 * 1024 * 1024) {
+        AppFeedback.showToast(
+          context,
+          title: 'Image Too Large',
+          message: 'Inspiration photos must be under 5MB each to ensure fast generation.',
+          type: ToastType.warning,
+        );
+        return;
+      }
     }
 
     setState(() => _isSubmitting = true);

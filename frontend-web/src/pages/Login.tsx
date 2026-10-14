@@ -36,6 +36,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regRole, setRegRole] = useState<string>('Customer');
   const [regLoading, setRegLoading] = useState(false);
 
@@ -73,8 +74,40 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   // Handle Register Submit
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regFullName || !regEmail || !regPassword || !regPhone) {
+    const cleanName = regFullName.trim();
+    const cleanEmail = regEmail.trim();
+    const cleanPhone = regPhone.trim().replace(/\s+/g, '');
+    const cleanPassword = regPassword.trim();
+
+    if (!cleanName || !cleanEmail || !cleanPassword || !cleanPhone || !regConfirmPassword.trim()) {
       setError('Please fill in all registration fields.');
+      return;
+    }
+
+    if (cleanName.length < 2) {
+      setError('Business / Full Name must be at least 2 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address (e.g. contact@example.com).');
+      return;
+    }
+
+    const phoneRegex = /^(?:\+94|0)[0-9]{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Sri Lankan phone number (e.g. 0771234567 or +94771234567).');
+      return;
+    }
+
+    if (cleanPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (cleanPassword !== regConfirmPassword.trim()) {
+      setError('Passwords do not match. Please re-enter your password.');
       return;
     }
 
@@ -83,12 +116,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setSuccessMsg('');
     
     // Strictly register as 'Vendor'
-    const success = await authService.register(regFullName, regEmail, regPassword, regPhone, 'Vendor');
+    const success = await authService.register(cleanName, cleanEmail, cleanPassword, cleanPhone, 'Vendor');
     setRegLoading(false);
 
     if (success) {
       // Auto-login newly registered vendor
-      const autoLogin = await authService.login(regEmail, regPassword);
+      const autoLogin = await authService.login(cleanEmail, cleanPassword);
       if (autoLogin) {
         setAuthModal(null);
         onLoginSuccess();
@@ -379,7 +412,22 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                      placeholder="••••••••"
+                      placeholder="•••••••• (Min 6 characters)"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-semibold text-slate-300 mb-1">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      type="password"
+                      required
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                      placeholder="•••••••• (Re-enter password)"
                     />
                   </div>
                 </div>

@@ -5,7 +5,7 @@ namespace EventManagement.Core.DTOs;
 // 1. Create Event Request DTO
 public class CreateEventRequestDto
 {
-    [Required, MaxLength(200)]
+    [Required, MinLength(2, ErrorMessage = "Title must be at least 2 characters long."), MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
     public string EventType { get; set; } = "Wedding";
@@ -99,6 +99,8 @@ public class UpdateAssignedVendorsDto
 // 2.0 Client Choice / Revision Request DTO
 public class SubmitClientBudgetChoiceDto
 {
+    [Required]
+    [RegularExpression("^(?i)(accept|request_revision)$", ErrorMessage = "Action must be either 'accept' or 'request_revision'.")]
     public string ClientAction { get; set; } = "accept"; // "accept" or "request_revision"
     public string? SelectedTier { get; set; }
     public string? RevisionNotes { get; set; }
@@ -124,6 +126,7 @@ public class SignContractRequestDto
     [Required]
     public string DigitalSignatureUrl { get; set; } = string.Empty;
 
+    [Range(1, 1000000000, ErrorMessage = "Agreed amount must be greater than zero.")]
     public decimal AgreedTotalAmount { get; set; }
 }
 

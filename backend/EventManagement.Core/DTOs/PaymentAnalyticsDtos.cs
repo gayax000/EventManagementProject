@@ -37,6 +37,7 @@ public class SubmitPaymentSlipDto
 public class VerifyPaymentDto
 {
     [Required]
+    [RegularExpression("^(?i)(Approved|Rejected)$", ErrorMessage = "Status must be either 'Approved' or 'Rejected'.")]
     public string Status { get; set; } = "Approved"; // Approved or Rejected
 
     public string? RejectReason { get; set; }

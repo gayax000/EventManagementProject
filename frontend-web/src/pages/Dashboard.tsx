@@ -4309,8 +4309,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <span className="text-xs text-slate-400">Rs.</span>
                           <input 
                             type="number" 
+                            min="0"
+                            max={currentSubtotal}
                             value={specialDiscount}
-                            onChange={(e) => setSpecialDiscount(Number(e.target.value))}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              setSpecialDiscount(Math.max(0, Math.min(isNaN(val) ? 0 : val, currentSubtotal)));
+                            }}
                             disabled={isApproved}
                             className="w-24 px-2 py-1 bg-white border border-slate-300 rounded text-right text-sm font-semibold text-slate-800 disabled:bg-slate-100"
                           />

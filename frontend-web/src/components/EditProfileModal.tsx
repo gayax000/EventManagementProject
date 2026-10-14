@@ -22,12 +22,42 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [email, setEmail] = useState(currentEmail);
   const [phone, setPhone] = useState(currentPhone);
   const [isSaved, setIsSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    authService.updateProfile(fullName, email, phone);
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim();
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+
+    if (!cleanName || !cleanEmail) {
+      setError('Full Name and Email Address are required.');
+      return;
+    }
+
+    if (cleanName.length < 2) {
+      setError('Full Name must be at least 2 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (cleanPhone) {
+      const phoneRegex = /^(?:\+94|0)[0-9]{9}$/;
+      if (!phoneRegex.test(cleanPhone)) {
+        setError('Please enter a valid 10-digit Sri Lankan phone number (e.g. 0771234567 or +94771234567).');
+        return;
+      }
+    }
+
+    setError(null);
+    authService.updateProfile(cleanName, cleanEmail, cleanPhone);
     setIsSaved(true);
 
     if (onProfileUpdated) {
@@ -75,6 +105,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               {currentRole} Account
             </span>
           </div>
+
+          {/* Validation Error Alert */}
+          {error && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-semibold flex items-center space-x-2 animate-fadeIn">
+              <span>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           {/* Full Name */}
           <div>

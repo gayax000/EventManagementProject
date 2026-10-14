@@ -306,6 +306,12 @@ public class PaymentsController : ControllerBase
                 return NotFound(new { message = "Payment record not found." });
             }
 
+            if (string.Equals(dto.Status, "Rejected", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(dto.RejectReason))
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(new { message = "A specific rejection reason must be provided when rejecting a customer payment slip." });
+            }
+
             // Step 1: Update Payment Status & remarks
             payment.Status = dto.Status;
             payment.RejectReason = dto.RejectReason;

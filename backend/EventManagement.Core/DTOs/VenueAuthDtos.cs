@@ -4,13 +4,13 @@ namespace EventManagement.Core.DTOs;
 
 public class RegisterRequestDto
 {
-    [Required, MaxLength(100)]
+    [Required, MinLength(2, ErrorMessage = "Full name must be at least 2 characters long."), MaxLength(100)]
     public string FullName { get; set; } = string.Empty;
 
     [Required, EmailAddress, MaxLength(150)]
     public string Email { get; set; } = string.Empty;
 
-    [Required, MinLength(6)]
+    [Required, MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
     public string Password { get; set; } = string.Empty;
 
     [Required]
@@ -58,6 +58,7 @@ public class CreateVenueDto
 public class VerifyVendorDto
 {
     [Required]
+    [RegularExpression("^(?i)(Verified|Rejected)$", ErrorMessage = "Status must be either 'Verified' or 'Rejected'.")]
     public string Status { get; set; } = "Verified";
 
     public string? AdminRemarks { get; set; }
@@ -65,7 +66,7 @@ public class VerifyVendorDto
 
 public class RegisterVendorDto
 {
-    [Required, MaxLength(150)]
+    [Required, MinLength(2, ErrorMessage = "Business name must be at least 2 characters long."), MaxLength(150)]
     public string BusinessName { get; set; } = string.Empty;
 
     [Required]
@@ -77,6 +78,8 @@ public class RegisterVendorDto
 
     public string? Description { get; set; }
     public string? PackageName { get; set; }
+
+    [Range(100, 100000000, ErrorMessage = "Package price must be at least 100 LKR.")]
     public decimal? PackagePrice { get; set; }
     public Guid? UserId { get; set; }
 }

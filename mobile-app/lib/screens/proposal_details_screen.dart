@@ -77,6 +77,17 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
   Future<void> _submitPaymentSlip() async {
     if (_selectedSlipBytes == null || _proposal == null) return;
+
+    if (_selectedSlipBytes!.length > 5 * 1024 * 1024) {
+      AppFeedback.showToast(
+        context,
+        title: 'Image Too Large',
+        message: 'Payment deposit slip photo must be under 5MB.',
+        type: ToastType.warning,
+      );
+      return;
+    }
+
     setState(() => _isUploadingSlip = true);
 
     try {
