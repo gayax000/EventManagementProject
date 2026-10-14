@@ -68,6 +68,42 @@ public class EventsController : ControllerBase
                 customerId = currentUserId.Value;
             }
 
+            // Ensure customer exists in the database to prevent foreign key violations (e.g. after database migration or token persistence)
+            var customerExists = await _context.Users.AnyAsync(u => u.UserId == customerId);
+            if (!customerExists)
+            {
+                var emailClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                var nameClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+
+                string safeEmail = !string.IsNullOrWhiteSpace(emailClaim) ? emailClaim : $"customer_{customerId:N}@eventcraft.lk";
+                string safeName = !string.IsNullOrWhiteSpace(nameClaim) ? nameClaim : "Valued Customer";
+
+                if (await _context.Users.AnyAsync(u => u.Email == safeEmail))
+                {
+                    safeEmail = $"client_{customerId:N}@eventcraft.lk";
+                }
+
+                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Customer");
+                int roleId = customerRole != null ? customerRole.RoleId : 3;
+
+                var autoUser = new User
+                {
+                    UserId = customerId,
+                    FullName = safeName,
+                    Email = safeEmail,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Customer@123"),
+                    PhoneNumber = "+94770000000",
+                    ProfileImageUrl = "",
+                    AccountStatus = "Active",
+                    RoleId = roleId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(autoUser);
+                await _context.SaveChangesAsync();
+            }
+
             Guid? venueId = dto.VenueId;
             Guid? banquetHallId = dto.BanquetHallId;
             BanquetHall? chosenHall = null;
