@@ -152,4 +152,29 @@ void main() {
     // Verify outdoor setting was activated by AI vision
     expect(find.textContaining('AI Weather Agent will compute monsoonal probability'), findsOneWidget);
   });
+
+  testWidgets('AI Event Concierge selects Sri Lankan Heritage catering and respects no band/alcohol', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CreateEventScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final promptField = find.byType(TextFormField).first;
+    await tester.enterText(promptField, '25th of november, no live band and no alcohol please, i need sri lankan heritge lunch');
+    await tester.pumpAndSettle();
+
+    final autoFillBtn = find.text('Auto-Fill Event Details with AI');
+    await tester.ensureVisible(autoFillBtn);
+    await tester.tap(autoFillBtn);
+    await tester.pumpAndSettle();
+
+    // Verify date is updated to November 25, 2026
+    expect(find.textContaining('November 25, 2026'), findsOneWidget);
+  });
 }

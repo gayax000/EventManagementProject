@@ -79,14 +79,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     _hasMidnightSnack = _selectedSession == 'NightDinner';
 
     if (occ.contains('wedding')) {
-      _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering', 'Bridal Transport'});
+      _selectedServices.addAll({'Photography', 'Decorations', _dynamicCakeLabel, 'Bridal Transport'});
       _selectedCateringStyle = 'InternationalBuffet';
     } else if (occ.contains('birthday')) {
-      _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting', 'Cake Tiering'});
+      _selectedServices.addAll({'Photography', 'Decorations', 'Sound and Lighting', _dynamicCakeLabel});
       _selectedServices.remove('Bridal Transport');
       _selectedCateringStyle = 'OutdoorBBQ';
     } else if (occ.contains('engagement') || occ.contains('anniversary')) {
-      _selectedServices.addAll({'Photography', 'Decorations', 'Cake Tiering'});
+      _selectedServices.addAll({'Photography', 'Decorations', _dynamicCakeLabel});
       if (occ.contains('engagement')) _selectedServices.add('Bridal Transport');
       else _selectedServices.remove('Bridal Transport');
       _selectedCateringStyle = 'HighTeaCanape';
@@ -716,6 +716,85 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         extractedRequests.add('Beverage & Cocktail bar arrangement requested');
       }
 
+      // G. Catering Package & Culinary Style Auto-Selection
+      if (lowerText.contains('sri lankan') ||
+          lowerText.contains('srilankan') ||
+          lowerText.contains('heritage') ||
+          lowerText.contains('heritge') ||
+          lowerText.contains('claypot') ||
+          lowerText.contains('rice and curry') ||
+          lowerText.contains('village feast') ||
+          lowerText.contains('gam medda') ||
+          lowerText.contains('traditional')) {
+        _selectedCateringStyle = 'SriLankanHeritage';
+        extractedRequests.add('Catering: Authentic Sri Lankan Heritage Feast');
+      } else if (lowerText.contains('bbq') ||
+          lowerText.contains('barbecue') ||
+          lowerText.contains('grill') ||
+          lowerText.contains('live bbq') ||
+          lowerText.contains('outdoor bbq')) {
+        _selectedCateringStyle = 'OutdoorBBQ';
+        extractedRequests.add('Catering: Outdoor Live BBQ & Grill Station');
+      } else if (lowerText.contains('high tea') ||
+          lowerText.contains('canape') ||
+          lowerText.contains('canapé') ||
+          lowerText.contains('finger food') ||
+          lowerText.contains('tea time')) {
+        _selectedCateringStyle = 'HighTeaCanape';
+        extractedRequests.add('Catering: High Tea Canapé & Cocktail Platter');
+      } else if (lowerText.contains('international') ||
+          lowerText.contains('buffet') ||
+          lowerText.contains('western buffet')) {
+        _selectedCateringStyle = 'InternationalBuffet';
+        extractedRequests.add('Catering: International Buffet');
+      }
+
+      // H. Food & Refreshment Add-Ons Checkboxes Synchronization
+      final mocktailKw = ['mocktail', 'mocktails', 'welcome drink', 'welcome drinks', 'fruit juice', 'welcome beverage', 'drinks bar'];
+      if (isServiceNegated(mocktailKw)) {
+        _hasWelcomeMocktails = false;
+        excludedRequests.add('Welcome Mocktails & Refreshing Drinks Bar (Client opted out)');
+      } else if (isServiceMentioned(mocktailKw)) {
+        _hasWelcomeMocktails = true;
+        extractedRequests.add('Welcome Mocktails & Refreshing Drinks Bar requested');
+      }
+
+      final snackKw = ['table refreshment', 'refreshment', 'refreshments', 'snack', 'snacks', 'bites', 'short eats', 'shorties', 'savory snack'];
+      if (isServiceNegated(snackKw)) {
+        _hasTableRefreshments = false;
+        excludedRequests.add('Table Refreshments & Savory Snacks (Client opted out)');
+      } else if (isServiceMentioned(snackKw)) {
+        _hasTableRefreshments = true;
+        extractedRequests.add('Table Refreshments & Savory Snacks requested');
+      }
+
+      final dessertKw = ['dessert', 'desserts', 'sweet counter', 'sweets', 'sweet table', 'pudding'];
+      if (isServiceNegated(dessertKw)) {
+        _hasDesserts = false;
+        excludedRequests.add('Desserts & Sweet Counters (Client opted out)');
+      } else if (isServiceMentioned(dessertKw)) {
+        _hasDesserts = true;
+        extractedRequests.add('Desserts & Sweet Counters requested');
+      }
+
+      final coffeeKw = ['coffee', 'coffee bar', 'ceylon tea', 'tea bar', 'artisanal coffee', 'espresso'];
+      if (isServiceNegated(coffeeKw)) {
+        _hasCoffeeBar = false;
+        excludedRequests.add('Ceylon Tea & Artisanal Coffee Bar (Client opted out)');
+      } else if (isServiceMentioned(coffeeKw)) {
+        _hasCoffeeBar = true;
+        extractedRequests.add('Ceylon Tea & Artisanal Coffee Bar requested');
+      }
+
+      final midnightKw = ['midnight snack', 'midnight snacks', 'live action station', 'action station', 'kottu station', 'hopper station', 'late night food', 'live food station'];
+      if (isServiceNegated(midnightKw)) {
+        _hasMidnightSnack = false;
+        excludedRequests.add('Midnight Snack / Live Food Action Station (Client opted out)');
+      } else if (isServiceMentioned(midnightKw)) {
+        _hasMidnightSnack = true;
+        extractedRequests.add('Midnight Snack / Live Food Action Station requested');
+      }
+
       if (lowerText.contains('night') || lowerText.contains('dinner')) {
         extractedRequests.add('Night Dinner Session requested');
       }
@@ -725,6 +804,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       if (matchedDistrict != null) {
         detailsBuffer.writeln('• Target Preferred Location: $matchedDistrict District');
       }
+      detailsBuffer.writeln('• Catering Package: ${_getCateringStyleDisplayName(_selectedCateringStyle)}');
       if (extractedRequests.isNotEmpty) {
         detailsBuffer.writeln('• Special Requests & Add-ons for Manager Review:');
         for (final req in extractedRequests) {
@@ -793,7 +873,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       AppFeedback.showToast(
         context,
         title: 'AI Vision Extracted ✨',
-        message: 'Guests: ${_guestController.text} • Budget: Rs. $formattedBudgetStr • ${_selectedHotelName ?? _selectedDistrict} • ${_isOutdoor ? "Outdoor" : "Indoor"}',
+        message: 'Guests: ${_guestController.text} • Budget: Rs. $formattedBudgetStr • ${_selectedHotelName ?? _selectedDistrict} • ${_getCateringStyleDisplayName(_selectedCateringStyle)}',
         type: ToastType.success,
         duration: const Duration(seconds: 4),
       );
@@ -815,13 +895,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     return _selectedHall!.hallRentalPrice + (_selectedHall!.perPlatePrice * guests);
   }
 
-
-
   String get _dynamicCakeLabel {
     if (_selectedEventType == 'Wedding') return 'Wedding Cake Tier';
     if (_selectedEventType == 'Birthday Party') return 'Birthday Cake';
     if (_selectedEventType == 'Anniversary') return 'Anniversary Cake';
     return 'Custom Celebration Cake';
+  }
+
+  String _getCateringStyleDisplayName(String style) {
+    switch (style) {
+      case 'SriLankanHeritage':
+        return 'Sri Lankan Heritage';
+      case 'OutdoorBBQ':
+        return 'Outdoor Live BBQ';
+      case 'HighTeaCanape':
+        return 'High Tea Canapé';
+      case 'InternationalBuffet':
+      default:
+        return 'International Buffet';
+    }
   }
 
   Future<void> _selectDate() async {
