@@ -592,8 +592,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           currentMap['MarqueeTent'] = {
             vendorId: tnt.vendorId || (tnt as any).id,
             vendorName: tnt.businessName || tnt.name,
-            packageName: tnt.packageName,
-            agreedPayout: tnt.packagePrice,
+            packageName: parsedPlanInit?.tentItem?.name || tnt.packageName,
+            agreedPayout: parsedPlanInit?.tentItem?.cost || tnt.packagePrice,
             catalogPrice: tnt.packagePrice
           };
         }
@@ -610,12 +610,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Fetch proposal details to synchronize real database pricing and inspiration photos
   useEffect(() => {
     if (selectedEvent?.eventId) {
-      const isAlreadyWithinBudget = Boolean(
-        selectedEvent.estimatedTotalCost &&
-        selectedEvent.budgetLimit &&
-        Number(selectedEvent.estimatedTotalCost) <= Number(selectedEvent.budgetLimit)
-      );
-      setIsBudgetAutoFitted(isAlreadyWithinBudget);
+      setIsBudgetAutoFitted(false);
       setIsManualReset(false);
       setHasUserManuallyReset(false);
       setClientApprovalRequested(false);
@@ -787,9 +782,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let transportItem: { name: string; cost: number } | null = null;
 
     const refKeywords = [
-      'mocktail', 'punch', 'cordial', 'juice', 'biscuit', 'canap', 'pastries', 'roll', 'samosa',
+      'mocktail', 'punch', 'cordial', 'juice', 'biscuit', 'canap', 'pastries', 'samosa',
       'snack', 'pudding', 'watalappan', 'chocolate fountain', 'ice cream', 'dessert',
-      'tea station', 'tea &', 'plain & milk tea', 'coffee', 'espresso', 'midnight', 'kottu', 'hopper'
+      'tea station', 'tea &', 'milk tea', 'plain & milk tea', 'coffee', 'espresso', 'midnight', 'kottu', 'hopper',
+      'fruit fusion', 'savory selection', 'canapé', 'mint lime', 'table refreshment', 'cordial punch', 'spring roll', 'pastry roll'
     ];
 
     for (const rawLine of lines) {
@@ -815,20 +811,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (label && cost > 0) {
         items.push({ name: label, cost });
         const lower = label.toLowerCase();
-        if (lower.includes('marquee') || lower.includes('canopy') || lower.includes('tent') || lower.includes('hangar')) {
-          tentItem = { name: label, cost };
-        } else if (refKeywords.some(kw => lower.includes(kw))) {
-          refreshmentItems.push({ name: label, itemPerHead: 0, cost });
-        } else if (lower.includes('sound') || lower.includes('audio') || lower.includes('rig') || lower.includes('lighting')) {
-          soundsItem = { name: label, cost };
-        } else if (lower.includes('deco') || lower.includes('floral') || lower.includes('flower') || lower.includes('arch')) {
-          decoItem = { name: label, cost };
-        } else if (lower.includes('photo') || lower.includes('cinema') || lower.includes('media') || lower.includes('album')) {
-          photoItem = { name: label, cost };
-        } else if (lower.includes('cake') || lower.includes('fondant')) {
-          cakeItem = { name: label, cost };
-        } else if (lower.includes('transport') || lower.includes('rolls royce') || lower.includes('chauffeur') || lower.includes('sedan') || lower.includes('jaguar') || lower.includes('benz') || lower.includes('bmw')) {
-          transportItem = { name: label, cost };
+
+        const isTransport = lower.includes('transport') || lower.includes('rolls royce') || lower.includes('rolls-royce') || lower.includes('chauffeur') || lower.includes('sedan') || lower.includes('jaguar') || lower.includes('benz') || lower.includes('bmw') || lower.includes('prius') || lower.includes('axio') || lower.includes('premio') || lower.includes('allion') || lower.includes('prado') || lower.includes('escort') || lower.includes('bridal car') || lower.includes('vehicle');
+        const isTent = lower.includes('marquee') || lower.includes('canopy') || lower.includes('tent') || lower.includes('hangar');
+        const isSounds = lower.includes('sound') || lower.includes('audio') || lower.includes('rig') || lower.includes('lighting') || lower.includes('speaker') || lower.includes('mixer') || lower.includes('acoustic');
+        const isDeco = lower.includes('deco') || lower.includes('floral') || lower.includes('flower') || lower.includes('arch') || lower.includes('poruwa') || lower.includes('oil lamp') || lower.includes('drape');
+        const isPhoto = lower.includes('photo') || lower.includes('cinema') || lower.includes('media') || lower.includes('album') || lower.includes('photographer');
+        const isCake = lower.includes('cake') || lower.includes('fondant') || lower.includes('gateau');
+        const isRefreshment = !isTransport && !isTent && !isSounds && !isDeco && !isPhoto && !isCake && refKeywords.some(kw => lower.includes(kw));
+
+        const cleanName = label
+          .replace(/\s*\[Partner:\s*[^\]]+\]/gi, '')
+          .replace(/\s*\(\s*(?:Rs\.|LKR)?\s*[\d,]+\s*(?:\/|\s*per\s*)(?:guest|plate)\s*\)/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (isTent) {
+          tentItem = { name: cleanName, cost };
+        } else if (isTransport) {
+          transportItem = { name: cleanName, cost };
+        } else if (isPhoto) {
+          photoItem = { name: cleanName, cost };
+        } else if (isSounds) {
+          soundsItem = { name: cleanName, cost };
+        } else if (isDeco) {
+          decoItem = { name: cleanName, cost };
+        } else if (isCake) {
+          cakeItem = { name: cleanName, cost };
+        } else if (isRefreshment) {
+          if (!refreshmentItems.some(r => r.name.toLowerCase() === cleanName.toLowerCase())) {
+            refreshmentItems.push({ name: cleanName, itemPerHead: 0, cost });
+          }
         }
       }
     }
@@ -1046,12 +1059,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } else if (parsedPlan?.refreshmentItems && parsedPlan.refreshmentItems.length > 0) {
       // Direct synchronization from Backend AI Generated Plan (Single Source of Truth)
       parsedPlan.refreshmentItems.forEach(r => {
-        refreshmentsCost += r.cost;
-        refreshmentsItems.push({
-          name: r.name,
-          itemPerHead: Math.round(r.cost / guestCnt),
-          cost: r.cost
-        });
+        const lowerR = r.name.toLowerCase();
+        const isVendor = lowerR.includes('transport') || lowerR.includes('rolls royce') || lowerR.includes('jaguar') || lowerR.includes('benz') || lowerR.includes('bmw') || lowerR.includes('sedan') || lowerR.includes('photo') || lowerR.includes('sound') || lowerR.includes('audio') || lowerR.includes('deco') || lowerR.includes('floral') || lowerR.includes('cake') || lowerR.includes('tent') || lowerR.includes('marquee');
+        if (!isVendor) {
+          const cleanName = r.name.replace(/\s*\(\s*(?:Rs\.|LKR)?\s*[\d,]+\s*(?:\/|\s*per\s*)(?:guest|plate)\s*\)/gi, '').trim();
+          if (!refreshmentsItems.some(existing => existing.name.toLowerCase() === cleanName.toLowerCase())) {
+            refreshmentsCost += r.cost;
+            refreshmentsItems.push({
+              name: cleanName,
+              itemPerHead: Math.round(r.cost / guestCnt),
+              cost: r.cost
+            });
+          }
+        }
       });
     } else if (clientSelectedRefreshmentItems.length > 0) {
       // Calculate Flat Item Price for each specific checkbox selected by client
@@ -1168,7 +1188,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
-    const parsedPlan = !isBudgetAutoFitted ? parseGeneratedPlan(selectedEvent.generatedPlan) : null;
+    const parsedPlan = parseGeneratedPlan(selectedEvent.generatedPlan);
     let weatherData = selectedEvent.weatherAssessment;
     if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
       try { weatherData = JSON.parse(weatherData); } catch (e) {}
@@ -1203,6 +1223,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             weatherTentCost = 25000;
             weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
           }
+        } else if (selectedVendorAssignments['MarqueeTent']?.agreedPayout) {
+          weatherTentCost = selectedVendorAssignments['MarqueeTent'].agreedPayout;
+          weatherTentName = (parsedPlan?.tentItem && parsedPlan.tentItem.cost === selectedVendorAssignments['MarqueeTent'].agreedPayout)
+            ? parsedPlan.tentItem.name
+            : (selectedVendorAssignments['MarqueeTent'].packageName || 'Waterproof Marquee Tent');
         } else if (parsedPlan?.tentItem) {
           weatherTentCost = parsedPlan.tentItem.cost;
           weatherTentName = parsedPlan.tentItem.name;
@@ -1385,7 +1410,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     if (alloc.refreshmentsItems && alloc.refreshmentsItems.length > 0) {
       alloc.refreshmentsItems.forEach(r => {
-        planItems.push(`${r.name} (Rs. ${r.itemPerHead.toLocaleString()}/guest) = Rs. ${r.cost.toLocaleString()}`);
+        const cleanName = r.name.replace(/\s*\(\s*(?:Rs\.|LKR)?\s*[\d,]+\s*(?:\/|\s*per\s*)(?:guest|plate)\s*\)/gi, '').trim();
+        planItems.push(`${cleanName} = Rs. ${r.cost.toLocaleString()}`);
       });
     }
 
@@ -1413,7 +1439,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     if (alloc.hasTransport) {
       const vName = selectedVendorAssignments['Transport']?.vendorName || selectedVendorAssignments['VIPTransport']?.vendorName;
-      planItems.push(`${alloc.transportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
+      const cleanTransportName = (alloc.transportName || selectedVendorAssignments['Transport']?.packageName || 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII')
+        .replace(/\s*\[Partner:\s*[^\]]+\]/gi, '')
+        .replace(/\s*\(\s*(?:Rs\.|LKR)?\s*[\d,]+\s*(?:\/|\s*per\s*)(?:guest|plate)\s*\)/gi, '')
+        .trim();
+      planItems.push(`${cleanTransportName}${vName ? ` [Partner: ${vName}]` : ''} (Rs. ${alloc.transportCost.toLocaleString()})`);
     }
     if (alloc.hasSpecialRequests) planItems.push(`Special Client Request: ${selectedEvent.additionalDetails} (Rs. ${alloc.otherCost.toLocaleString()})`);
     if (isEventOutdoor && weatherTentCost > 0) planItems.push(`${weatherTentName} [Partner: ${selectedVendorAssignments['MarqueeTent']?.vendorName || 'Ceylon WeatherShield'}] (Rs. ${weatherTentCost.toLocaleString()})`);
@@ -1795,7 +1825,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
-  const parsedPlan = !isBudgetAutoFitted ? parseGeneratedPlan(selectedEvent?.generatedPlan) : null;
+  const parsedPlan = parseGeneratedPlan(selectedEvent?.generatedPlan);
   let weatherData = selectedEvent?.weatherAssessment;
   if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
     try { weatherData = JSON.parse(weatherData); } catch (e) {}
@@ -1836,6 +1866,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = 25000;
           weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
         }
+      } else if (selectedVendorAssignments['MarqueeTent']?.agreedPayout) {
+        weatherTentCost = selectedVendorAssignments['MarqueeTent'].agreedPayout;
+        weatherTentName = (parsedPlan?.tentItem && parsedPlan.tentItem.cost === selectedVendorAssignments['MarqueeTent'].agreedPayout)
+          ? parsedPlan.tentItem.name
+          : (selectedVendorAssignments['MarqueeTent'].packageName || 'Waterproof Marquee Tent');
       } else if (parsedPlan?.tentItem) {
         weatherTentCost = parsedPlan.tentItem.cost;
         weatherTentName = parsedPlan.tentItem.name;
@@ -3987,7 +4022,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="text-sm py-2.5 px-3 bg-amber-50/70 rounded-lg border border-amber-200">
                           <div className="flex justify-between items-center">
                             <div>
-                              <span className="text-amber-950 font-medium">🎪 {selectedVendorAssignments['MarqueeTent']?.packageName || weatherTentName}</span>
+                              <span className="text-amber-950 font-medium">🎪 {weatherTentName || selectedVendorAssignments['MarqueeTent']?.packageName}</span>
                               <p className="text-[11px] text-amber-700 font-semibold flex items-center space-x-1 mt-0.5">
                                 <ShieldCheck className="w-3.5 h-3.5 text-amber-600 inline mr-1" />
                                 Assigned Partner: <strong>{selectedVendorAssignments['MarqueeTent']?.vendorName || 'Ceylon WeatherShield Marquee Tents'}</strong>
