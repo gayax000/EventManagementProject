@@ -998,7 +998,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProposalDetailsScreen(eventId: createdEvent.eventId),
+                          builder: (context) => ProposalDetailsScreen(
+                            eventId: createdEvent.eventId,
+                            initialEvent: createdEvent,
+                          ),
                         ),
                       );
                     },

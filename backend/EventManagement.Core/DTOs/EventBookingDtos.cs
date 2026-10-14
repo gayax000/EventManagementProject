@@ -85,6 +85,10 @@ public class AssignedVendorDto
     public string VendorName { get; set; } = string.Empty;
     public string? PackageName { get; set; }
     public decimal? PackagePrice { get; set; }
+    public decimal? AgreedPayout { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Guid? GuidVendorId => Guid.TryParse(VendorId, out var g) ? g : null;
 }
 
 public class UpdateAssignedVendorsDto

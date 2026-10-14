@@ -58,18 +58,42 @@ class ApiService {
     try {
       final url = Uri.parse('$baseUrl/events/$eventId/proposal');
       final headers = await _getHeaders();
-      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await _client.get(url, headers: headers).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> body = jsonDecode(response.body);
         return EventProposalDetail.fromJson(body);
-      } else {
-        throw Exception('Failed to load proposal: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint("API Error getProposalDetails: $e");
-      return null;
+      debugPrint("API Error getProposalDetails (trying fallback): $e");
     }
+
+    // Fallback 1: Try GET /events/$eventId
+    try {
+      final singleUrl = Uri.parse('$baseUrl/events/$eventId');
+      final headers = await _getHeaders();
+      final singleResp = await _client.get(singleUrl, headers: headers).timeout(const Duration(seconds: 15));
+      if (singleResp.statusCode == 200) {
+        final Map<String, dynamic> body = jsonDecode(singleResp.body);
+        return EventProposalDetail.fromJson(body);
+      }
+    } catch (e) {
+      debugPrint("API Error fallback GET /events/$eventId: $e");
+    }
+
+    // Fallback 2: Try finding in getMyEvents()
+    try {
+      final myEvents = await getMyEvents();
+      for (final ev in myEvents) {
+        if (ev.eventId == eventId) {
+          return EventProposalDetail.fromEventSummary(ev);
+        }
+      }
+    } catch (e) {
+      debugPrint("API Error fallback getMyEvents: $e");
+    }
+
+    return null;
   }
 
   // 2.01 Request Budget Auto-Fit
