@@ -1022,15 +1022,17 @@ public class EventsController : ControllerBase
             {
                 try
                 {
-                    var wEval = JsonSerializer.Deserialize<EventManagement.Infrastructure.Services.WeatherEvaluation>(aiState.WeatherAssessmentJson);
+                    var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    var wEval = JsonSerializer.Deserialize<EventManagement.Infrastructure.Services.WeatherEvaluation>(aiState.WeatherAssessmentJson, jsonOptions);
                     if (wEval != null)
                     {
                         wEval.SafeguardCost = dto.WeatherTentCost.Value;
                         if (!string.IsNullOrWhiteSpace(dto.WeatherTentName))
                         {
                             wEval.Safeguard = dto.WeatherTentName;
+                            var condText = !string.IsNullOrWhiteSpace(wEval.Condition) ? wEval.Condition : "Monsoon Rain Risk";
                             wEval.Description = dto.WeatherTentCost.Value > 0
-                                ? $"High precipitation risk detected ({wEval.Condition}). Auto-injecting {dto.WeatherTentName} (+Rs. {dto.WeatherTentCost.Value:N0})."
+                                ? $"High precipitation risk detected ({condText}). Auto-injecting {dto.WeatherTentName} (+Rs. {dto.WeatherTentCost.Value:N0})."
                                 : "Outdoor grounds weather risk waived or clear skies forecast; no marquee tent required.";
                         }
                         aiState.WeatherAssessmentJson = JsonSerializer.Serialize(wEval);

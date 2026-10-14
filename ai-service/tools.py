@@ -1,5 +1,6 @@
 import os
 import datetime
+import urllib.parse
 import requests
 from dotenv import load_dotenv
 
@@ -142,9 +143,13 @@ def evaluate_seasonal_climatology(city: str, target_dt: datetime.date) -> dict:
 
     return {
         "rainProbabilityPercent": rain_probability,
+        "cloudCoverPercent": 85 if rain_probability >= 60 else (45 if rain_probability >= 35 else 15),
+        "temperature": 27.5,
+        "humidity": 80,
         "condition": condition,
         "riskLevel": risk_level,
-        "dataSource": f"Historical Sri Lanka Seasonal Climate Model ({season_name})"
+        "dataSource": f"Historical Sri Lanka Seasonal Climate Model ({season_name})",
+        "isLiveApi": False
     }
 
 # Tool 1: Environmental & Weather Forecast Tool (Allow-listed Tool)
@@ -169,13 +174,15 @@ def check_weather_forecast(location: str, target_date_str: str) -> dict:
     # Branch A: If target date is within 5-day real-time forecast horizon
     if 0 <= days_diff <= 5 and PRIMARY_API_KEY:
         try:
-            # 1. Query hyper-local town first
-            url = f"https://api.openweathermap.org/data/2.5/forecast?q={city},LK&appid={PRIMARY_API_KEY}&units=metric"
+            # 1. Query hyper-local town first (safe URL-encoding for towns with spaces like 'Nuwara Eliya')
+            encoded_city = urllib.parse.quote(city)
+            url = f"https://api.openweathermap.org/data/2.5/forecast?q={encoded_city},LK&appid={PRIMARY_API_KEY}&units=metric"
             response = requests.get(url, timeout=5.0)
 
             # 2. If town lookup returns 404, gracefully fallback to District capital
             if response.status_code != 200 and district and district.lower() != city.lower():
-                fallback_url = f"https://api.openweathermap.org/data/2.5/forecast?q={district},LK&appid={PRIMARY_API_KEY}&units=metric"
+                encoded_district = urllib.parse.quote(district)
+                fallback_url = f"https://api.openweathermap.org/data/2.5/forecast?q={encoded_district},LK&appid={PRIMARY_API_KEY}&units=metric"
                 fallback_res = requests.get(fallback_url, timeout=5.0)
                 if fallback_res.status_code == 200:
                     response = fallback_res
@@ -200,6 +207,9 @@ def check_weather_forecast(location: str, target_date_str: str) -> dict:
                     # Pick condition description from interval with highest pop
                     peak_interval = max(day_intervals, key=lambda x: x.get("pop", 0.0))
                     weather_desc = peak_interval.get("weather", [{}])[0].get("description", "Variable Clouds").title()
+                    cloud_pct = int(peak_interval.get("clouds", {}).get("all", 0))
+                    temp_val = round(float(peak_interval.get("main", {}).get("temp", 28.0)), 1)
+                    humidity_val = int(peak_interval.get("main", {}).get("humidity", 75))
 
                     if rain_pct >= 60:
                         risk_level = "High"
@@ -214,9 +224,13 @@ def check_weather_forecast(location: str, target_date_str: str) -> dict:
                         "targetDate": target_dt.isoformat(),
                         "daysAhead": days_diff,
                         "rainProbabilityPercent": rain_pct,
+                        "cloudCoverPercent": cloud_pct,
+                        "temperature": temp_val,
+                        "humidity": humidity_val,
                         "condition": weather_desc,
                         "riskLevel": risk_level,
                         "dataSource": "Live OpenWeatherMap 5-Day Forecast API",
+                        "isLiveApi": True,
                         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
                     }
         except Exception:
@@ -231,9 +245,13 @@ def check_weather_forecast(location: str, target_date_str: str) -> dict:
         "targetDate": target_dt.isoformat(),
         "daysAhead": days_diff,
         "rainProbabilityPercent": seasonal_data["rainProbabilityPercent"],
+        "cloudCoverPercent": seasonal_data.get("cloudCoverPercent", 50),
+        "temperature": seasonal_data.get("temperature", 28.0),
+        "humidity": seasonal_data.get("humidity", 75),
         "condition": seasonal_data["condition"],
         "riskLevel": seasonal_data["riskLevel"],
         "dataSource": seasonal_data["dataSource"],
+        "isLiveApi": seasonal_data.get("isLiveApi", False),
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
 

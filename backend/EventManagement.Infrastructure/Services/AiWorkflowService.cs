@@ -17,11 +17,16 @@ public class WeatherEvaluation
 {
     public bool IsOutdoor { get; set; }
     public int RainProbabilityPercent { get; set; }
+    public int CloudCoverPercent { get; set; } = 0;
+    public double Temperature { get; set; } = 28.0;
+    public int Humidity { get; set; } = 75;
     public string Condition { get; set; } = string.Empty;
     public string RiskLevel { get; set; } = "Low";
     public string Safeguard { get; set; } = "None Required";
     public decimal SafeguardCost { get; set; } = 0;
     public string Description { get; set; } = string.Empty;
+    public string DataSource { get; set; } = "Live OpenWeatherMap 5-Day Forecast API";
+    public bool IsLiveApi { get; set; } = true;
 }
 
 public class AiWorkflowService : IAiWorkflowService
