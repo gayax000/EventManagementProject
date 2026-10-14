@@ -418,7 +418,9 @@ public class EventsController : ControllerBase
         if (estimatedTotalCost.HasValue && budgetLimit > 0 && estimatedTotalCost.Value > budgetLimit)
             return true;
 
-        if (planJson.Contains("1. Weather & Environmental Assessment") ||
+        if (planJson.Contains("EventCraft Partner Courtesy Allowance") ||
+            planJson.Contains("Manager Courtesy Discount") ||
+            planJson.Contains("1. Weather & Environmental Assessment") ||
             planJson.Contains("Auto-injected Waterproof Marquee Tent safeguard (Rs. 150,000)") ||
             planJson.Contains("Heavy-Duty Aluminium Marquee Structure & Rain Sidewalls (Rs. 150,000)") ||
             planJson.Contains("Royal Fresh Flower Ceiling Drapes & Grand Stage Decor (Rs. 200,000)") ||
