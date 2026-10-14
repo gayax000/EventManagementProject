@@ -973,10 +973,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       } catch (_) {}
                     }
                     final bool isOut = proposal.isOutdoor;
-                    final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : (isOut ? 65 : 0);
-                    final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Monsoon Showers' : 'Climate Controlled');
+                    final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : 0;
+                    final String cond = wMap != null ? (wMap['Condition'] ?? wMap['condition'] ?? 'Clear') : (isOut ? 'Clear Skies' : 'Climate Controlled');
                     final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
                     final String rawSafeguardName = wMap != null ? (wMap['Safeguard'] ?? wMap['safeguard'] ?? 'Waterproof Marquee Tent') : 'Waterproof Marquee Tent';
+                    final bool needsWeatherTent = isOut && (rawSafeguardCost > 0 || rainPct >= 60);
 
                     double resolvedTentCost = rawSafeguardCost.toDouble();
                     String resolvedTentLabel = rawSafeguardName.toString();
@@ -1028,7 +1029,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                       } catch (_) {}
                     }
 
-                    if (isOut && (!planExplicitlyChecked || (!isApproved && !isConfirmed && proposal.budgetLimit >= 2000000 && resolvedTentCost == 150000)) && (resolvedTentCost > 0 || rainPct >= 60)) {
+                    if (needsWeatherTent) {
                       if (resolvedTentCost <= 0 || resolvedTentCost == 150000) {
                         if (proposal.budgetLimit >= 2000000) {
                           resolvedTentCost = 350000;
@@ -1044,9 +1045,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                           resolvedTentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
                         }
                       }
+                    } else if (!foundTentInPlan) {
+                      resolvedTentCost = 0;
+                      resolvedTentLabel = 'Safeguard Not Required (Clear Weather)';
                     }
 
-                    final bool hasTent = isOut && resolvedTentCost > 0;
+                    final bool hasTent = isOut && needsWeatherTent && resolvedTentCost > 0;
                     final String formattedTentCost = resolvedTentCost
                         .toStringAsFixed(0)
                         .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
@@ -2234,12 +2238,15 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
 
             // Prioritize '=' match first (which represents the item total e.g. '= Rs. 1,300,000')
             final eqMatch = RegExp(r'=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)').firstMatch(str);
-            final match = eqMatch ?? RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
+            // Look for the last parenthesized (Rs. X) which represents the item line total
+            final allParenMatches = RegExp(r'\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)').allMatches(str).toList();
+            final lastParenMatch = allParenMatches.isNotEmpty ? allParenMatches.last : null;
+            final match = eqMatch ?? lastParenMatch ?? RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*(-?[\d,]+)\)|(-Rs\.|-LKR)\s*([\d,]+)').firstMatch(str);
 
             if (match != null) {
               final valStr = eqMatch != null 
                   ? eqMatch.group(1) 
-                  : (match.group(1) ?? match.group(2) ?? match.group(3));
+                  : (lastParenMatch != null ? lastParenMatch.group(1) : (match.group(1) ?? match.group(2) ?? match.group(3)));
               double cost = double.tryParse(valStr?.replaceAll(',', '') ?? '') ?? 0.0;
               if (isDiscount && cost > 0) {
                 cost = -cost;
@@ -2249,6 +2256,9 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
               if (eqMatch != null) {
                 // If matched by '=', label is everything before '='
                 label = str.split('=').first.trim();
+              } else if (lastParenMatch != null) {
+                // Cut off the last parenthesized total (Rs. X)
+                label = str.substring(0, lastParenMatch.start).trim();
               } else {
                 label = str
                     .replaceAll(RegExp(r'\((?:[^)]*?(?:Rs\.|LKR|-Rs\.|-LKR))\s*-?[\d,]+\)'), '')
@@ -2319,7 +2329,17 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
     }
 
     if (items.isEmpty) {
-      if (proposal.isOutdoor) {
+      Map<String, dynamic>? wMap;
+      if (proposal.weatherAssessment != null && proposal.weatherAssessment!.startsWith('{')) {
+        try {
+          wMap = jsonDecode(proposal.weatherAssessment!) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+      final int rainPct = wMap != null ? (wMap['RainProbabilityPercent'] ?? wMap['rainProbabilityPercent'] ?? 0) : 0;
+      final num rawSafeguardCost = wMap != null ? (wMap['SafeguardCost'] ?? wMap['safeguardCost'] ?? 0) : 0;
+      final bool needsWeatherTent = proposal.isOutdoor && (rawSafeguardCost > 0 || rainPct >= 60);
+
+      if (needsWeatherTent) {
         double tentCost = 45000.0;
         String tentLabel = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
         if (proposal.budgetLimit >= 2000000) {
@@ -2346,7 +2366,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (proposal.banquetHallName != null && proposal.banquetHallName!.isNotEmpty) {
         venueTitle = proposal.banquetHallName!;
       }
-      double cateringPrice = (proposal.perPlatePrice ?? 5200.0) * proposal.guestCount;
+      final double perPlate = (proposal.perPlatePrice != null && proposal.perPlatePrice! > 0)
+          ? proposal.perPlatePrice!
+          : (proposal.budgetLimit >= 2000000 ? 5500.0 : (proposal.budgetLimit >= 1200000 ? 4500.0 : 3500.0));
+      double cateringPrice = perPlate * proposal.guestCount;
 
       if (hallPrice > 0 || !isPrivateOrCustomVenue) {
         items.add({
@@ -2358,7 +2381,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
 
       items.add({
-        'label': 'Banquet Catering Buffet (Rs. ${(proposal.perPlatePrice ?? 5200.0).toStringAsFixed(0)}/guest)',
+        'label': 'Banquet Catering Buffet (Rs. ${perPlate.toStringAsFixed(0)}/guest)',
         'cost': cateringPrice,
         'isDiscount': false,
         'isSpecial': false,
