@@ -3,6 +3,7 @@ using EventManagement.Core.Entities;
 using EventManagement.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace EventManagement.Api.Controllers;
 
@@ -11,24 +12,43 @@ namespace EventManagement.Api.Controllers;
 public class BanquetHallsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public BanquetHallsController(AppDbContext context)
+    public BanquetHallsController(AppDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     // 1. GET: api/banquethalls?venueId=...&date=...&session=...
     [HttpGet]
     public async Task<ActionResult<IEnumerable<BanquetHallDto>>> GetBanquetHalls([FromQuery] Guid? venueId, [FromQuery] DateTime? date, [FromQuery] string? session)
     {
-        var query = _context.BanquetHalls.Include(h => h.Venue).AsQueryable();
+        // Cache hall list per venueId (or all) for 5 minutes — halls rarely change
+        string cacheKey = $"halls_{venueId?.ToString() ?? "all"}";
+        List<BanquetHall>? halls;
 
-        if (venueId.HasValue && venueId.Value != Guid.Empty)
+        if (!date.HasValue && _cache.TryGetValue(cacheKey, out List<BanquetHall>? cachedHalls) && cachedHalls != null)
         {
-            query = query.Where(h => h.VenueId == venueId.Value);
+            halls = cachedHalls;
         }
+        else
+        {
+            var query = _context.BanquetHalls.AsNoTracking().Include(h => h.Venue).AsQueryable();
 
-        var halls = await query.ToListAsync();
+            if (venueId.HasValue && venueId.Value != Guid.Empty)
+            {
+                query = query.Where(h => h.VenueId == venueId.Value);
+            }
+
+            halls = await query.ToListAsync();
+
+            // Only cache when date filter is absent (availability check needs fresh data)
+            if (!date.HasValue)
+            {
+                _cache.Set(cacheKey, halls, TimeSpan.FromMinutes(5));
+            }
+        }
 
         // If target date is provided, check which halls are already booked on that date for this session
         HashSet<Guid> bookedHallIds = new();

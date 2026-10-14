@@ -35,7 +35,7 @@ class TestAgenticAIEvaluation(unittest.TestCase):
             budgetLimit=2000000.0,
             location="Kandy",
             isOutdoor=True,
-            targetDate="2026-10-15"
+            targetDate="2026-11-15"
         )
         res = agent.execute(outdoor_req)
         
@@ -70,9 +70,28 @@ class TestAgenticAIEvaluation(unittest.TestCase):
         )
         res = execute_multi_agent_workflow(over_budget_req)
         
-        # Verify ValidationSafetyAgent flags budget violation
+        # Verify ValidationSafetyAgent flags impossible budget violation (Rs. 500/head for 1000 guests)
         self.assertFalse(res.isUnderBudget)
         self.assertFalse(res.validationPassed)
+
+    def test_surgical_minimal_autofit_brings_proposal_within_budget(self):
+        # Event where initial items exceed budget, but is viable with lower verified vendor tiers
+        req = EventObjectiveInput(
+            title="Medium Scale Celebration with Rain Risk",
+            guestCount=150,
+            budgetLimit=900000.0,
+            location="Colombo",
+            isOutdoor=True,
+            targetDate="2026-11-15"
+        )
+        res = execute_multi_agent_workflow(req)
+        
+        # Verify Member 4 ValidationSafetyAgent auto-fits proposal strictly <= BudgetLimit
+        self.assertTrue(res.isUnderBudget)
+        self.assertTrue(res.validationPassed)
+        self.assertLessEqual(res.subtotal, req.budgetLimit)
+        trace_str = " ".join(res.auditTraceLogs)
+        self.assertIn("Auto-Fit", trace_str)
 
     def test_weather_tool_live_api_and_seasonal_fallback(self):
         import datetime

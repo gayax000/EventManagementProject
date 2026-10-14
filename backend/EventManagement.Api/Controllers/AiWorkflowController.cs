@@ -6,6 +6,7 @@ using EventManagement.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace EventManagement.Api.Controllers;
 
@@ -17,18 +18,26 @@ public class AiWorkflowController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IAiWorkflowService _aiWorkflowService;
     private readonly ILogger<AiWorkflowController> _logger;
+    private readonly IMemoryCache _cache;
 
-    public AiWorkflowController(AppDbContext context, IAiWorkflowService aiWorkflowService, ILogger<AiWorkflowController> logger)
+    public AiWorkflowController(AppDbContext context, IAiWorkflowService aiWorkflowService, ILogger<AiWorkflowController> logger, IMemoryCache cache)
     {
         _context = context;
         _aiWorkflowService = aiWorkflowService;
         _logger = logger;
+        _cache = cache;
     }
 
     [HttpGet("resources")]
     public async Task<ActionResult<IEnumerable<Resource>>> GetResources()
     {
-        return Ok(await _context.Resources.ToListAsync());
+        // Cache resources for 10 minutes — resource list rarely changes
+        if (_cache.TryGetValue("resources_all", out List<Resource>? cached) && cached != null)
+            return Ok(cached);
+
+        var resources = await _context.Resources.AsNoTracking().ToListAsync();
+        _cache.Set("resources_all", resources, TimeSpan.FromMinutes(10));
+        return Ok(resources);
     }
 
     [Authorize(Roles = "Manager,Admin")]
@@ -44,6 +53,7 @@ public class AiWorkflowController : ControllerBase
         };
         _context.Resources.Add(resource);
         await _context.SaveChangesAsync();
+        _cache.Remove("resources_all");
         return CreatedAtAction(nameof(GetResources), new { id = resource.ResourceId }, resource);
     }
 

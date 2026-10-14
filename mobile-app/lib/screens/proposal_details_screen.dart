@@ -382,8 +382,11 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       (Match m) => '${m[1]},',
     );
 
+    final hasPass = proposal.qrCodeData != null && proposal.qrCodeData!.isNotEmpty;
     final isApproved = proposal.status == 'ApprovedByManager';
     final isConfirmed = proposal.isConfirmed || proposal.status == 'Confirmed';
+    final isFullyConfirmed = isConfirmed && hasPass;
+    final isPaymentVerified = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';
     final isChoiceSubmitted = proposal.status == 'ClientChoiceSubmitted';
     final isPendingBudgetApproval = proposal.status == 'PendingClientBudgetApproval';
 
@@ -393,10 +396,10 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Status Header
-          if (isConfirmed)
+          if (isFullyConfirmed)
             _buildBadge("STATUS: BOOKING CONFIRMED & PASS ISSUED", const Color(0xFFDCFCE7), const Color(0xFF059669))
-          else if (isApproved) ...[
-            if (proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved')
+          else if (isApproved || isConfirmed || isPaymentVerified) ...[
+            if (isPaymentVerified)
               _buildBadge("PAYMENT VERIFIED: READY TO SIGN & ISSUE PASS", const Color(0xFFDCFCE7), const Color(0xFF059669))
             else if (proposal.paymentStatus == 'PendingVerification')
               _buildBadge("PAYMENT SLIP UNDER MANAGER VERIFICATION", const Color(0xFFFEF3C7), const Color(0xFFD97706))
@@ -1470,13 +1473,13 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
           ],
 
           // 4. Bank Transfer & Payment Slip Section
-          if (isApproved || isConfirmed) ...[
+          if (isApproved || isConfirmed || isPaymentVerified) ...[
             _buildPaymentSlipSection(proposal, formattedCost),
             const SizedBox(height: 16),
           ],
 
           // 5. Action / Signature / QR Pass based on State
-          if (isConfirmed && proposal.qrCodeData != null) ...[
+          if (hasPass) ...[
             // QR Entry Pass View
             Center(
               child: Container(
@@ -1510,7 +1513,7 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
                 ),
               ),
             ),
-          ] else if (isApproved) ...[
+          ] else if (isApproved || isConfirmed || isPaymentVerified) ...[
             Builder(
               builder: (context) {
                 final isPaymentVerified = proposal.paymentStatus == 'Completed' || proposal.paymentStatus == 'Approved';

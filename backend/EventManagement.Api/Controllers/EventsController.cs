@@ -105,28 +105,32 @@ public class EventsController : ControllerBase
                     .Where(k => k.Length > 2 && k != "district" && k != "province" && k != "colombo" && k != "kandy" && k != "galle" && k != "hotel" && k != "resort")
                     .ToList();
 
-                var allVenues = await _context.Venues.ToListAsync();
-                Venue? matchedVenue = null;
+                // Project only VenueId + Name — avoids transferring all venue columns over Neon WAN
+                var venueProjections = await _context.Venues
+                    .Select(v => new { v.VenueId, v.Name })
+                    .ToListAsync();
+
+                Guid? matchedVenueId = null;
 
                 if (keywords.Count > 0)
                 {
-                    matchedVenue = allVenues.FirstOrDefault(v => {
+                    matchedVenueId = venueProjections.FirstOrDefault(v => {
                         var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
                         return keywords.All(k => vClean.Contains(k)) || keywords.Any(k => vClean.Contains(k));
-                    });
+                    })?.VenueId;
                 }
 
-                if (matchedVenue == null)
+                if (!matchedVenueId.HasValue)
                 {
-                    matchedVenue = allVenues.FirstOrDefault(v => {
+                    matchedVenueId = venueProjections.FirstOrDefault(v => {
                         var vClean = System.Text.RegularExpressions.Regex.Replace((v.Name ?? "").ToLower(), @"[^\w\s]", "");
                         return cleanTarget.Contains(vClean) || vClean.Contains(cleanTarget);
-                    });
+                    })?.VenueId;
                 }
 
-                if (matchedVenue != null)
+                if (matchedVenueId.HasValue)
                 {
-                    venueId = matchedVenue.VenueId;
+                    venueId = matchedVenueId;
                 }
             }
 

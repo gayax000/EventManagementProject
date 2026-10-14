@@ -4,6 +4,7 @@ using EventManagement.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace EventManagement.Api.Controllers;
 
@@ -13,11 +14,13 @@ public class VenuesController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly ILogger<VenuesController> _logger;
+    private readonly IMemoryCache _cache;
 
-    public VenuesController(AppDbContext context, ILogger<VenuesController> logger)
+    public VenuesController(AppDbContext context, ILogger<VenuesController> logger, IMemoryCache cache)
     {
         _context = context;
         _logger = logger;
+        _cache = cache;
     }
 
     [AllowAnonymous]
@@ -29,7 +32,16 @@ public class VenuesController : ControllerBase
         [FromQuery] int? pageNumber,
         [FromQuery] int? pageSize)
     {
-        var query = _context.Venues.AsQueryable();
+        // Use cache only for unfiltered, unpaged full venue list (frequently called on booking form)
+        bool isUnfiltered = string.IsNullOrEmpty(search) && !minCapacity.HasValue && !isOutdoor.HasValue
+                            && !pageNumber.HasValue && !pageSize.HasValue;
+
+        if (isUnfiltered && _cache.TryGetValue("venues_all", out List<Venue>? cached) && cached != null)
+        {
+            return Ok(cached);
+        }
+
+        var query = _context.Venues.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrEmpty(search))
         {
@@ -61,7 +73,15 @@ public class VenuesController : ControllerBase
             });
         }
 
-        return Ok(await query.ToListAsync());
+        var result = await query.ToListAsync();
+
+        // Cache unfiltered result for 5 minutes
+        if (isUnfiltered)
+        {
+            _cache.Set("venues_all", result, TimeSpan.FromMinutes(5));
+        }
+
+        return Ok(result);
     }
 
     [Authorize(Roles = "Manager")]
@@ -79,6 +99,7 @@ public class VenuesController : ControllerBase
 
         _context.Venues.Add(venue);
         await _context.SaveChangesAsync();
+        _cache.Remove("venues_all");
 
         return CreatedAtAction(nameof(GetVenues), new { id = venue.VenueId }, venue);
     }

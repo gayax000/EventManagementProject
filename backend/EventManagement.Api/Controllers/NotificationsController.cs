@@ -30,83 +30,89 @@ public class NotificationsController : ControllerBase
     {
         try
         {
-            var existingEvents = await _context.Events.ToListAsync();
-            var existingNotificationEventIds = await _context.Notifications
+            // Fetch only EventId + minimal fields needed — avoids full-row transfer
+            var existingEventIds = await _context.Notifications
                 .Where(n => n.EventId != null)
                 .Select(n => n.EventId!.Value)
+                .Distinct()
+                .ToListAsync();
+
+            var existingEventIdSet = new HashSet<Guid>(existingEventIds);
+
+            // Only pull events that have no notification yet — projected, not full entity
+            var eventsNeedingNotif = await _context.Events
+                .Where(e => !existingEventIdSet.Contains(e.EventId))
+                .Select(e => new { e.EventId, e.EventType, e.Title, e.BudgetLimit, e.Status, e.RevisionNotes, e.CreatedAt })
                 .ToListAsync();
 
             var newNotifications = new List<Notification>();
 
-            foreach (var ev in existingEvents)
+            foreach (var ev in eventsNeedingNotif)
             {
-                if (!existingNotificationEventIds.Contains(ev.EventId))
+                newNotifications.Add(new Notification
+                {
+                    UserId = managerId,
+                    EventId = ev.EventId,
+                    Title = "🆕 New Event Created",
+                    Message = $"New {ev.EventType} event \"{ev.Title}\" created by client. Budget: LKR {ev.BudgetLimit:N0}",
+                    Type = "NewEvent",
+                    IsRead = false,
+                    CreatedAt = ev.CreatedAt
+                });
+
+                if (ev.Status == "RevisionRequested" && !string.IsNullOrWhiteSpace(ev.RevisionNotes))
                 {
                     newNotifications.Add(new Notification
                     {
                         UserId = managerId,
                         EventId = ev.EventId,
-                        Title = "🆕 New Event Created",
-                        Message = $"New {ev.EventType} event \"{ev.Title}\" created by client. Budget: LKR {ev.BudgetLimit:N0}",
-                        Type = "NewEvent",
+                        Title = "📝 Revision Requested",
+                        Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
+                        Type = "RevisionRequest",
                         IsRead = false,
-                        CreatedAt = ev.CreatedAt
+                        CreatedAt = DateTime.UtcNow
                     });
+                }
 
-                    if (ev.Status == "RevisionRequested" && !string.IsNullOrWhiteSpace(ev.RevisionNotes))
+                if (ev.Status == "ClientChoiceSubmitted")
+                {
+                    newNotifications.Add(new Notification
                     {
-                        newNotifications.Add(new Notification
-                        {
-                            UserId = managerId,
-                            EventId = ev.EventId,
-                            Title = "📝 Revision Requested",
-                            Message = $"Client requested revision for \"{ev.Title}\": \"{ev.RevisionNotes}\"",
-                            Type = "RevisionRequest",
-                            IsRead = false,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-
-                    if (ev.Status == "ClientChoiceSubmitted")
-                    {
-                        newNotifications.Add(new Notification
-                        {
-                            UserId = managerId,
-                            EventId = ev.EventId,
-                            Title = "✅ Proposal Option Accepted",
-                            Message = $"Client submitted proposal choice for \"{ev.Title}\".",
-                            Type = "ProposalAccepted",
-                            IsRead = false,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
+                        UserId = managerId,
+                        EventId = ev.EventId,
+                        Title = "✅ Proposal Option Accepted",
+                        Message = $"Client submitted proposal choice for \"{ev.Title}\".",
+                        Type = "ProposalAccepted",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
             }
 
-            var payments = await _context.Payments
-                .Include(p => p.Booking)
-                .Where(p => p.Status == "PendingVerification")
+            // Pending payment slips: use projected join to avoid loading full Payment + Booking entities
+            var notifEventIds = await _context.Notifications
+                .Where(n => n.Type == "PaymentSlipUploaded" && n.EventId != null)
+                .Select(n => n.EventId!.Value)
                 .ToListAsync();
 
-            foreach (var p in payments)
+            var pendingPayments = await _context.Payments
+                .Where(p => p.Status == "PendingVerification")
+                .Select(p => new { p.AmountPaid, p.PaidAt, EventId = (Guid?)p.Booking!.EventId })
+                .Where(p => p.EventId != null && !notifEventIds.Contains(p.EventId!.Value))
+                .ToListAsync();
+
+            foreach (var p in pendingPayments)
             {
-                if (p.Booking?.EventId != null)
+                newNotifications.Add(new Notification
                 {
-                    var hasPayNotif = await _context.Notifications.AnyAsync(n => n.EventId == p.Booking.EventId && n.Type == "PaymentSlipUploaded");
-                    if (!hasPayNotif)
-                    {
-                        newNotifications.Add(new Notification
-                        {
-                            UserId = managerId,
-                            EventId = p.Booking.EventId,
-                            Title = "💳 Payment Slip Uploaded",
-                            Message = $"Payment slip of LKR {p.AmountPaid:N0} uploaded. Pending Manager Verification.",
-                            Type = "PaymentSlipUploaded",
-                            IsRead = false,
-                            CreatedAt = p.PaidAt ?? DateTime.UtcNow
-                        });
-                    }
-                }
+                    UserId = managerId,
+                    EventId = p.EventId,
+                    Title = "💳 Payment Slip Uploaded",
+                    Message = $"Payment slip of LKR {p.AmountPaid:N0} uploaded. Pending Manager Verification.",
+                    Type = "PaymentSlipUploaded",
+                    IsRead = false,
+                    CreatedAt = p.PaidAt ?? DateTime.UtcNow
+                });
             }
 
             if (newNotifications.Any())
@@ -129,10 +135,10 @@ public class NotificationsController : ControllerBase
         // Auto-sync notifications for existing events/slips missing notifications
         await SyncExistingEventNotificationsAsync(managerId);
 
-        var notifications = await _context.Notifications
+        // Fetch notifications + compute unreadCount in a single round-trip
+        var allNotifications = await _context.Notifications
             .Where(n => n.UserId == managerId || n.UserId == FallbackManagerId)
             .OrderByDescending(n => n.CreatedAt)
-            .Take(50)
             .Select(n => new
             {
                 n.NotificationId,
@@ -146,8 +152,8 @@ public class NotificationsController : ControllerBase
             })
             .ToListAsync();
 
-        var unreadCount = await _context.Notifications
-            .CountAsync(n => (n.UserId == managerId || n.UserId == FallbackManagerId) && !n.IsRead);
+        var unreadCount = allNotifications.Count(n => !n.IsRead);
+        var notifications = allNotifications.Take(50).ToList();
 
         return Ok(new
         {
