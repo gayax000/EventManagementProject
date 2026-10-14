@@ -412,7 +412,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
       const evRainPct = evWeather ? (evWeather.rainProbabilityPercent ?? evWeather.RainProbabilityPercent ?? 0) : 0;
       const evSafeguardCost = evWeather ? (evWeather.safeguardCost ?? evWeather.SafeguardCost ?? 0) : 0;
-      const needsWeatherTent = Boolean(selectedEvent.isOutdoor && (evSafeguardCost > 0 || evRainPct >= 60));
+      const needsWeatherTent = Boolean(selectedEvent.isOutdoor && evRainPct >= 60);
 
       // 1. Load previously saved assignments if present
       const evBudgetNum = Number(selectedEvent.budgetLimit) || 1000000;
@@ -1164,7 +1164,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     let weatherTentCost = 0;
     let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
 
-    const needsWeatherTent = Boolean(isEventOutdoor && (weatherSafeguardCost > 0 || rainPct >= 60));
+    const needsWeatherTent = Boolean(isEventOutdoor && rainPct >= 60);
 
     if (isEventOutdoor) {
       if (customTentCost !== null) {
@@ -1176,21 +1176,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = found.cost;
           weatherTentName = found.name;
         }
-      } else if (isBudgetAutoFitted) {
-        if ((selectedEvent.guestCount || 0) >= 200) {
-          weatherTentCost = 100000;
-          weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
-        } else if ((selectedEvent.guestCount || 0) >= 100) {
-          weatherTentCost = 60000;
-          weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
-        } else {
-          weatherTentCost = 25000;
-          weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
-        }
-      } else if (parsedPlan?.tentItem) {
-        weatherTentCost = parsedPlan.tentItem.cost;
-        weatherTentName = parsedPlan.tentItem.name;
       } else if (needsWeatherTent) {
+        if (isBudgetAutoFitted) {
+          if ((selectedEvent.guestCount || 0) >= 200) {
+            weatherTentCost = 100000;
+            weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+          } else if ((selectedEvent.guestCount || 0) >= 100) {
+            weatherTentCost = 60000;
+            weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
+          } else {
+            weatherTentCost = 25000;
+            weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+          }
+        } else if (parsedPlan?.tentItem) {
+          weatherTentCost = parsedPlan.tentItem.cost;
+          weatherTentName = parsedPlan.tentItem.name;
+        } else {
           const evBudget = Number(selectedEvent.budgetLimit) || 1500000;
           const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
           if (tentFallback && tentFallback.packagePrice) {
@@ -1209,6 +1210,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             weatherTentCost = 45000;
             weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
           }
+        }
       } else {
         weatherTentCost = 0;
         weatherTentName = 'Safeguard Not Required (Clear Weather)';
@@ -1519,8 +1521,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const basePlateRate = selectedEvent.perPlatePrice || 5000;
     const currentPlateRate = customPerPlateCost !== null ? customPerPlateCost : basePlateRate;
     const cateringCostVal = guestCnt * currentPlateRate;
-    const needsWeatherTentInAutoFit = Boolean(selectedEvent.isOutdoor && (weatherSafeguardCost > 0 || rainPct >= 60));
-    const currentTentRate = customTentCost !== null ? customTentCost : weatherTentCost;
+    const needsWeatherTentInAutoFit = Boolean(selectedEvent.isOutdoor && rainPct >= 60);
+    const scaledAutoFitTent = guestCnt >= 200 ? 100000 : (guestCnt >= 100 ? 60000 : 25000);
+    const currentTentRate = customTentCost !== null ? customTentCost : (needsWeatherTentInAutoFit ? scaledAutoFitTent : 0);
     const autoTentCost = needsWeatherTentInAutoFit ? currentTentRate : 0;
 
     let autoRefreshmentsCost = 0;
@@ -1575,6 +1578,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // SURGICAL MINIMAL AUTO-FIT FOR SMALL OVERRUNS (overrun <= 150,000 LKR)
     if (overrunAmount <= 150000) {
       const surgicalAssignments = { ...selectedVendorAssignments };
+      if (!needsWeatherTentInAutoFit) {
+        delete surgicalAssignments['MarqueeTent'];
+        setCustomTentCost(null);
+      }
       let bestCatToStepDown: string | null = null;
       let bestCheaperVendor: any = null;
       let minDifferenceToOverrun = Infinity;
@@ -1622,7 +1629,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const autoCateringRate = budget >= 2000000 ? 4500 : (budget >= 1200000 ? 3800 : (budget >= 700000 ? 3000 : 2500));
     setCustomPerPlateCost(autoCateringRate);
 
-    const reTentCost = needsWeatherTentInAutoFit ? (budget >= 2000000 ? 100000 : (budget >= 1200000 ? 60000 : 45000)) : 0;
+    const reTentCost = needsWeatherTentInAutoFit ? (guestCnt >= 200 ? 100000 : (guestCnt >= 100 ? 60000 : 25000)) : 0;
     if (needsWeatherTentInAutoFit) {
       setCustomTentCost(reTentCost);
     } else {
@@ -1778,8 +1785,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }
   const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : (parsedPlan?.tentItem ? 67 : 0);
   const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : (parsedPlan?.tentItem ? parsedPlan.tentItem.cost : 0);
-  const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? (weatherSafeguardCost > 0 || (parsedPlan?.tentItem) ? "Monsoonal Cloud Cover & Heavy Afternoon Rain Showers" : "Monsoon Showers") : "Indoor Climate Controlled");
-  const weatherAction = weatherData?.description || weatherData?.Description || weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
+  const needsWeatherTent = Boolean(isEventOutdoor && rainPct >= 60);
+  const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? (needsWeatherTent ? "Monsoonal Cloud Cover & Heavy Afternoon Rain Showers" : "Clear Skies & Mild Sunshine") : "Indoor Climate Controlled");
+  const weatherAction = weatherData?.description || weatherData?.Description || weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? (needsWeatherTent ? "Rain safeguard applied" : "Dry weather conditions predicted for outdoor setting. No heavy precipitation expected.") : "Indoor venue - No weather safeguard required");
   const cloudCoverPercent = weatherData?.cloudCoverPercent ?? weatherData?.CloudCoverPercent ?? (rainPct >= 60 ? 85 : (rainPct >= 35 ? 45 : 15));
   const tempVal = weatherData?.temperature ?? weatherData?.Temperature ?? 28.0;
   const humidityVal = weatherData?.humidity ?? weatherData?.Humidity ?? 75;
@@ -1788,8 +1796,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   let weatherTentCost = 0;
   let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
-
-  const needsWeatherTent = Boolean(isEventOutdoor && (weatherSafeguardCost > 0 || rainPct >= 60));
 
   if (isEventOutdoor) {
     if (customTentCost !== null) {
@@ -1801,21 +1807,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
         weatherTentCost = found.cost;
         weatherTentName = found.name;
       }
-    } else if (isBudgetAutoFitted) {
-      if ((selectedEvent?.guestCount || 0) >= 200) {
-        weatherTentCost = 100000;
-        weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
-      } else if ((selectedEvent?.guestCount || 0) >= 100) {
-        weatherTentCost = 60000;
-        weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
-      } else {
-        weatherTentCost = 25000;
-        weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
-      }
-    } else if (parsedPlan?.tentItem) {
-      weatherTentCost = parsedPlan.tentItem.cost;
-      weatherTentName = parsedPlan.tentItem.name;
     } else if (needsWeatherTent) {
+      if (isBudgetAutoFitted) {
+        if ((selectedEvent?.guestCount || 0) >= 200) {
+          weatherTentCost = 100000;
+          weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+        } else if ((selectedEvent?.guestCount || 0) >= 100) {
+          weatherTentCost = 60000;
+          weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
+        } else {
+          weatherTentCost = 25000;
+          weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+        }
+      } else if (parsedPlan?.tentItem) {
+        weatherTentCost = parsedPlan.tentItem.cost;
+        weatherTentName = parsedPlan.tentItem.name;
+      } else {
         const evBudget = Number(selectedEvent?.budgetLimit) || 1500000;
         const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
         if (tentFallback && tentFallback.packagePrice) {
@@ -1834,7 +1841,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = 45000;
           weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
         }
-      } else {
+      }
+    } else {
       weatherTentCost = 0;
       weatherTentName = 'Safeguard Not Required (Clear Weather)';
     }
@@ -2823,7 +2831,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       </div>
 
                       <p className="text-xs text-amber-900">
-                        {`High precipitation probability (${rainPct}%) predicted for outdoor grounds. Autonomous safeguard: ${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()}) included to secure the event.`}
+                        {rainPct >= 60
+                          ? `High precipitation probability (${rainPct}%) predicted for outdoor grounds. Autonomous safeguard: ${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()}) included to secure the event.`
+                          : `Outdoor event with active weather tent safeguard: ${weatherTentName} (Rs. ${weatherTentCost.toLocaleString()}).`
+                        }
                       </p>
                       <p className="text-xs font-semibold text-emerald-800 flex items-center">
                         <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600 flex-shrink-0" />
