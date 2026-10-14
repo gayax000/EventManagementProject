@@ -221,6 +221,76 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     ]
   };
 
+  static final Map<String, String> _cityToDistrictMap = {
+    'nuwaraeliya': 'Nuwara Eliya',
+    'nuwara eliya': 'Nuwara Eliya',
+    'kandapola': 'Nuwara Eliya',
+    'radella': 'Nuwara Eliya',
+    'hatton': 'Nuwara Eliya',
+    'nanuoya': 'Nuwara Eliya',
+    'nanu oya': 'Nuwara Eliya',
+    'talawakele': 'Nuwara Eliya',
+    'maskeliya': 'Nuwara Eliya',
+    'kandy': 'Kandy',
+    'peradeniya': 'Kandy',
+    'katugastota': 'Kandy',
+    'kundasale': 'Kandy',
+    'gampola': 'Kandy',
+    'digana': 'Kandy',
+    'colombo': 'Colombo',
+    'mount lavinia': 'Colombo',
+    'mountlavinia': 'Colombo',
+    'battaramulla': 'Colombo',
+    'dehiwala': 'Colombo',
+    'nugegoda': 'Colombo',
+    'rajagiriya': 'Colombo',
+    'moratuwa': 'Colombo',
+    'malabe': 'Colombo',
+    'negombo': 'Gampaha',
+    'kelaniya': 'Gampaha',
+    'kiribathgoda': 'Gampaha',
+    'gampaha': 'Gampaha',
+    'jaela': 'Gampaha',
+    'ja-ela': 'Gampaha',
+    'kadawatha': 'Gampaha',
+    'wattala': 'Gampaha',
+    'bentota': 'Kalutara',
+    'beruwala': 'Kalutara',
+    'panadura': 'Kalutara',
+    'wadduwa': 'Kalutara',
+    'kalutara': 'Kalutara',
+    'aluthgama': 'Kalutara',
+    'galle': 'Galle',
+    'unawatuna': 'Galle',
+    'hikkaduwa': 'Galle',
+    'ahungalla': 'Galle',
+    'koggala': 'Galle',
+    'weligama': 'Matara',
+    'matara': 'Matara',
+    'mirissa': 'Matara',
+    'tangalle': 'Hambantota',
+    'hambantota': 'Hambantota',
+    'dambulla': 'Matale',
+    'matale': 'Matale',
+    'sigiriya': 'Matale',
+    'habarana': 'Anuradhapura',
+    'anuradhapura': 'Anuradhapura',
+    'polonnaruwa': 'Polonnaruwa',
+    'trincomalee': 'Trincomalee',
+    'nilaveli': 'Trincomalee',
+    'jaffna': 'Jaffna',
+    'passikudah': 'Batticaloa',
+    'batticaloa': 'Batticaloa',
+    'badulla': 'Badulla',
+    'ella': 'Badulla',
+    'bandarawela': 'Badulla',
+    'haputale': 'Badulla',
+    'diyatalawa': 'Badulla',
+    'kurunegala': 'Kurunegala',
+    'ratnapura': 'Ratnapura',
+    'kegalle': 'Kegalle',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -374,7 +444,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  void _autoFillFormFromPrompt() {
+  Future<void> _autoFillFormFromPrompt() async {
     final text = _customPromptController.text.trim();
     final lowerText = text.toLowerCase();
     if (text.isEmpty) {
@@ -387,24 +457,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       return;
     }
 
+    // 1. Detect Event Category / Occasion
+    String detectedType = _selectedEventType;
+    if (lowerText.contains('wedding') || lowerText.contains('nuptial') || lowerText.contains('marriage')) {
+      detectedType = 'Wedding';
+    } else if (lowerText.contains('birthday') || lowerText.contains('bday')) {
+      detectedType = 'Birthday Party';
+    } else if (lowerText.contains('gala') || lowerText.contains('dinner')) {
+      detectedType = 'Dinner/Gala';
+    } else if (lowerText.contains('anniversary')) {
+      detectedType = 'Anniversary';
+    } else if (lowerText.contains('engagement')) {
+      detectedType = 'Engagement Party';
+    } else if (lowerText.contains('launch') || lowerText.contains('product')) {
+      detectedType = 'Product Launch';
+    }
+
     setState(() {
-      // 1. Detect Event Category / Occasion
-      if (lowerText.contains('wedding') || lowerText.contains('nuptial') || lowerText.contains('marriage')) {
-        _selectedEventType = 'Wedding';
-      } else if (lowerText.contains('birthday') || lowerText.contains('bday')) {
-        _selectedEventType = 'Birthday Party';
-      } else if (lowerText.contains('gala') || lowerText.contains('dinner')) {
-        _selectedEventType = 'Dinner/Gala';
-      } else if (lowerText.contains('anniversary')) {
-        _selectedEventType = 'Anniversary';
-      } else if (lowerText.contains('engagement')) {
-        _selectedEventType = 'Engagement Party';
-      } else if (lowerText.contains('launch') || lowerText.contains('product')) {
-        _selectedEventType = 'Product Launch';
-      }
+      _selectedEventType = detectedType;
       _applyOccasionAutoPreset(_selectedEventType);
 
-      // 2. Deep Budget Extractor (e.g., 2Million, 2M, 1.5M, 8Lakhs, 800k, 2000000)
+      // 2. Deep Budget Extractor (e.g., 2.9M, 2.9 Million, 1.5M, 8Lakhs, 800k, 2900000)
       double? extractedBudget;
       final millionReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:m|million)\b', caseSensitive: false);
       final lakhReg = RegExp(r'(\d+(?:\.\d+)?)\s*(?:lakhs?|lacs?)\b', caseSensitive: false);
@@ -434,7 +507,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         _budgetController.text = extractedBudget.round().toString();
       }
 
-      // 3. Guest Count Extractor (e.g. "100 guests", "with 100 guests", "100 pax")
+      // 3. Guest Count Extractor (e.g. "100 guests", "with 100 guests", "100 pax", "for 240 guests")
       int? extractedGuests;
       final explicitGuestReg = RegExp(r'(\d{1,4})\s*(?:guests?|people|pax|persons|invites?)\b', caseSensitive: false);
       final explicitMatch = explicitGuestReg.firstMatch(lowerText);
@@ -470,39 +543,39 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       }
 
       // 5. Detect Indoor / Outdoor Setting
-      if (lowerText.contains('outdoor') || lowerText.contains('beach') || lowerText.contains('garden') || lowerText.contains('lawn')) {
+      if (lowerText.contains('outdoor') || lowerText.contains('beach') || lowerText.contains('garden') || lowerText.contains('lawn') || lowerText.contains('terrace') || lowerText.contains('open air')) {
         _isOutdoor = true;
-      } else if (lowerText.contains('indoor') || lowerText.contains('hall') || lowerText.contains('ballroom')) {
+      } else if (lowerText.contains('indoor') || lowerText.contains('hall') || lowerText.contains('ballroom') || lowerText.contains('closed')) {
         _isOutdoor = false;
       }
 
-      // 6. Deep District & Location Auto-Selector
+      // 6. Deep District & Location Auto-Selector with Normalized / Fuzzy Matching
       String? matchedDistrict;
-      for (final d in _sriLankaDistricts) {
-        if (lowerText.contains(d.toLowerCase())) {
-          matchedDistrict = d;
+      final compactText = lowerText.replaceAll(RegExp(r'[\s\-_]+'), '');
+      for (final entry in _cityToDistrictMap.entries) {
+        final compactKey = entry.key.replaceAll(RegExp(r'[\s\-_]+'), '');
+        if (compactText.contains(compactKey)) {
+          matchedDistrict = entry.value;
           break;
         }
       }
       if (matchedDistrict == null) {
-        if (lowerText.contains('bentota') || lowerText.contains('beruwala') || lowerText.contains('panadura')) {
-          matchedDistrict = 'Kalutara';
-        } else if (lowerText.contains('negombo') || lowerText.contains('kiribathgoda') || lowerText.contains('kelaniya')) {
-          matchedDistrict = 'Gampaha';
-        } else if (lowerText.contains('ella') || lowerText.contains('bandarawela')) {
-          matchedDistrict = 'Badulla';
-        } else if (lowerText.contains('hikkaduwa') || lowerText.contains('unawatuna')) {
-          matchedDistrict = 'Galle';
+        for (final d in _sriLankaDistricts) {
+          final compactD = d.toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+          if (compactText.contains(compactD)) {
+            matchedDistrict = d;
+            break;
+          }
         }
       }
 
       if (matchedDistrict != null) {
         _selectedDistrict = matchedDistrict;
-        _locationMode = 'district';
         _districtVenueNameController.text = '$matchedDistrict Event Grounds & Hotel';
       }
+      _locationMode = 'hotel';
 
-      // 7. Target Date Extractor (Supports "21 st of february", "21st feb 2027", "february 21", "2026-10-20")
+      // 7. Target Date Extractor (Supports "17th of october", "21st feb 2027", "february 21", "2026-10-20")
       try {
         final monthsMap = {
           'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
@@ -545,7 +618,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           final now = DateTime.now();
           year ??= now.year;
           var parsedDate = DateTime(year, month, day);
-          // If the target date in current year is in the past, roll over to next year
           if (parsedDate.isBefore(DateTime(now.year, now.month, now.day))) {
             parsedDate = DateTime(year + 1, month, day);
           }
@@ -553,25 +625,99 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         }
       } catch (_) {}
 
-      // 8. Extract Special Client Requests & Bullet-Point List for Manager Pricing
-      final List<String> extractedRequests = [];
-      if (lowerText.contains('night') || lowerText.contains('dinner')) {
-        extractedRequests.add('Night Dinner Session requested');
+      // 8. Robust Bi-Lingual Negation & Service Extraction Engine
+      bool isServiceNegated(List<String> keywords) {
+        for (final kw in keywords) {
+          final escaped = RegExp.escape(kw);
+          final suffixReg = RegExp(
+            '$escaped[\\w\\s]{0,25}?\\b(epa|epaa|eppa|naha|na|nathi|nethuwa|nathiwa|nethi|oni\\s*na|oni\\s*naha|onena|one\\s*na|baha|ba|no|not)\\b',
+            caseSensitive: false,
+          );
+          final prefixReg = RegExp(
+            '\\b(no|not|without|skip|exclude|excluding|don\'?t\\s+want|dont\\s+want|don\'?t\\s+need|dont\\s+need|never|do\\s+not\\s+want)\\b[\\w\\s]{0,25}?$escaped',
+            caseSensitive: false,
+          );
+          if (suffixReg.hasMatch(lowerText) || prefixReg.hasMatch(lowerText)) {
+            return true;
+          }
+        }
+        return false;
       }
-      if (lowerText.contains('music') || lowerText.contains('band') || lowerText.contains('acoustic') || lowerText.contains('sound') || lowerText.contains('dj')) {
+
+      bool isServiceMentioned(List<String> keywords) {
+        for (final kw in keywords) {
+          if (lowerText.contains(kw)) return true;
+        }
+        return false;
+      }
+
+      final List<String> extractedRequests = [];
+      final List<String> excludedRequests = [];
+
+      // A. Bridal Transport / Wedding Car
+      final carKeywords = ['car', 'transport', 'bridal vehicle', 'chauffeur', 'cab', 'vehicle'];
+      if (isServiceNegated(carKeywords)) {
+        _selectedServices.remove('Bridal Transport');
+        excludedRequests.add('Bridal Transport / Wedding Car (Client opted out)');
+      } else if (isServiceMentioned(carKeywords)) {
+        _selectedServices.add('Bridal Transport');
+        extractedRequests.add('VIP Bridal / Chauffeur transport requested');
+      }
+
+      // B. Live Band / Music / DJ / Sound
+      final musicKeywords = ['music', 'band', 'acoustic', 'sound', 'dj', 'audio', 'singer'];
+      if (isServiceNegated(musicKeywords)) {
+        _selectedServices.remove('Sound and Lighting');
+        _selectedServices.remove('Live Band / DJ');
+        excludedRequests.add('Live Music / DJ / Sound System (Client opted out)');
+      } else if (isServiceMentioned(musicKeywords)) {
+        _selectedServices.add('Sound and Lighting');
         extractedRequests.add('Live music / acoustic band sound setup requested');
       }
-      if (lowerText.contains('deco') || lowerText.contains('floral') || lowerText.contains('flower') || lowerText.contains('theme')) {
-        extractedRequests.add('Thematic floral decoration & stage styling requested');
-      }
-      if (lowerText.contains('photo') || lowerText.contains('video') || lowerText.contains('cinema')) {
+
+      // C. Photography & Videography
+      final photoKeywords = ['photo', 'video', 'cinema', 'photographer', 'camera'];
+      if (isServiceNegated(photoKeywords)) {
+        _selectedServices.remove('Photography');
+        excludedRequests.add('Photography & Cinematography (Client opted out)');
+      } else if (isServiceMentioned(photoKeywords)) {
+        _selectedServices.add('Photography');
         extractedRequests.add('4K Event photography & coverage requested');
       }
-      if (lowerText.contains('cake') || lowerText.contains('dessert')) {
+
+      // D. Decorations & Floral Styling
+      final decoKeywords = ['deco', 'decor', 'floral', 'flower', 'theme', 'poruwa', 'mandap', 'stage'];
+      if (isServiceNegated(decoKeywords)) {
+        _selectedServices.remove('Decorations');
+        excludedRequests.add('Thematic Floral & Stage Decorations (Client opted out)');
+      } else if (isServiceMentioned(decoKeywords)) {
+        _selectedServices.add('Decorations');
+        extractedRequests.add('Thematic floral decoration & stage styling requested');
+      }
+
+      // E. Celebration Cake Tiering
+      final cakeKeywords = ['cake', 'dessert tier', 'sweet table'];
+      if (isServiceNegated(cakeKeywords)) {
+        _selectedServices.remove(_dynamicCakeLabel);
+        _selectedServices.remove('Cake Tiering');
+        _selectedServices.remove('Wedding Cake Tier');
+        _selectedServices.remove('Birthday Cake');
+        excludedRequests.add('Celebration Cake Tiering (Client opted out)');
+      } else if (isServiceMentioned(cakeKeywords)) {
+        _selectedServices.add(_dynamicCakeLabel);
         extractedRequests.add('Celebration cake & dessert counter requested');
       }
-      if (lowerText.contains('car') || lowerText.contains('transport') || lowerText.contains('bridal')) {
-        extractedRequests.add('VIP Bridal / Chauffeur transport requested');
+
+      // F. Alcohol & Bar Policy Check
+      final alcoholKeywords = ['alcohol', 'liquor', 'beer', 'wine', 'cocktail', 'bar', 'arakku'];
+      if (isServiceNegated(alcoholKeywords)) {
+        excludedRequests.add('Strictly No Alcohol / Dry Event (Client Rule)');
+      } else if (isServiceMentioned(alcoholKeywords)) {
+        extractedRequests.add('Beverage & Cocktail bar arrangement requested');
+      }
+
+      if (lowerText.contains('night') || lowerText.contains('dinner')) {
+        extractedRequests.add('Night Dinner Session requested');
       }
 
       final StringBuffer detailsBuffer = StringBuffer();
@@ -585,18 +731,73 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           detailsBuffer.writeln('  - $req');
         }
       }
+      if (excludedRequests.isNotEmpty) {
+        detailsBuffer.writeln('• Explicitly Excluded Services (Client Opt-out):');
+        for (final ex in excludedRequests) {
+          detailsBuffer.writeln('  - $ex');
+        }
+      }
 
       _additionalDetailsController.text = detailsBuffer.toString().trim();
     });
 
-    final formattedBudgetStr = NumberFormat("#,##0").format(double.tryParse(_budgetController.text) ?? 0);
-    AppFeedback.showToast(
-      context,
-      title: 'AI Vision Extracted ✨',
-      message: 'Guests: ${_guestController.text} • Budget: Rs. $formattedBudgetStr • ${_selectedDistrict} • ${_selectedSession == "NightDinner" ? "Night" : "Day"}',
-      type: ToastType.success,
-      duration: const Duration(seconds: 4),
-    );
+    // 9. Re-fetch Halls for the updated Date & Session and Auto-Pick Hotel & Hall
+    await _fetchHalls();
+
+    if (mounted) {
+      setState(() {
+        final compactLoc = (_selectedDistrict).toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+        final guests = int.tryParse(_guestController.text) ?? 100;
+
+        if (_allHalls.isNotEmpty) {
+          // 1. Setting match (outdoor vs indoor)
+          var candidates = _allHalls.where((h) => h.isOutdoor == _isOutdoor).toList();
+          if (candidates.isEmpty) {
+            candidates = List.from(_allHalls);
+          }
+
+          // 2. City / District location match
+          if (compactLoc.isNotEmpty) {
+            final locMatches = candidates.where((h) {
+              final compV = h.venueName.toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+              final compH = h.hallName.toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+              return compV.contains(compactLoc) || compH.contains(compactLoc);
+            }).toList();
+            if (locMatches.isNotEmpty) {
+              candidates = locMatches;
+            }
+          }
+
+          // 3. Guest Capacity match
+          final capMatches = candidates.where((h) => h.maxCapacity >= guests).toList();
+          if (capMatches.isNotEmpty) {
+            candidates = capMatches;
+          }
+
+          // 4. Select best available hall
+          final bestHall = candidates.firstWhere((h) => h.isAvailable, orElse: () => candidates.first);
+
+          _selectedHotelName = bestHall.venueName;
+          _selectedHall = bestHall;
+          _locationMode = 'hotel';
+
+          // Prepend matched hotel in additional details if not already present
+          if (!_additionalDetailsController.text.contains('AI Selected Venue:')) {
+            final currentDetails = _additionalDetailsController.text;
+            _additionalDetailsController.text = '• AI Selected Venue: ${bestHall.venueName} (${bestHall.hallName})\n$currentDetails';
+          }
+        }
+      });
+
+      final formattedBudgetStr = NumberFormat("#,##0").format(double.tryParse(_budgetController.text) ?? 0);
+      AppFeedback.showToast(
+        context,
+        title: 'AI Vision Extracted ✨',
+        message: 'Guests: ${_guestController.text} • Budget: Rs. $formattedBudgetStr • ${_selectedHotelName ?? _selectedDistrict} • ${_isOutdoor ? "Outdoor" : "Indoor"}',
+        type: ToastType.success,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   List<String> get _hotelNames {

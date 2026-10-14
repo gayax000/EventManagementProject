@@ -123,4 +123,33 @@ void main() {
 
     expect(find.textContaining('AI Weather Agent will compute monsoonal probability'), findsNothing);
   });
+
+  testWidgets('AI Event Concierge prompt auto-fills Nuwara Eliya, outdoor, 2.9M budget, 240 guests and excludes car when negated', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CreateEventScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final promptField = find.byType(TextFormField).first;
+    await tester.enterText(promptField, 'i need to take a wedding at outdoor evet in nuwaraeliya with 2.9M buget for 240 guests in 17th of october, mt wedding car ekk epa');
+    await tester.pumpAndSettle();
+
+    final autoFillBtn = find.text('Auto-Fill Event Details with AI');
+    await tester.ensureVisible(autoFillBtn);
+    await tester.tap(autoFillBtn);
+    await tester.pumpAndSettle();
+
+    // Verify budget is Rs. 2,900,000
+    expect(find.text('2900000'), findsOneWidget);
+    // Verify guests is 240
+    expect(find.text('240'), findsOneWidget);
+    // Verify outdoor setting was activated by AI vision
+    expect(find.textContaining('AI Weather Agent will compute monsoonal probability'), findsOneWidget);
+  });
 }
