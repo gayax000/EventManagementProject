@@ -141,11 +141,33 @@ def evaluate_seasonal_climatology(city: str, target_dt: datetime.date) -> dict:
     else:
         risk_level = "Low"
 
+    # Dynamic location-aware thermal & humidity profiling based on elevation and geographic zone
+    if "nuwara" in loc_lower or "hatton" in loc_lower:
+        base_temp = 15.2
+        base_humidity = 86
+    elif "kandy" in loc_lower or "matale" in loc_lower:
+        base_temp = 24.5
+        base_humidity = 78
+    elif is_north_east:
+        base_temp = 31.8
+        base_humidity = 66
+    elif is_west_south:
+        base_temp = 29.2
+        base_humidity = 76
+    else:
+        base_temp = 28.0
+        base_humidity = 75
+
+    temp_variance = ((day % 5) * 0.4) - 0.8
+    hum_variance = ((day % 7) - 3)
+    temperature = round(base_temp + temp_variance, 1)
+    humidity = max(50, min(95, base_humidity + hum_variance))
+
     return {
         "rainProbabilityPercent": rain_probability,
         "cloudCoverPercent": 85 if rain_probability >= 60 else (45 if rain_probability >= 35 else 15),
-        "temperature": 27.5,
-        "humidity": 80,
+        "temperature": temperature,
+        "humidity": humidity,
         "condition": condition,
         "riskLevel": risk_level,
         "dataSource": f"Historical Sri Lanka Seasonal Climate Model ({season_name})",
