@@ -55,8 +55,8 @@ describe('Login Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Log In/i }));
 
     // Fill credentials
-    const emailInput = screen.getByPlaceholderText('vendor@eventcraft.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const emailInput = screen.getByPlaceholderText('manager@eventcraft.lk');
+    const passwordInput = screen.getByPlaceholderText('Manager@2026');
     fireEvent.change(emailInput, { target: { value: 'bad@eventcraft.com' } });
     fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
 
@@ -81,8 +81,8 @@ describe('Login Component', () => {
     render(<Login onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByRole('button', { name: /Log In/i }));
 
-    const emailInput = screen.getByPlaceholderText('vendor@eventcraft.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const emailInput = screen.getByPlaceholderText('manager@eventcraft.lk');
+    const passwordInput = screen.getByPlaceholderText('Manager@2026');
     fireEvent.change(emailInput, { target: { value: 'manager@eventcraft.lk' } });
     fireEvent.change(passwordInput, { target: { value: 'Manager@2026' } });
 
@@ -109,8 +109,8 @@ describe('Login Component', () => {
     render(<Login onLoginSuccess={mockOnLoginSuccess} />);
     fireEvent.click(screen.getByRole('button', { name: /Log In/i }));
 
-    const emailInput = screen.getByPlaceholderText('vendor@eventcraft.com');
-    const passwordInput = screen.getByPlaceholderText('••••••••');
+    const emailInput = screen.getByPlaceholderText('manager@eventcraft.lk');
+    const passwordInput = screen.getByPlaceholderText('Manager@2026');
     fireEvent.change(emailInput, { target: { value: 'manager@eventcraft.lk' } });
     fireEvent.change(passwordInput, { target: { value: 'Manager@2026' } });
 

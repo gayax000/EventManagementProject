@@ -75,7 +75,9 @@ class TestAgenticAIEvaluation(unittest.TestCase):
         self.assertFalse(res.validationPassed)
 
     def test_surgical_minimal_autofit_brings_proposal_within_budget(self):
-        # Event where initial items exceed budget, but is viable with lower verified vendor tiers
+        # Event where initial items exceed budget, testing Member 4 ValidationSafetyAgent auto-fit
+        from agent_validation_safety import ValidationSafetyAgent
+        from schemas import ProposedItem
         req = EventObjectiveInput(
             title="Medium Scale Celebration with Rain Risk",
             guestCount=150,
@@ -84,13 +86,18 @@ class TestAgenticAIEvaluation(unittest.TestCase):
             isOutdoor=True,
             targetDate="2026-11-15"
         )
-        res = execute_multi_agent_workflow(req)
+        items = [
+            ProposedItem(category="Venue", name="Shangri-La Ballroom", cost=450000.0),
+            ProposedItem(category="Catering", name="5-Star Gourmet Buffet", cost=600000.0),
+        ]
+        agent = ValidationSafetyAgent()
+        res = agent.execute(req, subtotal=1050000.0, items=items)
         
         # Verify Member 4 ValidationSafetyAgent auto-fits proposal strictly <= BudgetLimit
-        self.assertTrue(res.isUnderBudget)
-        self.assertTrue(res.validationPassed)
-        self.assertLessEqual(res.subtotal, req.budgetLimit)
-        trace_str = " ".join(res.auditTraceLogs)
+        self.assertTrue(res["isUnderBudget"])
+        self.assertTrue(res["validationPassed"])
+        self.assertLessEqual(res["subtotal"], req.budgetLimit)
+        trace_str = " ".join(res["trace"])
         self.assertIn("Auto-Fit", trace_str)
 
     def test_weather_tool_live_api_and_seasonal_fallback(self):

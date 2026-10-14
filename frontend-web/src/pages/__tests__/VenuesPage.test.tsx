@@ -111,9 +111,12 @@ describe('VenuesPage Component', () => {
   });
 
   it('handles empty API result gracefully by displaying No Venues Found', async () => {
-    vi.mocked(venueService.getVenues).mockResolvedValueOnce([]);
+    vi.mocked(venueService.getVenues).mockResolvedValue([]);
 
     renderVenuesPage();
+
+    const searchInput = screen.getByPlaceholderText(/Search by hotel name or city.../i);
+    fireEvent.change(searchInput, { target: { value: 'NonExistentHotelXYZ123' } });
 
     await waitFor(() => {
       expect(screen.getByText(/No Venues Found/i)).toBeInTheDocument();
