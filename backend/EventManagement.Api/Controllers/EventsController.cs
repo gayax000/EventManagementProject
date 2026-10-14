@@ -912,7 +912,7 @@ public class EventsController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching my-events for customer {CustomerId}", customerId);
-            return Ok(new List<EventResponseDto>());
+            return StatusCode(500, new { message = "An error occurred while retrieving events. Please try again." });
         }
     }
 

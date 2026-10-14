@@ -6,7 +6,7 @@ import 'auth_service.dart';
 
 class ApiService {
   static String get baseUrl {
-    return 'https://eventmanagementproject-production-94fe.up.railway.app/api';
+    return AuthService.baseUrl;
   }
 
   static http.Client _client = http.Client();

@@ -131,6 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [viewModalEvent, setViewModalEvent] = useState<EventItem | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [specialDiscount, setSpecialDiscount] = useState<number>(0);
   const [customAddonCost, setCustomAddonCost] = useState<number>(0);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -333,6 +334,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const loadEvents = async () => {
     try {
       setLoading(true);
+      setEventsError(null);
       const data = await eventService.getMyEvents();
       setEvents(data);
       if (data.length > 0 && !selectedEvent) {
@@ -340,6 +342,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     } catch (err) {
       console.error("Failed to load events from backend", err);
+      setEventsError("Could not load event requests. Please retry. If this continues, sign in again or check the API server.");
     } finally {
       setLoading(false);
     }
@@ -2061,7 +2064,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           {/* Cards Grid */}
-          {filteredEvents.length === 0 ? (
+          {eventsError ? (
+            <div role="alert" className="text-center py-12 text-red-700 bg-red-50 rounded-xl">
+              <p>{eventsError}</p>
+              <button onClick={loadEvents} className="mt-3 font-bold underline">Retry loading events</button>
+            </div>
+          ) : loading ? (
+            <p role="status" className="text-center py-12 text-slate-500">Loading event requests...</p>
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <Calendar className="w-8 h-8 mx-auto text-slate-400 mb-2" />
               <p className="font-semibold text-slate-700">No event proposals matching this filter.</p>

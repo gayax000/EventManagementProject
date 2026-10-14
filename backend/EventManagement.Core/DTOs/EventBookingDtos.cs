@@ -79,7 +79,8 @@ public class EventResponseDto
 public class AssignedVendorDto
 {
     public string Category { get; set; } = string.Empty;
-    public Guid? VendorId { get; set; }
+    // Assignments also include synthetic services such as "hotel-in-house".
+    public string? VendorId { get; set; }
     public string VendorName { get; set; } = string.Empty;
     public string? PackageName { get; set; }
     public decimal? PackagePrice { get; set; }
