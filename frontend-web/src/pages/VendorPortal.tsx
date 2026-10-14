@@ -322,6 +322,7 @@ export const VendorPortal: React.FC = () => {
   const [showNetworkCatalog, setShowNetworkCatalog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
 
   const selectedCategoryConfig = VENDOR_SERVICE_CONFIG[category] || getCategoryInfo(category);
 
@@ -347,16 +348,23 @@ export const VendorPortal: React.FC = () => {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
-            const currentUserId = authService.getUserId();
-            const currentUserRole = authService.getUserRole();
-            if (currentUserRole === 'Vendor') {
-              return parsed.filter((v: any) => {
-                const vUserId = (v.userId || '').toString().toLowerCase();
-                if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
-                return !!(currentUserId && vUserId === currentUserId.toLowerCase());
-              });
+            const currentUserId = authService.getUserId().toLowerCase();
+            // Strictly exclude seeded system catalog vendors (UserId = 00000000-0000-0000-0000-000000000001)
+            const userOnly = parsed.filter((v: any) => {
+              const vUserId = (v.userId || '').toString().toLowerCase();
+              if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+              if (currentUserId && vUserId && vUserId !== currentUserId) return false;
+              return true;
+            });
+            // If cache contained leaked system vendors, clean it up immediately
+            if (userOnly.length !== parsed.length) {
+              try {
+                localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(userOnly));
+                const ids = userOnly.map((v: any) => v.id || v.vendorId);
+                localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
+              } catch {}
             }
-            return parsed;
+            return userOnly;
           }
         }
       }
@@ -375,60 +383,43 @@ export const VendorPortal: React.FC = () => {
     ? (myVendors.find(v => (v.vendorId || v.id) === selectedVendorId) || myVendors[0])
     : null;
 
-  // Sync with Backend API
+  // Sync with Backend API using dedicated secure endpoint
   const syncMyVendors = async () => {
     try {
-      const currentUserId = authService.getUserId();
-      const currentUserRole = authService.getUserRole();
-      // Fetch all vendors from API
-      const allVendors = await vendorService.getVendors();
-      if (Array.isArray(allVendors)) {
-        let userBusinesses: VendorItem[] = [];
+      const currentUserId = authService.getUserId().toLowerCase();
+      // Fetch strictly the logged-in vendor's businesses from the backend
+      const res = await vendorService.getMyVendors();
+      if (Array.isArray(res)) {
+        // Strict client-side filter as defense-in-depth: never show system catalog vendors
+        const userBusinesses = res.filter(v => {
+          const vUserId = (v.userId || '').toString().toLowerCase();
+          if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
+          if (currentUserId && vUserId && vUserId !== currentUserId) return false;
+          return true;
+        });
 
-        if (currentUserRole === 'Vendor') {
-          // Strictly match vendors owned by this specific logged-in user
-          userBusinesses = allVendors.filter(v => {
-            const vUserId = (v.userId || '').toString().toLowerCase();
-            // Never include system catalog seeded vendors
-            if (vUserId === '00000000-0000-0000-0000-000000000001') return false;
-            // Must have currentUserId matching vUserId
-            if (currentUserId && vUserId === currentUserId.toLowerCase()) return true;
+        const mapped = userBusinesses.map(v => ({
+          ...v,
+          id: v.vendorId || v.id,
+          vendorId: v.vendorId || v.id,
+          status: v.verificationStatus || v.status || 'Pending',
+          verificationStatus: v.verificationStatus || v.status || 'Pending',
+        }));
 
-            // Also check saved single ID if registered in this browser session
-            const singleId = localStorage.getItem(`eventcraft_vendor_id_${userKey}`);
-            const vId = (v.vendorId || v.id || '').toString();
-            if (singleId && vId === singleId) return true;
+        setMyVendors(mapped);
+        try {
+          localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(mapped));
+          const ids = mapped.map(v => v.id || v.vendorId);
+          localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
+        } catch {}
 
-            return false;
-          });
-        } else {
-          // For Manager or Admin inspecting the vendor portal
-          userBusinesses = allVendors;
-        }
-
-        if (userBusinesses.length > 0) {
-          const mapped = userBusinesses.map(v => ({
-            ...v,
-            id: v.vendorId || v.id,
-            vendorId: v.vendorId || v.id,
-            status: v.verificationStatus || v.status || 'Pending',
-            verificationStatus: v.verificationStatus || v.status || 'Pending',
-          }));
-          setMyVendors(mapped);
-          try {
-            localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(mapped));
-            const ids = mapped.map(v => v.id || v.vendorId);
-            localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
-          } catch {}
-
+        if (mapped.length > 0) {
           if (!selectedVendorId || !mapped.some(v => (v.vendorId || v.id) === selectedVendorId)) {
             const firstId = mapped[0].id || mapped[0].vendorId || null;
             setSelectedVendorId(firstId);
             if (firstId) localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, firstId);
           }
         } else {
-          // If logged-in vendor has no registered businesses, clear myVendors and stale cache
-          setMyVendors([]);
           setSelectedVendorId(null);
           try {
             localStorage.removeItem(`eventcraft_vendor_list_${userKey}`);
@@ -520,7 +511,16 @@ export const VendorPortal: React.FC = () => {
   // Handle New Vendor Registration
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessName || !contactNumber) return;
+    if (!businessName.trim() || !contactNumber.trim()) return;
+
+    // Validate Sri Lankan Phone Number format (e.g. 0771234567 or +94771234567)
+    const cleanPhone = contactNumber.trim().replace(/[\s-]/g, '');
+    const phoneRegex = /^(?:\+94|0)[0-9]{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setContactError("Please enter a valid 10-digit Sri Lankan phone number (e.g. 0771234567 or +94771234567).");
+      return;
+    }
+    setContactError(null);
 
     try {
       setSubmitting(true);
@@ -528,42 +528,25 @@ export const VendorPortal: React.FC = () => {
 
       // Save to backend API
       const registeredVendor = await vendorService.registerVendor({
-        businessName,
+        businessName: businessName.trim(),
         category,
-        contactNumber,
+        contactNumber: cleanPhone,
         description: description || packageName || selectedCategoryConfig.defaultPackage,
         packageName: packageName || selectedCategoryConfig.defaultPackage,
         packagePrice: Number(packagePrice) || selectedCategoryConfig.defaultPrice,
         userId: currentUserId || undefined
       });
 
-      const newVendorId = (registeredVendor as any).vendorId || registeredVendor.id;
-      
-      const newVendorData: any = {
-        ...registeredVendor,
-        id: newVendorId,
-        vendorId: newVendorId,
-        verificationStatus: (registeredVendor as any).verificationStatus || 'Pending',
-        status: (registeredVendor as any).verificationStatus || 'Pending',
-        packageName: packageName || selectedCategoryConfig.defaultPackage,
-        packagePrice: Number(packagePrice) || selectedCategoryConfig.defaultPrice,
-        userId: currentUserId
-      };
+      const newVendorId = (registeredVendor as any)?.vendorId || registeredVendor?.id;
 
-      setMyVendors(prev => {
-        const filtered = prev.filter(v => (v.vendorId || v.id) !== newVendorId);
-        const updated = [newVendorData, ...filtered];
-        try {
-          localStorage.setItem(`eventcraft_vendor_list_${userKey}`, JSON.stringify(updated));
-          const ids = updated.map(v => v.id || (v as any).vendorId);
-          localStorage.setItem(`eventcraft_vendor_ids_${userKey}`, JSON.stringify(ids));
-        } catch {}
-        return updated;
-      });
+      // Authoritative sync directly with backend
+      await syncMyVendors();
 
-      setSelectedVendorId(newVendorId);
-      if (userKey) {
-        localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, newVendorId);
+      if (newVendorId) {
+        setSelectedVendorId(newVendorId);
+        if (userKey) {
+          localStorage.setItem(`eventcraft_active_vendor_id_${userKey}`, newVendorId);
+        }
       }
 
       setRegisteredSuccess(true);
@@ -573,9 +556,16 @@ export const VendorPortal: React.FC = () => {
       setContactNumber('');
       setDescription('');
       setPackageName('');
-    } catch (err) {
+      setContactError(null);
+    } catch (err: any) {
       console.error("Backend vendor registration failed:", err);
-      alert("Failed to register vendor. Please ensure backend API is running.");
+      const backendErrorMsg =
+        err?.response?.data?.errors?.ContactNumber?.[0] ||
+        err?.response?.data?.errors?.PhoneNumber?.[0] ||
+        err?.response?.data?.message ||
+        (typeof err?.response?.data === 'string' ? err.response.data : null) ||
+        "Failed to register vendor. Please verify details and try again.";
+      alert(backendErrorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -1252,10 +1242,20 @@ export const VendorPortal: React.FC = () => {
                   type="text"
                   required
                   value={contactNumber}
-                  onChange={e => setContactNumber(e.target.value)}
-                  placeholder="e.g. +94 77 987 6543"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  onChange={e => {
+                    setContactNumber(e.target.value);
+                    if (contactError) setContactError(null);
+                  }}
+                  placeholder="e.g. 077 123 4567 or +94 77 123 4567"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 ${
+                    contactError ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20' : 'border-slate-300 focus:ring-indigo-500'
+                  }`}
                 />
+                {contactError && (
+                  <p className="text-xs text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                    <span>⚠️</span> {contactError}
+                  </p>
+                )}
               </div>
             </div>
 
