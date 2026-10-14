@@ -86,9 +86,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       );
 
       if (!mounted) return;
+      final refStr = (_proposal!.bookingRef != null && _proposal!.bookingRef!.isNotEmpty)
+          ? _proposal!.bookingRef!
+          : 'EV-2026-REF';
       AppFeedback.showPaymentSlipSubmittedSheet(
         context,
-        bookingRef: _proposal!.bookingRef.isNotEmpty ? _proposal!.bookingRef : 'EV-2026-REF',
+        bookingRef: refStr,
         amount: _proposal!.estimatedTotalCost,
         eventTitle: _proposal!.title,
         onDone: () {
@@ -295,9 +298,12 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       if (!mounted) return;
 
       if (result != null) {
+        final contractRef = (_proposal?.bookingRef != null && _proposal!.bookingRef!.isNotEmpty)
+            ? _proposal!.bookingRef!
+            : 'EV-2026-REF';
         AppFeedback.showContractSignedSheet(
           context,
-          bookingRef: _proposal?.bookingRef.isNotEmpty == true ? _proposal!.bookingRef : 'EV-2026-REF',
+          bookingRef: contractRef,
           eventTitle: _proposal?.title ?? 'Event Contract',
           onViewPass: () {
             _loadProposal();

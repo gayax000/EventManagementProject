@@ -511,7 +511,7 @@ class AppFeedback {
           value: eventTitle,
           isBold: true,
         ),
-        FeedbackDetailRow(
+        const FeedbackDetailRow(
           label: 'Target Action:',
           value: 'Proposal Adjustment',
         ),
