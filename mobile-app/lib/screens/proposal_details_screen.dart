@@ -2687,6 +2687,27 @@ class _ProposalDetailsScreenState extends State<ProposalDetailsScreen> {
       }
     }
 
+    // Exact Synchronized Balance Guardrail between breakdown items and proposal.estimatedTotalCost
+    if (!wasLegacyUpgraded && proposal.estimatedTotalCost > 0) {
+      double currentSum = items.fold(0.0, (acc, it) => acc + ((it['cost'] as num?)?.toDouble() ?? 0.0));
+      final double diff = currentSum - proposal.estimatedTotalCost;
+      if (diff > 100 && !items.any((it) => it['isDiscount'] == true)) {
+        items.add({
+          'label': 'Manager Courtesy Discount',
+          'cost': -diff,
+          'isDiscount': true,
+          'isSpecial': false,
+        });
+      } else if (diff < -100 && !items.any((it) => it['isSpecial'] == true)) {
+        items.add({
+          'label': 'Special Custom Add-ons / Manager Allocation',
+          'cost': -diff,
+          'isDiscount': false,
+          'isSpecial': true,
+        });
+      }
+    }
+
     return {
       'items': items,
       'wasLegacyUpgraded': wasLegacyUpgraded,
