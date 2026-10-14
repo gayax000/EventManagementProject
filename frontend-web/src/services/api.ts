@@ -63,6 +63,7 @@ export interface EventItem {
   inspirationImages?: string[];
   inspirationImageUrl?: string;
   weatherAssessment?: any;
+  generatedPlan?: string;
   estimatedTotalCost?: number;
   assignedVendors?: Array<{ category: string; vendorId?: string; vendorName: string; packageName?: string; packagePrice?: number }>;
   assignedVendorsJson?: string;

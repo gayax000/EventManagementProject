@@ -348,6 +348,7 @@ public class EventsController : ControllerBase
                 : new List<AssignedVendorDto>(),
             EstimatedTotalCost = ev.AIWorkflowState?.EstimatedTotalCost,
             WeatherAssessment = ev.AIWorkflowState?.WeatherAssessmentJson,
+            GeneratedPlan = ev.AIWorkflowState?.GeneratedPlanJson,
             CreatedAt = ev.CreatedAt
         });
     }
@@ -658,6 +659,7 @@ public class EventsController : ControllerBase
                         InspirationImageUrl = null,
                         EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                         WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        GeneratedPlan = ev.AIWorkflowState != null ? ev.AIWorkflowState.GeneratedPlanJson : null,
                         CustomerId = ev.CustomerId,
                         CustomerName = ev.Customer != null ? ev.Customer.FullName : "Kasun Customer",
                         CustomerEmail = ev.Customer != null ? ev.Customer.Email : "customer@eventcraft.lk",
@@ -675,6 +677,27 @@ public class EventsController : ControllerBase
             {
                 var item = row.Dto;
                 item.InspirationImages = new List<string>();
+
+                if (IsLegacyOrOutOfSyncPlan(item.Status, item.BudgetLimit, item.IsOutdoor, row.GeneratedPlanJson, item.WeatherAssessment))
+                {
+                    try
+                    {
+                        await _context.Events.Where(e => e.EventId == item.EventId).ExecuteUpdateAsync(s => s.SetProperty(e => e.AssignedVendorsJson, (string?)null));
+                        item.AssignedVendorsJson = null;
+                        var refreshed = await _aiWorkflowService.TriggerAgenticPlanAsync(item.EventId);
+                        if (refreshed != null)
+                        {
+                            item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
+                            item.WeatherAssessment = refreshed.WeatherAssessmentJson;
+                            item.GeneratedPlan = refreshed.GeneratedPlanJson;
+                        }
+                    }
+                    catch { }
+                }
+                else
+                {
+                    item.GeneratedPlan = row.GeneratedPlanJson;
+                }
 
                 if (!string.IsNullOrEmpty(row.TableRefreshmentsJson))
                 {
@@ -800,6 +823,7 @@ public class EventsController : ControllerBase
                         InspirationImageUrl = null,
                         EstimatedTotalCost = ev.AIWorkflowState != null ? ev.AIWorkflowState.EstimatedTotalCost : null,
                         WeatherAssessment = ev.AIWorkflowState != null ? ev.AIWorkflowState.WeatherAssessmentJson : null,
+                        GeneratedPlan = ev.AIWorkflowState != null ? ev.AIWorkflowState.GeneratedPlanJson : null,
                         CustomerId = ev.CustomerId,
                         CustomerName = ev.Customer != null ? ev.Customer.FullName : "Kasun Customer",
                         CustomerEmail = ev.Customer != null ? ev.Customer.Email : "customer@eventcraft.lk",
@@ -829,9 +853,14 @@ public class EventsController : ControllerBase
                         {
                             item.EstimatedTotalCost = refreshed.EstimatedTotalCost;
                             item.WeatherAssessment = refreshed.WeatherAssessmentJson;
+                            item.GeneratedPlan = refreshed.GeneratedPlanJson;
                         }
                     }
                     catch { }
+                }
+                else
+                {
+                    item.GeneratedPlan = row.GeneratedPlanJson;
                 }
 
                 if (!string.IsNullOrEmpty(row.TableRefreshmentsJson))

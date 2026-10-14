@@ -665,6 +665,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               inspirationImages: parsedImages.length > 0 ? parsedImages : (prev.inspirationImages || []),
               assignedVendors: (p as any).assignedVendors || prev.assignedVendors,
               assignedVendorsJson: (p as any).assignedVendorsJson || prev.assignedVendorsJson,
+              generatedPlan: p.generatedPlan || (prev as any)?.generatedPlan,
             } : prev);
           }
         })
@@ -735,6 +736,91 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (onAuthChange) onAuthChange();
   };
 
+  // Helper: Parse AI-Generated Plan items (Unified Single Source of Truth with Mobile)
+  interface ParsedPlanResult {
+    items: Array<{ name: string; cost: number }>;
+    tentItem: { name: string; cost: number } | null;
+    refreshmentItems: Array<{ name: string; itemPerHead: number; cost: number }>;
+    soundsItem: { name: string; cost: number } | null;
+    decoItem: { name: string; cost: number } | null;
+    photoItem: { name: string; cost: number } | null;
+    cakeItem: { name: string; cost: number } | null;
+    transportItem: { name: string; cost: number } | null;
+  }
+
+  const parseGeneratedPlan = (planRaw?: string | string[]): ParsedPlanResult => {
+    if (!planRaw) return { items: [], tentItem: null, refreshmentItems: [], soundsItem: null, decoItem: null, photoItem: null, cakeItem: null, transportItem: null };
+    let lines: string[] = [];
+    if (Array.isArray(planRaw)) {
+      lines = planRaw;
+    } else if (typeof planRaw === 'string') {
+      try {
+        const parsed = JSON.parse(planRaw);
+        if (Array.isArray(parsed)) lines = parsed;
+      } catch {
+        lines = [];
+      }
+    }
+
+    const items: Array<{ name: string; cost: number }> = [];
+    let tentItem: { name: string; cost: number } | null = null;
+    const refreshmentItems: Array<{ name: string; itemPerHead: number; cost: number }> = [];
+    let soundsItem: { name: string; cost: number } | null = null;
+    let decoItem: { name: string; cost: number } | null = null;
+    let photoItem: { name: string; cost: number } | null = null;
+    let cakeItem: { name: string; cost: number } | null = null;
+    let transportItem: { name: string; cost: number } | null = null;
+
+    const refKeywords = [
+      'mocktail', 'punch', 'cordial', 'juice', 'biscuit', 'canap', 'pastries', 'roll', 'samosa',
+      'snack', 'pudding', 'watalappan', 'chocolate fountain', 'ice cream', 'dessert',
+      'tea station', 'tea &', 'plain & milk tea', 'coffee', 'espresso', 'midnight', 'kottu', 'hopper'
+    ];
+
+    for (const rawLine of lines) {
+      const line = String(rawLine).trim();
+      if (!line || line.startsWith('Weather Assessment') || line.startsWith('No Marquee Tent') || line.startsWith('Event Session')) {
+        continue;
+      }
+      const eqMatch = line.match(/=\s*(?:Rs\.|LKR)\s*(-?[\d,]+)/i);
+      const parenMatches = [...line.matchAll(/\((?:Rs\.|LKR|-Rs\.|-LKR)\s*(-?[\d,]+)\)/gi)];
+      const lastParen = parenMatches.length > 0 ? parenMatches[parenMatches.length - 1] : null;
+
+      let cost = 0;
+      let label = line;
+
+      if (eqMatch) {
+        cost = parseFloat(eqMatch[1].replace(/,/g, '')) || 0;
+        label = line.split('=')[0].trim();
+      } else if (lastParen) {
+        cost = parseFloat(lastParen[1].replace(/,/g, '')) || 0;
+        label = line.substring(0, lastParen.index).trim();
+      }
+
+      if (label && cost > 0) {
+        items.push({ name: label, cost });
+        const lower = label.toLowerCase();
+        if (lower.includes('marquee') || lower.includes('canopy') || lower.includes('tent') || lower.includes('hangar')) {
+          tentItem = { name: label, cost };
+        } else if (refKeywords.some(kw => lower.includes(kw))) {
+          refreshmentItems.push({ name: label, itemPerHead: 0, cost });
+        } else if (lower.includes('sound') || lower.includes('audio') || lower.includes('rig') || lower.includes('lighting')) {
+          soundsItem = { name: label, cost };
+        } else if (lower.includes('deco') || lower.includes('floral') || lower.includes('flower') || lower.includes('arch')) {
+          decoItem = { name: label, cost };
+        } else if (lower.includes('photo') || lower.includes('cinema') || lower.includes('media') || lower.includes('album')) {
+          photoItem = { name: label, cost };
+        } else if (lower.includes('cake') || lower.includes('fondant')) {
+          cakeItem = { name: label, cost };
+        } else if (lower.includes('transport') || lower.includes('rolls royce') || lower.includes('chauffeur') || lower.includes('sedan') || lower.includes('jaguar') || lower.includes('benz') || lower.includes('bmw')) {
+          transportItem = { name: label, cost };
+        }
+      }
+    }
+
+    return { items, tentItem, refreshmentItems, soundsItem, decoItem, photoItem, cakeItem, transportItem };
+  };
+
   // Smart AI Tiered Resource Allocation Engine (Budget & Event-Type Context Aware)
   const getAllocations = (
     ev: EventItem | null, 
@@ -760,6 +846,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
     const services = ev.selectedServices || [];
+    const parsedPlan = !forceAutoFit ? parseGeneratedPlan(ev.generatedPlan) : null;
 
     // 1. Sound & Lighting
     const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio')) || (overrideSoundsCost !== null && overrideSoundsCost !== undefined);
@@ -772,6 +859,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['SoundLighting']?.agreedPayout) {
         soundsCost = selectedVendorAssignments['SoundLighting'].agreedPayout;
         soundsName = selectedVendorAssignments['SoundLighting'].packageName || 'Standard Stage Audio + Warm Ambient LED PAR Cans';
+      } else if (parsedPlan?.soundsItem) {
+        soundsCost = parsedPlan.soundsItem.cost;
+        soundsName = parsedPlan.soundsItem.name;
       } else if (budget >= 2000000) {
         soundsCost = 250000;
         soundsName = 'Concert Line-Array Rig + 16 Moving Heads + Beam Trusses';
@@ -798,6 +888,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Decor']?.agreedPayout) {
         decoCost = selectedVendorAssignments['Decor'].agreedPayout;
         decoName = selectedVendorAssignments['Decor'].packageName || 'Thematic Floral Stage + Table Centerpieces';
+      } else if (parsedPlan?.decoItem) {
+        decoCost = parsedPlan.decoItem.cost;
+        decoName = parsedPlan.decoItem.name;
       } else if (budget >= 2000000) {
         decoCost = 220000;
         decoName = 'Royal Fresh Flower Ceiling Drapes & Grand Stage Decor';
@@ -824,6 +917,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Photography']?.agreedPayout) {
         photoCost = selectedVendorAssignments['Photography'].agreedPayout;
         photoName = selectedVendorAssignments['Photography'].packageName || 'Professional Event Coverage';
+      } else if (parsedPlan?.photoItem) {
+        photoCost = parsedPlan.photoItem.cost;
+        photoName = parsedPlan.photoItem.name;
       } else if (selectedVendorAssignments['Photography']?.isPending) {
         photoCost = 0;
         photoName = 'Awaiting Live Registration (Pending Viva Demo)';
@@ -850,6 +946,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Cake']?.agreedPayout) {
         cakeCost = selectedVendorAssignments['Cake'].agreedPayout;
         cakeLabel = selectedVendorAssignments['Cake'].packageName || '2-Tier Custom Handcrafted Fondant Cake';
+      } else if (parsedPlan?.cakeItem) {
+        cakeCost = parsedPlan.cakeItem.cost;
+        cakeLabel = parsedPlan.cakeItem.name;
       } else if (budget >= 2000000) {
         cakeCost = 65000;
         cakeLabel = '5-Tier Royal Handcrafted Fondant Wedding Cake';
@@ -880,6 +979,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Transport']?.agreedPayout) {
         transportCost = selectedVendorAssignments['Transport'].agreedPayout;
         transportName = selectedVendorAssignments['Transport'].packageName || 'BMW 5-Series Executive Bridal Sedan';
+      } else if (parsedPlan?.transportItem) {
+        transportCost = parsedPlan.transportItem.cost;
+        transportName = parsedPlan.transportItem.name;
       } else if (budget >= 2000000) {
         transportCost = 95000;
         transportName = 'Classic Vintage Rolls Royce / 1954 Jaguar Mark VII';
@@ -925,6 +1027,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         name: selectedVendorAssignments['Refreshments'].packageName || (isHotelVenue ? 'Hotel In-House Refreshment Package' : 'Vendor Beverage & Refreshment Package'),
         itemPerHead: Math.round(refreshmentsCost / guestCnt),
         cost: refreshmentsCost
+      });
+    } else if (parsedPlan?.refreshmentItems && parsedPlan.refreshmentItems.length > 0) {
+      // Direct synchronization from Backend AI Generated Plan (Single Source of Truth)
+      parsedPlan.refreshmentItems.forEach(r => {
+        refreshmentsCost += r.cost;
+        refreshmentsItems.push({
+          name: r.name,
+          itemPerHead: Math.round(r.cost / guestCnt),
+          cost: r.cost
+        });
       });
     } else if (clientSelectedRefreshmentItems.length > 0) {
       // Calculate Flat Item Price for each specific checkbox selected by client
@@ -1041,12 +1153,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
 
     const isEventOutdoor = selectedEvent.isOutdoor === true;
+    const parsedPlan = !isBudgetAutoFitted ? parseGeneratedPlan(selectedEvent.generatedPlan) : null;
     let weatherData = selectedEvent.weatherAssessment;
     if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
       try { weatherData = JSON.parse(weatherData); } catch (e) {}
     }
-    const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
-    const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
+    const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : (parsedPlan?.tentItem ? 67 : 0);
+    const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : (parsedPlan?.tentItem ? parsedPlan.tentItem.cost : 0);
 
     let weatherTentCost = 0;
     let weatherTentName = 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
@@ -1063,22 +1176,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = found.cost;
           weatherTentName = found.name;
         }
-      } else if (needsWeatherTent) {
-        if (selectedVendorAssignments['MarqueeTent']?.agreedPayout !== undefined) {
-          weatherTentCost = selectedVendorAssignments['MarqueeTent'].agreedPayout;
-          weatherTentName = selectedVendorAssignments['MarqueeTent'].packageName || 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
-        } else if (isBudgetAutoFitted) {
-          if ((selectedEvent.guestCount || 0) >= 200) {
-            weatherTentCost = 100000;
-            weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
-          } else if ((selectedEvent.guestCount || 0) >= 100) {
-            weatherTentCost = 60000;
-            weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
-          } else {
-            weatherTentCost = 25000;
-            weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
-          }
+      } else if (isBudgetAutoFitted) {
+        if ((selectedEvent.guestCount || 0) >= 200) {
+          weatherTentCost = 100000;
+          weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+        } else if ((selectedEvent.guestCount || 0) >= 100) {
+          weatherTentCost = 60000;
+          weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
         } else {
+          weatherTentCost = 25000;
+          weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+        }
+      } else if (parsedPlan?.tentItem) {
+        weatherTentCost = parsedPlan.tentItem.cost;
+        weatherTentName = parsedPlan.tentItem.name;
+      } else if (needsWeatherTent) {
           const evBudget = Number(selectedEvent.budgetLimit) || 1500000;
           const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
           if (tentFallback && tentFallback.packagePrice) {
@@ -1097,7 +1209,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             weatherTentCost = 45000;
             weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
           }
-        }
       } else {
         weatherTentCost = 0;
         weatherTentName = 'Safeguard Not Required (Clear Weather)';
@@ -1649,13 +1760,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   );
 
   const isEventOutdoor = selectedEvent?.isOutdoor === true;
+  const parsedPlan = !isBudgetAutoFitted ? parseGeneratedPlan(selectedEvent?.generatedPlan) : null;
   let weatherData = selectedEvent?.weatherAssessment;
   if (typeof weatherData === 'string' && weatherData.trim().startsWith('{')) {
     try { weatherData = JSON.parse(weatherData); } catch (e) {}
   }
-  const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : 0;
-  const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : 0;
-  const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? "Monsoon Showers" : "Indoor Climate Controlled");
+  const rainPct = weatherData ? (weatherData.rainProbabilityPercent ?? weatherData.RainProbabilityPercent ?? 0) : (parsedPlan?.tentItem ? 67 : 0);
+  const weatherSafeguardCost = weatherData ? (weatherData.safeguardCost ?? weatherData.SafeguardCost ?? 0) : (parsedPlan?.tentItem ? parsedPlan.tentItem.cost : 0);
+  const weatherCondition = weatherData?.condition || weatherData?.Condition || (isEventOutdoor ? (weatherSafeguardCost > 0 || (parsedPlan?.tentItem) ? "Monsoonal Cloud Cover & Heavy Afternoon Rain Showers" : "Monsoon Showers") : "Indoor Climate Controlled");
   const weatherAction = weatherData?.description || weatherData?.Description || weatherData?.actionRequired || weatherData?.ActionRequired || (isEventOutdoor ? "Rain safeguard applied" : "Indoor venue - No weather safeguard required");
 
   let weatherTentCost = 0;
@@ -1673,22 +1785,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
         weatherTentCost = found.cost;
         weatherTentName = found.name;
       }
-    } else if (needsWeatherTent) {
-      if (selectedVendorAssignments['MarqueeTent']?.agreedPayout !== undefined) {
-        weatherTentCost = selectedVendorAssignments['MarqueeTent'].agreedPayout;
-        weatherTentName = selectedVendorAssignments['MarqueeTent'].packageName || 'Waterproof Marquee Tent (Autonomous Weather Safeguard)';
-      } else if (isBudgetAutoFitted) {
-        if ((selectedEvent?.guestCount || 0) >= 200) {
-          weatherTentCost = 100000;
-          weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
-        } else if ((selectedEvent?.guestCount || 0) >= 100) {
-          weatherTentCost = 60000;
-          weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
-        } else {
-          weatherTentCost = 25000;
-          weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
-        }
+    } else if (isBudgetAutoFitted) {
+      if ((selectedEvent?.guestCount || 0) >= 200) {
+        weatherTentCost = 100000;
+        weatherTentName = 'Standard Large-Capacity Rain Canopy Pavilion (Budget Auto-Fit)';
+      } else if ((selectedEvent?.guestCount || 0) >= 100) {
+        weatherTentCost = 60000;
+        weatherTentName = 'Standard Medium-Capacity Waterproof Pavilion (Budget Auto-Fit)';
       } else {
+        weatherTentCost = 25000;
+        weatherTentName = 'Economy Compact Rain Protection Canopies (Budget Auto-Fit)';
+      }
+    } else if (parsedPlan?.tentItem) {
+      weatherTentCost = parsedPlan.tentItem.cost;
+      weatherTentName = parsedPlan.tentItem.name;
+    } else if (needsWeatherTent) {
         const evBudget = Number(selectedEvent?.budgetLimit) || 1500000;
         const tentFallback = autoAllocateVendorForCategory('MarqueeTent', evBudget);
         if (tentFallback && tentFallback.packagePrice) {
@@ -1707,8 +1818,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           weatherTentCost = 45000;
           weatherTentName = 'Waterproof Pagoda / Rain Shelter Canopy (15x15 ft)';
         }
-      }
-    } else {
+      } else {
       weatherTentCost = 0;
       weatherTentName = 'Safeguard Not Required (Clear Weather)';
     }
