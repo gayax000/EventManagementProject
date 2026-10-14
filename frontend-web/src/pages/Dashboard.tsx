@@ -772,8 +772,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
       try {
         const parsed = JSON.parse(planRaw);
         if (Array.isArray(parsed)) lines = parsed;
+        else if (typeof parsed === 'string') {
+          try {
+            const doubleParsed = JSON.parse(parsed);
+            if (Array.isArray(doubleParsed)) lines = doubleParsed;
+            else lines = [parsed];
+          } catch {
+            lines = [parsed];
+          }
+        }
       } catch {
-        lines = [];
+        if (planRaw.includes('\n')) {
+          lines = planRaw.split('\n').map(l => l.trim()).filter(Boolean);
+        } else {
+          lines = [planRaw];
+        }
       }
     }
 
@@ -789,7 +802,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const refKeywords = [
       'mocktail', 'punch', 'cordial', 'juice', 'biscuit', 'canap', 'pastries', 'roll', 'samosa',
       'snack', 'pudding', 'watalappan', 'chocolate fountain', 'ice cream', 'dessert',
-      'tea station', 'tea &', 'plain & milk tea', 'coffee', 'espresso', 'midnight', 'kottu', 'hopper'
+      'tea station', 'tea &', 'milk tea', 'plain & milk tea', 'coffee', 'espresso', 'midnight', 'kottu', 'hopper',
+      'fruit fusion', 'savory selection', 'canapé', 'mint lime', 'table refreshment', 'cordial punch'
     ];
 
     for (const rawLine of lines) {
@@ -810,6 +824,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (lastParen) {
         cost = parseFloat(lastParen[1].replace(/,/g, '')) || 0;
         label = line.substring(0, lastParen.index).trim();
+      } else {
+        const rawMatch = line.match(/(?:Rs\.|LKR)\s*([\d,]+)/i);
+        if (rawMatch) {
+          cost = parseFloat(rawMatch[1].replace(/,/g, '')) || 0;
+          label = line.replace(/(?:Rs\.|LKR)\s*[\d,]+/gi, '').replace(/[()=]/g, '').trim();
+        }
       }
 
       if (label && cost > 0) {
@@ -861,7 +881,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const budget = Number(ev.budgetLimit) || 1000000;
     const eventType = (ev.eventType || 'Wedding').toLowerCase();
     const services = ev.selectedServices || [];
-    const parsedPlan = !forceAutoFit ? parseGeneratedPlan(ev.generatedPlan) : null;
+    const parsedPlan = parseGeneratedPlan(ev.generatedPlan);
 
     // 1. Sound & Lighting
     const hasSounds = services.some(s => s.toLowerCase().includes('sound') || s.toLowerCase().includes('lighting') || s.toLowerCase().includes('audio')) || (overrideSoundsCost !== null && overrideSoundsCost !== undefined);
@@ -874,7 +894,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['SoundLighting']?.agreedPayout) {
         soundsCost = selectedVendorAssignments['SoundLighting'].agreedPayout;
         soundsName = selectedVendorAssignments['SoundLighting'].packageName || 'Standard Stage Audio + Warm Ambient LED PAR Cans';
-      } else if (parsedPlan?.soundsItem) {
+      } else if (parsedPlan?.soundsItem && !forceAutoFit) {
         soundsCost = parsedPlan.soundsItem.cost;
         soundsName = parsedPlan.soundsItem.name;
       } else if (budget >= 2000000) {
@@ -903,7 +923,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Decor']?.agreedPayout) {
         decoCost = selectedVendorAssignments['Decor'].agreedPayout;
         decoName = selectedVendorAssignments['Decor'].packageName || 'Thematic Floral Stage + Table Centerpieces';
-      } else if (parsedPlan?.decoItem) {
+      } else if (parsedPlan?.decoItem && !forceAutoFit) {
         decoCost = parsedPlan.decoItem.cost;
         decoName = parsedPlan.decoItem.name;
       } else if (budget >= 2000000) {
@@ -932,7 +952,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Photography']?.agreedPayout) {
         photoCost = selectedVendorAssignments['Photography'].agreedPayout;
         photoName = selectedVendorAssignments['Photography'].packageName || 'Professional Event Coverage';
-      } else if (parsedPlan?.photoItem) {
+      } else if (parsedPlan?.photoItem && !forceAutoFit) {
         photoCost = parsedPlan.photoItem.cost;
         photoName = parsedPlan.photoItem.name;
       } else if (selectedVendorAssignments['Photography']?.isPending) {
@@ -961,7 +981,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Cake']?.agreedPayout) {
         cakeCost = selectedVendorAssignments['Cake'].agreedPayout;
         cakeLabel = selectedVendorAssignments['Cake'].packageName || '2-Tier Custom Handcrafted Fondant Cake';
-      } else if (parsedPlan?.cakeItem) {
+      } else if (parsedPlan?.cakeItem && !forceAutoFit) {
         cakeCost = parsedPlan.cakeItem.cost;
         cakeLabel = parsedPlan.cakeItem.name;
       } else if (budget >= 2000000) {
@@ -994,7 +1014,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else if (selectedVendorAssignments['Transport']?.agreedPayout) {
         transportCost = selectedVendorAssignments['Transport'].agreedPayout;
         transportName = selectedVendorAssignments['Transport'].packageName || 'BMW 5-Series Executive Bridal Sedan';
-      } else if (parsedPlan?.transportItem) {
+      } else if (parsedPlan?.transportItem && !forceAutoFit) {
         transportCost = parsedPlan.transportItem.cost;
         transportName = parsedPlan.transportItem.name;
       } else if (budget >= 2000000) {
@@ -1056,8 +1076,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     } else if (clientSelectedRefreshmentItems.length > 0) {
       // Calculate Flat Item Price for each specific checkbox selected by client
       const rangeIdx = guestCnt <= 150 ? 0 : (guestCnt <= 250 ? 1 : 2);
-      const isLuxury = budget >= 2000000;
-      const isPremium = budget >= 1000000;
+      const estCatering = guestCnt * (ev.perPlatePrice || 5000);
+      const estHall = isHotelVenue ? (ev.hallRentalPrice || 350000) : 0;
+      const netPool = Math.max(0, budget - estHall - estCatering);
+      const isLuxury = budget >= 2000000 && netPool >= 500000;
+      const isPremium = budget >= 1000000 && netPool >= 250000;
 
       clientSelectedRefreshmentItems.forEach(rawItem => {
         const item = rawItem.toLowerCase();
@@ -1544,38 +1567,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const autoTentCost = needsWeatherTentInAutoFit ? currentTentRate : 0;
 
     let autoRefreshmentsCost = 0;
-    let clientSelectedItems: string[] = [];
-    let rawRefData = (selectedEvent as any).tableRefreshments || (selectedEvent as any).tableRefreshmentsJson || (selectedEvent as any).TableRefreshmentsJson;
-    if (Array.isArray(rawRefData)) {
-      clientSelectedItems = rawRefData;
-    } else if (typeof rawRefData === 'string' && rawRefData.trim().length > 0) {
-      try {
-        const parsed = JSON.parse(rawRefData);
-        if (Array.isArray(parsed)) clientSelectedItems = parsed;
-        else clientSelectedItems = [rawRefData];
-      } catch (e) {
-        if (rawRefData.includes(',')) clientSelectedItems = rawRefData.split(',').map(s => s.trim());
-        else clientSelectedItems = [rawRefData];
+    const parsedPlanForAutoFit = parseGeneratedPlan(selectedEvent.generatedPlan);
+    if (parsedPlanForAutoFit?.refreshmentItems && parsedPlanForAutoFit.refreshmentItems.length > 0) {
+      autoRefreshmentsCost = parsedPlanForAutoFit.refreshmentItems.reduce((sum, r) => sum + r.cost, 0);
+    } else {
+      let clientSelectedItems: string[] = [];
+      let rawRefData = (selectedEvent as any).tableRefreshments || (selectedEvent as any).tableRefreshmentsJson || (selectedEvent as any).TableRefreshmentsJson;
+      if (Array.isArray(rawRefData)) {
+        clientSelectedItems = rawRefData;
+      } else if (typeof rawRefData === 'string' && rawRefData.trim().length > 0) {
+        try {
+          const parsed = JSON.parse(rawRefData);
+          if (Array.isArray(parsed)) clientSelectedItems = parsed;
+          else clientSelectedItems = [rawRefData];
+        } catch (e) {
+          if (rawRefData.includes(',')) clientSelectedItems = rawRefData.split(',').map(s => s.trim());
+          else clientSelectedItems = [rawRefData];
+        }
       }
-    }
-    const rangeIdx = guestCnt <= 150 ? 0 : (guestCnt <= 250 ? 1 : 2);
-    const isLuxury = budget >= 2000000;
-    const isPremium = budget >= 1000000;
+      const rangeIdx = guestCnt <= 150 ? 0 : (guestCnt <= 250 ? 1 : 2);
+      const netPool = Math.max(0, budget - hallRentalCost - cateringCostVal);
+      const isLuxury = budget >= 2000000 && netPool >= 500000;
+      const isPremium = budget >= 1000000 && netPool >= 250000;
 
-    clientSelectedItems.forEach(rawItem => {
-      const item = rawItem.toLowerCase();
-      if (item.includes('mocktail') || item.includes('drink')) {
-        autoRefreshmentsCost += isLuxury ? [38000, 58000, 85000][rangeIdx] : (isPremium ? [22000, 35000, 52000][rangeIdx] : [12000, 20000, 32000][rangeIdx]);
-      } else if (item.includes('midnight') || item.includes('action')) {
-        autoRefreshmentsCost += isLuxury ? [55000, 85000, 125000][rangeIdx] : (isPremium ? [32000, 50000, 75000][rangeIdx] : [20000, 30000, 45000][rangeIdx]);
-      } else if (item.includes('snack') || item.includes('savory') || item.includes('table refreshment')) {
-        autoRefreshmentsCost += isLuxury ? [42000, 65000, 95000][rangeIdx] : (isPremium ? [25000, 40000, 60000][rangeIdx] : [15000, 25000, 38000][rangeIdx]);
-      } else if (item.includes('dessert') || item.includes('sweet')) {
-        autoRefreshmentsCost += isLuxury ? [48000, 75000, 110000][rangeIdx] : (isPremium ? [28000, 45000, 68000][rangeIdx] : [15000, 25000, 40000][rangeIdx]);
-      } else if (item.includes('tea') || item.includes('coffee')) {
-        autoRefreshmentsCost += isLuxury ? [25000, 38000, 55000][rangeIdx] : (isPremium ? [15000, 22000, 32000][rangeIdx] : [8000, 12000, 18000][rangeIdx]);
-      }
-    });
+      clientSelectedItems.forEach(rawItem => {
+        const item = rawItem.toLowerCase();
+        if (item.includes('mocktail') || item.includes('drink')) {
+          autoRefreshmentsCost += isLuxury ? [38000, 58000, 85000][rangeIdx] : (isPremium ? [22000, 35000, 52000][rangeIdx] : [12000, 20000, 32000][rangeIdx]);
+        } else if (item.includes('midnight') || item.includes('action')) {
+          autoRefreshmentsCost += isLuxury ? [55000, 85000, 125000][rangeIdx] : (isPremium ? [32000, 50000, 75000][rangeIdx] : [20000, 30000, 45000][rangeIdx]);
+        } else if (item.includes('snack') || item.includes('savory') || item.includes('table refreshment')) {
+          autoRefreshmentsCost += isLuxury ? [42000, 65000, 95000][rangeIdx] : (isPremium ? [25000, 40000, 60000][rangeIdx] : [15000, 25000, 38000][rangeIdx]);
+        } else if (item.includes('dessert') || item.includes('sweet')) {
+          autoRefreshmentsCost += isLuxury ? [48000, 75000, 110000][rangeIdx] : (isPremium ? [28000, 45000, 68000][rangeIdx] : [15000, 25000, 40000][rangeIdx]);
+        } else if (item.includes('tea') || item.includes('coffee')) {
+          autoRefreshmentsCost += isLuxury ? [25000, 38000, 55000][rangeIdx] : (isPremium ? [15000, 22000, 32000][rangeIdx] : [8000, 12000, 18000][rangeIdx]);
+        }
+      });
+    }
 
     const specialReqCost = (selectedEvent.additionalDetails && selectedEvent.additionalDetails.trim().length > 0) ? specialAllocation : 0;
     const currentFixedCostsTotal = hallRentalCost + cateringCostVal + autoTentCost + autoRefreshmentsCost + specialReqCost;

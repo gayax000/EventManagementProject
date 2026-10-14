@@ -686,8 +686,11 @@ public class AiWorkflowService : IAiWorkflowService
         decimal hallRental = isPrivateVenue ? 0m : ev.HallRentalPrice;
         decimal budget = ev.BudgetLimit;
         int guestCount = Math.Max(1, ev.GuestCount);
-        bool isLuxuryBudget = budget >= 2000000m;
-        bool isPremiumBudget = budget >= 1000000m;
+        decimal estPlatePrice = (ev.HasBanquetHall && ev.PerPlatePrice > 0) ? ev.PerPlatePrice : 5000m;
+        decimal estCateringCost = guestCount * estPlatePrice;
+        decimal netVendorBudget = Math.Max(0m, budget - hallRental - estCateringCost);
+        bool isLuxuryBudget = budget >= 2000000m && netVendorBudget >= 500000m;
+        bool isPremiumBudget = budget >= 1000000m && netVendorBudget >= 250000m;
         int rangeIdx = guestCount <= 150 ? 0 : (guestCount <= 250 ? 1 : 2);
 
         // =========================================================================
