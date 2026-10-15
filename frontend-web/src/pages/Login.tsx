@@ -296,7 +296,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-                      placeholder="name@company.com"
+                      placeholder="manager@eventcraft.lk"
                     />
                   </div>
                 </div>
@@ -311,7 +311,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-                      placeholder="••••••••••••"
+                      placeholder="Manager@2026"
                     />
                   </div>
                 </div>
