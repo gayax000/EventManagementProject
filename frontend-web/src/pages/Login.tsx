@@ -286,30 +286,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             {/* Form: Log In (Log In Only - No Sign Up Switch) */}
             {authModal === 'login' ? (
               <form onSubmit={handleLoginSubmit} className="space-y-5">
-                {/* 1-Click Demo Login Box */}
-                <div className="p-3.5 bg-sky-950/60 border border-sky-800/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm">
-                  <div>
-                    <div className="font-bold text-sky-300 flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-sky-400" />
-                      <span>Operations Manager (Demo)</span>
-                    </div>
-                    <div className="text-slate-300 text-xs mt-0.5">
-                      Email: <span className="text-sky-200 font-mono font-medium">manager@eventcraft.lk</span> | Password: <span className="text-sky-200 font-mono font-medium">Manager@2026</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('manager@eventcraft.lk');
-                      setPassword('Manager@2026');
-                      setError('');
-                    }}
-                    className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-md shadow-sky-600/30 transition cursor-pointer self-start sm:self-auto flex items-center gap-1"
-                  >
-                    <span>⚡ Quick Fill</span>
-                  </button>
-                </div>
-
                 <div>
                   <label className="block text-sm sm:text-base font-semibold text-slate-200 mb-2">Email Address</label>
                   <div className="relative">
@@ -320,7 +296,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-                      placeholder="manager@eventcraft.lk"
+                      placeholder="name@company.com"
                     />
                   </div>
                 </div>
@@ -335,7 +311,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-12 pr-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-                      placeholder="Manager@2026"
+                      placeholder="••••••••••••"
                     />
                   </div>
                 </div>
